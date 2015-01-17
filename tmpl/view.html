@@ -23,11 +23,11 @@
  <div class="container">
 		<div id="main">
 			<h1>{{ .Title }}</h1>
-			{{.}}<br>
+			<!--{{.}}<br>-->
 			<p><a href="/list">List of pages</a></p>
 			</div>
 			<p>[<a href="/edit/{{.Title}}">edit</a>]</p>
-			<div>{{printf "%s" .Body}}</div>
+			<div>{{ .Content }}</div>
 </div>
 </body>
 </html>
