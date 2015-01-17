@@ -18,11 +18,43 @@
 </head>
 <body>
   <div id = "wrapper">
-  {{ template "nav" }}
+        <div class="navbar navbar-default" role="navigation">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <p class="navbar-brand"><a href="/">{{ .Title }}</a></p>
+          </div>
+        </div>
+       <!-- Sidebar -->
+       <div id="sidebar-wrapper">
+        <div class="sidebar-nav">
+        <ul class="list-unstyled sidebar-brand">
+          <li><a href="/"><img src="/logo.png" alt="Jordan's Blog"></a><h3>McSpicy Golang Wiki!</h3></li>
+        </ul>
+          <hr />
+        {{if .User}}
+          <p>HELLO {{ .User }}!</p>
+        {{else}}
+          <div id="login">
+          <h1>Login</h1>
+          <form method="post" action="/login">
+          <label for="name">Username</label>
+          <input type="text" id="name" name="name">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password">
+          <button type="submit">Login</button>
+          </form>
+          </div>
+        {{end}}
+       </div>
   </div>
  <div class="container">
 		<h1>Editing {{.Title}}</h1>
-
+		<hr />
 		<form action="/save/{{.Title}}" method="POST">
 		<div><textarea name="body" rows="20" cols="80">{{printf "%s" .Body}}</textarea></div>
 		<div><input type="submit" value="Save"></div>

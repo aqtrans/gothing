@@ -18,8 +18,27 @@
 </head>
 <body>
   <div id = "wrapper">
-  {{ template "nav" }}
-  </div>
+       <div id="sidebar-wrapper">
+        <div class="sidebar-nav">
+        <ul class="list-unstyled sidebar-brand">
+          <li><a href="/"><img src="/logo.png" alt="Jordan's Blog"></a><h3>McSpicy Golang Wiki!</h3></li>
+        </ul>
+          <hr />
+          {{.}}
+        {{if .}}
+          <p>HELLO {{ . }}!</p>
+        {{else}}
+          <h1>Login</h1>
+          <form method="post" action="/login">
+          <label for="name">Username</label>
+          <input type="text" id="name" name="name">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password">
+          <button type="submit">Login</button>
+          </form>
+        {{end}}
+       </div>
+       </div>
  <div class="container">
 			<h1>Welcome to my Gowiki!</h1>
 			<p>My first Golang app!</p>

@@ -22,9 +22,23 @@
        <div id="sidebar-wrapper">
         <div class="sidebar-nav">
         <ul class="list-unstyled sidebar-brand">
-          <li><a href="/"><img src="/logo.png" alt="Jordan's Blog"></a><h3><em>Insanity</em> is doing the same thing repeatedly and never writing a bash script for it.</h3></li>
+          <li><a href="/"><img src="/logo.png" alt="Jordan's Blog"></a><h3>McSpicy Golang Wiki!</h3></li>
         </ul>
           <hr />
+        {{if .User}}
+          <p>HELLO {{ .User }}!</p>
+        {{else}}
+          <div id="login">
+          <h1>Login</h1>
+          <form method="post" action="/login">
+          <label for="name">Username</label>
+          <input type="text" id="name" name="name">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password">
+          <button type="submit">Login</button>
+          </form>
+          </div>
+        {{end}}
         <!--<ul class="list-unstyled">
           {{ range .Site.Menus.main }}
           <li><a href="{{.Url}}">{{ .Pre }}<span>{{ .Name }}</span></a></li>
@@ -39,7 +53,7 @@
           {{ range .Site.Menus.sites }}
           <li><a href="{{.Url}}">{{ .Pre }}<span>{{ .Name }}</span></a></li>
           {{end}}
-        </ul>-->
-          <hr />
+        </ul>
+          <hr />-->
        </div>
 {{end}}
