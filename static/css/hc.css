@@ -36,6 +36,13 @@ button, input, optgroup, select, textarea
   color:#000
 }
 
+.entry-markdown-content input[type="submit"] {
+  width: 5rem;
+  height: 2rem;
+  margin-right: 38rem;
+  float: right !important;
+}
+
 h1,h2,h3,h4,h5,h6
 {
   color:#fff
