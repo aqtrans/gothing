@@ -1,0 +1,14 @@
+{{ template "head" }}
+<title>{{ .Title }}</title>
+{{ template "mid" }}
+{{ template "sidebar" }}
+<div class="container">
+<div id="main">
+<h1>{{ .Title }}</h1>
+<hr />
+<!--{{.}}<br>-->
+<p><a href="/list">List of pages</a></p>
+</div>
+<p>[<a href="/edit/{{.Title}}">edit</a>]</p>
+<div>{{ .Content }}</div>
+{{ template "foot" }}

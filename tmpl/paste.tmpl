@@ -1,0 +1,13 @@
+{{ template "head" }}
+<title>New paste</title>
+{{ template "mid" }}
+{{ template "sidebar" }}
+<div class="container">
+<div id="main">
+<h1>New paste</h1>
+<hr />
+<form action="/p" method="POST" enctype="text/plain">
+<textarea name="body"></textarea>
+<input type="submit" name="submit" value="Submit">
+</form>
+{{ template "foot" }}
