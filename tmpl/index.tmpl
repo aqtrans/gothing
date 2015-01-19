@@ -7,6 +7,16 @@
 <h1>Welcome to my Gowiki!</h1>
 		<hr />
 		<p>My first Golang app!</p>
+	    <div id="login">
+          <h1>Login</h1>
+          <form method="post" action="/login">
+          <label for="name">Username</label>
+          <input type="text" id="name" name="name">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password">
+          <button type="submit">Login</button>
+          </form>
+        </div>
 		<p>CLI Howto:</p>
 		<pre>curl --data "STUFF" http://d.es.gy/p(/ID)</pre>
 <hr />
