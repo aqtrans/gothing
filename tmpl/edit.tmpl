@@ -15,7 +15,7 @@
               &nbsp;&nbsp; Markdown 
             </header>
             <section class="entry-markdown-content">
-		        <form action="/save/{{.Title}}" method="POST">
+		        <form action="/api/new/wiki/{{.Title}}" method="POST">
 		          <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>
 		          <div><input type="submit" value="Save"></div>
 		        </form>
