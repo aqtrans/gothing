@@ -6,8 +6,8 @@
 <div id="main">
 <h1>New paste</h1>
 <hr />
-<form action="/api/new/paste" method="POST" enctype="text/plain">
-<textarea name="paste"></textarea>
+<form id="paste" name="paste" action="/api/new/paste" method="POST" enctype="text/plain">
+<textarea id="paste" name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
 <input type="submit" value="Submit">
 </form>
 {{ template "foot" }}
