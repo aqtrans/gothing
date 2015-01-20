@@ -1,0 +1,14 @@
+{{ template "head" }}
+<title>Upload a file</title>
+{{ template "mid_p" }}
+{{ template "sidebar" }}
+<div class="container">
+<div id="main">
+<h1>Upload a file</h1>
+<hr />
+<form action="/up" method="post" enctype="multipart/form-data">
+<label for="file">Filename:</label>
+<input type="file" name="file" id="file">
+<input type="submit" name="submit" value="Submit">
+</form>
+{{ template "foot" }}

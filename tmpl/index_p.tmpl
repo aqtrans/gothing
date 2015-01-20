@@ -1,13 +1,15 @@
 {{ template "head" .}}
 <title>Index</title>
-{{ template "mid" .}}
+{{ template "mid_p" .}}
 {{ template "sidebar" .}}
 <div class="container">
 <div id="main">
 <h1>Welcome to my Gowiki!</h1>
 		<hr />
 		<p>My first Golang app!</p>  
-{{ template "login_form" .}}
+	    <div id="login">
+          <h1>LOGGED IN!</h1>
+        </div>
 		<p>CLI Howto:</p>
 		<pre>curl --data "STUFF" http://m.jba.io/p(/ID)</pre>
 <hr />

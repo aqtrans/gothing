@@ -1,0 +1,15 @@
+{{ template "head" }}
+<title>Editing {{ .Title }}</title>
+{{ template "mid" }}
+{{ template "sidebar" }}
+<div class="container">
+<div id="main">
+<h1>Editing {{ .Title }}</h1>
+<hr />
+  <div class="features">
+		        <form action="/api/new/wiki/{{.Title}}" method="POST">
+		          <textarea name="body" data-provide="markdown" id="entry-markdown">{{printf "%s" .Body}}</textarea>
+		          <div><input type="submit" value="Save"></div>
+		        </form>
+  </div>
+{{ template "foot" }}
