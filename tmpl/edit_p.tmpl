@@ -1,6 +1,6 @@
 {{ template "head" }}
 <title>Editing {{ .Title }}</title>
-{{ template "mid" }}
+{{ template "mid_p" }}
 {{ template "sidebar" }}
 <div class="container">
 <div id="main">
@@ -8,8 +8,11 @@
 <hr />
   <div class="features">
 		        <form action="/api/new/wiki/{{.Title}}" method="POST">
-		          <textarea name="body" data-provide="markdown" id="entry-markdown">{{printf "%s" .Body}}</textarea>
+		          <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>
 		          <div><input type="submit" value="Save"></div>
 		        </form>
   </div>
+<script>
+$("#entry-markdown").markdown({iconlibrary:"fa",resize:"both"})
+</script>  
 {{ template "foot" }}
