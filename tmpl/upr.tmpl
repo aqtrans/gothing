@@ -1,0 +1,12 @@
+{{ template "head" }}
+<title>Upload a file FROM REMOTE</title>
+{{ template "mid" }}
+{{ template "sidebar" }}
+<div class="container">
+<div id="main">
+<h1>Upload a file REMOTE</h1>
+<hr />
+<form method="post" action="/rup" id="rup">
+<input type="text" id="remote" name="remote" size="25">
+<input type="submit" name="submit" value="Submit">
+{{ template "foot" }}
