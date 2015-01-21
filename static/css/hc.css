@@ -1,31 +1,37 @@
+/*
 @import url(//fonts.googleapis.com/css?family=Khand|Open+Sans|Roboto+Condensed:300italic,400italic,700italic,400,700,300|Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic);
+*/
 
 html {
   font-family: 'Roboto', "Helvetica Neue", helvetica, "Open Sans", sans-serif;
-  font-size: 100%;
+  font-size: 80%;
 }
 
 @media (min-width: 38em) {
   html {
-    font-size: 100%;
+    font-size: 80%;
   }
 }
 
 @media (min-width: 48em) {
   html {
-    font-size: 110%;
+    font-size: 90%;
   }
 }
 @media (min-width: 58em) {
   html {
-    font-size: 135%;
+    font-size: 100%;
   }
+}
+
+hr {
+  border-color: #000;
 }
 
 body
 {
-  color:#eee8d5;
-  background-color:#073642;
+  color:#000;
+  background-color:#fff;
   width:100%;
   border-top:solid #777;
   border-width:4px
@@ -45,13 +51,13 @@ button, input, optgroup, select, textarea
 
 h1,h2,h3,h4,h5,h6
 {
-  color:#fff
+  color:#000
 }
 
 h1
 {
   font-weight:700;
-  color:#6d7680
+  color:#000
 }
 
 h2,h3
@@ -61,7 +67,7 @@ h2,h3
 
 h1 a,h2 a,h3 a,h4 a
 {
-  color:#428fe0
+  color:#000
 }
 
 h1 a:hover,h2 a:hover,h3 a:hover,h4 a:hover
@@ -101,10 +107,10 @@ p {
 
 .container
 {
-  width:90%;
+  width:95%;
   padding-right:0;
   padding-top:30px;
-  background-color: #202020;
+  background-color: #fff;
   box-shadow: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22);
 }
 
@@ -130,22 +136,22 @@ a:active {
 
 #wrapper
 {
-  padding-left:250px;
+  padding-left:9.2rem;
   transition:all .5s ease 0
 }
 
 #sidebar-wrapper
 {
-  margin-left:-250px;
-  left:250px;
-  width:250px;
-  background:#202020;
+  margin-left:-9rem;
+  left:9rem;
+  width:9rem;
+  background:#fff;
   position:fixed;
   height:100%;
   overflow-y:auto;
   z-index:1000;
   margin-top:-4px;
-  border-top:solid #777;
+  border-top:solid #000;
   transition:all .4s ease 0;
   border-width:4px;
   box-shadow: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22);
@@ -155,7 +161,7 @@ a:active {
 {
   position:absolute;
   top:0;
-  width:250px;
+  width:9rem;
   list-style:none;
   margin:0;
   padding:30px 0 0
@@ -163,12 +169,12 @@ a:active {
 
 .sidebar-nav li
 {
-  line-height:35px;
+  line-height:25px;
   text-indent:10px;
   font-family:"Roboto Condensed", "Helvetica Neue", helvetica, "Open Sans", sans-serif;
   font-weight:200;
   color:#9c9c9c;
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .sidebar-nav li a
@@ -180,8 +186,8 @@ a:active {
 
 .sidebar-nav li a:hover
 {
-  color:#000;
-  background:#fff;
+  color:#fff;
+  background:#000;
   text-decoration:none;
   transition:all .2s ease 0
 }
@@ -435,7 +441,7 @@ img
 #article
 {
   margin-bottom:30px;
-  background-color: #202020;
+  background-color: #fff;
   /*box-shadow:1px 1px 0 1px #e8e8e8;*/
   padding:10px 40px 0
 }

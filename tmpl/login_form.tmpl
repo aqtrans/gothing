@@ -1,11 +1,8 @@
 {{define "login_form"}}
 <div id="login">
-<p>Login</p>
 <form method="post" action="/login">
-<label for="name">Username</label>
-<input type="text" id="name" name="name">
-<label for="password">Password</label>
-<input type="password" id="password" name="password">
+<input type="text" id="name" name="name" placeholder="Username" size="12">
+<input type="password" id="password" name="password" placeholder="Password" size="12">
 <button type="submit">Login</button>
 </form>
 </div>
