@@ -6,31 +6,8 @@
 <div id="main">
 <h1>Editing {{ .Title }}</h1>
 <hr />
-  <div class="features">
-    <section class="editor">
-      <div class="outer">
-        <div class="editorwrap">
-          <section class="entry-markdown">
-            <header class="floatingheader">
-              &nbsp;&nbsp; Markdown 
-            </header>
-            <section class="entry-markdown-content">
-		        <form action="/api/new/wiki/{{.Title}}" method="POST">
-		          <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>
-		          <div><input type="submit" value="Save"></div>
-		        </form>
-            </section>
-          </section>
-          <section class="entry-preview active">
-            <header class="floatingheader">
-              &nbsp;&nbsp; Preview <span class="entry-word-count">0 words</span>
-            </header>
-            <section class="entry-preview-content">
-              <div class="rendered-markdown"></div>
-            </section>
-          </section>
-        </div>
-      </div>
-    </section>
-  </div>
+<form action="/api/new/wiki/{{.Title}}" method="POST">
+  <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>
+  <div><input type="submit" value="Save"></div>
+</form>
 {{ template "foot" }}
