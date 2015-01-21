@@ -4,7 +4,7 @@
 {{ template "sidebar" }}
 <div class="container">
 <div id="main">
-<h1>{{ .Title }}&nbsp;|&nbsp;[<a href="{{.Title}}/edit/">edit</a>]&nbsp;[<a href="{{.Title}}/raw/">raw</a>]</h1>
+<h1>{{ .Title }}&nbsp;|&nbsp;[<a href="/+edit/{{.Title}}">edit</a>]&nbsp;[<a href="/+raw/{{.Title}}">raw</a>]</h1>
 <hr />
 <div>{{ .Content }}</div>
 {{ template "foot" }}

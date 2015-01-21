@@ -11,4 +11,10 @@
 <input type="file" name="file" id="file">
 <input type="submit" name="submit" value="Submit">
 </form>
+<h1>Upload a file from a remote URL</h1>
+<hr />
+<form method="post" action="/rup" id="rup">
+<input type="text" id="remote" name="remote" placeholder="Remote URL" size="25">
+<input type="submit" name="submit" value="Submit">
+</form>
 {{ template "foot" }}
