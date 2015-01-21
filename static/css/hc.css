@@ -37,8 +37,6 @@ body
   color:#000;
   background-color:#fff;
   width:100%;
-  border-top:solid #777;
-  border-width:4px
 }
 
 button, input, optgroup, select, textarea 
@@ -155,7 +153,6 @@ a:active {
   overflow-y:auto;
   z-index:1000;
   margin-top:-4px;
-  border-top:solid #000;
   transition:all .4s ease 0;
   border-width:4px;
   box-shadow: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22);
