@@ -28,6 +28,10 @@ hr {
   border-color: #000;
 }
 
+.list-group-item {
+  max-width: 10rem;
+}
+
 body
 {
   color:#000;
