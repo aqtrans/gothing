@@ -1,10 +1,25 @@
-{{ define "title" }}<title>Index</title>{{ end }}
+{{ define "title" }}<title>{{ .Title }}</title>{{ end }}
 {{ define "sidebar" }}
+{{ if .UN }}
+	<hr />
+	<p>HELLO: {{ .UN }}	<p>
+{{ else }}
     {{ template "login_form" . }}
+{{ end }}
     {{ template "sidebar_nav" . }}
 {{ end }} 
 {{ define "content" }}       
-<h1>{{ .Title }}&nbsp;|&nbsp;[<a href="/+edit/{{.Title}}">edit</a>]&nbsp;[<a href="/+raw/{{.Title}}">raw</a>]</h1>
+<h1>{{ .Title }}</h1>
+{{$title := .Title}}
+{{ if .UN }}
+<div>
+<ul class="nav nav-tabs nav-justified">
+  <li role="presentation" class="active"><a href="#">View</a></li>
+  <li role="presentation"><a href="/+edit/{{$title}}">Edit</a></li>
+  <li role="presentation"><a href="/+raw/{{$title}}">Raw</a></li>
+</ul>
+</div>
+{{ end }}
 <hr />
 <div>{{ .Content }}</div>
 {{ end }}

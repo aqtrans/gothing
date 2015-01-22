@@ -1,10 +1,25 @@
 {{ define "title" }}<title>Editing {{ .Title }}</title>{{ end }}
 {{ define "sidebar" }}
+{{ if .UN }}
+	<hr />
+	<p>HELLO: {{ .UN }}	<p>
+{{ else }}
     {{ template "login_form" . }}
+{{ end }}
     {{ template "sidebar_nav" . }}
 {{ end }} 
 {{ define "content" }}       
 <h1>Editing {{ .Title }}</h1>
+{{$title := .Title}}
+{{ if .UN }}
+<div>
+<ul class="nav nav-tabs nav-justified">
+  <li role="presentation"><a href="/{{$title}}">View</a></li>
+  <li role="presentation" class="active"><a href="/+edit/{{$title}}">Edit</a></li>
+  <li role="presentation"><a href="/+raw/{{$title}}">Raw</a></li>
+</ul>
+</div>
+{{ end }}
 <hr />
 <form action="/api/new/wiki/{{.Title}}" method="POST">
   <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>

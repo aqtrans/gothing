@@ -1,21 +1,28 @@
 {{ define "title" }}<title>Index</title>{{ end }}
 {{ define "sidebar" }}
+{{ if .UN }}
+	<hr />
+	<p>HELLO: {{ .UN }}	<p>
+{{ else }}
     {{ template "login_form" . }}
+{{ end }}
     {{ template "sidebar_nav" . }}
 {{ end }} 
 {{ define "content" }}       
 <h1>Welcome to my Gowiki!</h1>
-		<hr />
-		<p>My first Golang app!</p>  
-{{ template "login_form" .}}
-		<p>CLI Howto:</p>
-		<pre>curl --data "STUFF" http://m.jba.io/p(/ID)</pre>
 <hr />
-<h1>Upload a file</h1>
-<hr />
-<form action="/api/new/file" method="post" enctype="multipart/form-data">
-<label for="file">Filename:</label>
-<input type="file" name="file" id="file">
-<input type="submit" name="submit" value="Submit">
-</form>
+<p>My first Golang app!</p>  
+{{ if .UN }}
+	<p>HELLO: {{ .UN }}	<p>
+{{ else }}
+	{{ template "login_form" .}}
+{{ end }}
+<div class="panel panel-default">
+  <div class="panel-heading">
+	<h3 class="panel-title">Paste stuff from CLI</h3>
+  </div>
+  <div class="panel-body">
+curl --data "STUFF" http://m.jba.io/p(/ID)
+  </div>
+</div>
 {{ end }}
