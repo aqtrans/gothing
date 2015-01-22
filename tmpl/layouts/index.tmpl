@@ -1,13 +1,8 @@
 {{ define "title" }}<title>Index</title>{{ end }}
 {{ define "sidebar" }}
-{{ if .UN }}
-	<hr />
-	<p>HELLO: {{ .UN }}	<p>
-{{ else }}
     {{ template "login_form" . }}
-{{ end }}
     {{ template "sidebar_nav" . }}
-{{ end }} 
+{{ end }}
 {{ define "content" }}       
 <h1>Welcome to my Gowiki!</h1>
 <hr />

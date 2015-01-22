@@ -1,4 +1,10 @@
 {{ define "login_form" }}
+{{ if .UN }}
+	<hr />
+	<p>HELLO: {{ .UN }}	<p>
+	<p><a href="/logout">Logout</a></p>
+	<p><a href="/admin">Admin</a></p>
+{{ else }}
 <hr />
 <div id="login">
 <form method="post" action="/login" id="login">
@@ -7,4 +13,5 @@
 <button type="submit">Login</button>
 </form>
 </div>
+{{ end }} 
 {{ end }}

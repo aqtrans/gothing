@@ -1,11 +1,6 @@
 {{ define "title" }}<title>Editing {{ .Title }}</title>{{ end }}
 {{ define "sidebar" }}
-{{ if .UN }}
-	<hr />
-	<p>HELLO: {{ .UN }}	<p>
-{{ else }}
     {{ template "login_form" . }}
-{{ end }}
     {{ template "sidebar_nav" . }}
 {{ end }} 
 {{ define "content" }}       
