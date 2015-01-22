@@ -1,9 +1,9 @@
-{{ template "head" .}}
-<title>Index</title>
-{{ template "mid" .}}
-{{ template "sidebar" .}}
-<div class="container">
-<div id="main">
+{{ define "title" }}<title>Index</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "login_form" . }}
+    {{ template "sidebar_nav" . }}
+{{ end }} 
+{{ define "content" }}       
 <h1>Welcome to my Gowiki!</h1>
 		<hr />
 		<p>My first Golang app!</p>  
@@ -18,4 +18,4 @@
 <input type="file" name="file" id="file">
 <input type="submit" name="submit" value="Submit">
 </form>
-{{ template "foot" .}}
+{{ end }}

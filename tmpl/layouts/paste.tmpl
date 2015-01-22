@@ -1,13 +1,13 @@
-{{ template "head" }}
-<title>New paste</title>
-{{ template "mid" }}
-{{ template "sidebar" }}
-<div class="container">
-<div id="main">
+{{ define "title" }}<title>New Pastebin</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "login_form" . }}
+    {{ template "sidebar_nav" . }}
+{{ end }} 
+{{ define "content" }}       
 <h1>New paste</h1>
 <hr />
 <form id="paste" name="paste" action="/api/new/paste" method="POST" enctype="text/plain">
 <textarea id="paste" name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
 <input type="submit" value="Submit">
 </form>
-{{ template "foot" }}
+{{ end }}

@@ -1,0 +1,10 @@
+{{ define "title" }}<title>Index</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "login_form" . }}
+    {{ template "sidebar_nav" . }}
+{{ end }} 
+{{ define "content" }}       
+<h1>{{ .Title }}&nbsp;|&nbsp;[<a href="/+edit/{{.Title}}">edit</a>]&nbsp;[<a href="/+raw/{{.Title}}">raw</a>]</h1>
+<hr />
+<div>{{ .Content }}</div>
+{{ end }}
