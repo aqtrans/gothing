@@ -49,6 +49,11 @@ textarea {
   height: 20rem;
 }
 
+#fmatter {
+  width: 50%;
+  height: 5rem;
+}
+
 .entry-markdown-content input[type="submit"] {
   width: 5rem;
   height: 2rem;

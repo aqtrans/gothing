@@ -17,6 +17,7 @@
 {{ end }}
 <hr />
 <form action="/api/new/wiki/{{.Title}}" method="POST">
+  <textarea name="fmatter" id="fmatter">{{printf "%s" .Fmatter}}</textarea>
   <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>
   <div><input type="submit" value="Save"></div>
 </form>
