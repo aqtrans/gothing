@@ -12,7 +12,7 @@
                 <p><a href="/">Back</a> <a href="/logout">Logout</a></p>
                 <h3>Users</h3>
                 <ul>{{ range .Users }}<li>{{.Username}}</li>{{ end }}</ul>
-                <form action="/add_user" method="post" id="add_user">
+                <form action="/api/new/user" method="post" id="add_user">
                     <h3>Add user</h3>
                     <p><input type="text" name="username" placeholder="username"><br>
                     <input type="password" name="password" placeholder="password"><br>
