@@ -1,7 +1,7 @@
 {{ define "title" }}<title>Editing {{ .Title }}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "login_form" . }}
-    {{ template "sidebar_nav" . }}
+    {{ template "sidebar_markdown" . }}
 {{ end }} 
 {{ define "content" }}       
 <h1>Editing {{ .Title }}</h1>
@@ -17,6 +17,10 @@
 {{ end }}
 <hr />
 <form action="/api/new/wiki/{{.Title}}" method="POST">
+  Title: <input type="text" id="fmatter-title" name="fmatter-title" value='{{printf "%s" .Fmatter.Title}}' size="12"><br/>
+  Date: <input type="text" id="fmatter-date" name="fmatter-date" value='{{printf "%s" .Fmatter.Date}}' size="12"><br/>
+  Categories: <input type="text" id="fmatter-cats" name="fmatter-cats" value='{{printf "%s" .Fmatter.Categories}}' size="12"><br/>
+  Private: <input type="text" id="fmatter-priv" name="fmatter-priv" value='{{printf "%s" .Fmatter.Private}}' size="12"><br/>
   <textarea name="fmatter" id="fmatter">{{printf "%s" .Fmatter}}</textarea>
   <textarea name="body" id="entry-markdown">{{printf "%s" .Body}}</textarea>
   <div><input type="submit" value="Save"></div>
