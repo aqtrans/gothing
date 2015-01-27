@@ -1,5 +1,5 @@
 moes
-data/paste/*
-data/uploads/*
-data/wiki/*
+data/paste/
+data/uploads/
+data/wiki/
 data/auth.gob
