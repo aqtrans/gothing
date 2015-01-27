@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Index</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gowiki">
+  <link rel="shortcut icon" type="image/png" href="/favicon.png"/>
+  <link rel="shortcut icon" type="image/png" href="//jba.io/favicon.png"/>
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico" />
+  <link href="/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/css/hc.css" rel="stylesheet">
+  <link href="/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body>
+  <div id = "wrapper">
+       <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+      <div class="sidebar-nav">
+        <ul class="list-unstyled sidebar-brand">
+          <li><a href="/"><img src="/logo.png" alt="Jordan's Blog"></a><h3>McSpicy Golang Wiki!</h3></li>
+        </ul>
+          <hr />
+        {{if .User}}
+          <p>HELLO {{ .User }}!</p>
+        {{else}}
+        <div id="login">
+          <h1>Login</h1>
+          <form method="post" action="/login">
+          <label for="name">Username</label>
+          <input type="text" id="name" name="name">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password">
+          <button type="submit">Login</button>
+          </form>
+        </div>
+        {{end}}
+      </div>
+    </div>
+    <div class="container">
+		  <div id="main">
+  			<h1>Welcome to my Gowiki!</h1>
+  			<hr />
+  			<p>My first Golang app!</p>
+  			<!--{{.}}<br>-->
+  			Title: Index<br>
+  			<p><a href="/list">List of pages</a></p>
+        <hr />
+        <h1>Upload a file</h1>
+        <hr />
+        <form action="/up" method="post" enctype="multipart/form-data">
+        <label for="file">Filename:</label>
+        <input type="file" name="file" id="file">
+        <input type="submit" name="submit" value="Submit">
+        </form>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

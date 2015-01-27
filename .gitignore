@@ -2,4 +2,4 @@ moes
 data/paste/*
 data/uploads/*
 data/wiki/*
-auth.gob
+data/auth.gob
