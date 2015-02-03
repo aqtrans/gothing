@@ -1,2 +1,2 @@
 #!/bin/bash
-go run ./moes.go
+go run ./main.go
