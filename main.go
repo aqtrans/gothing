@@ -370,6 +370,29 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func lgHandler(w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "lgHandler")
+	username := getUsername(w, r)
+	//fmt.Fprintf(w, indexPage)
+	title := "lg"
+	p, err := loadPage(title, username)
+	data := struct {
+		Page *Page
+	    Title string
+	    UN string
+	    Message string
+	} {
+		p,
+		title,
+		username,
+		"",
+	}
+	err = renderTemplate(w, "lg.tmpl", data)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "searchHandler")
 	vars := mux.Vars(r)
@@ -1570,7 +1593,12 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
-	url := "google.com"
+	//url := "google.com"
+	err := r.ParseForm()
+	if err != nil {
+		log.Println(err)
+	}	
+	url := r.PostFormValue("ping")	
 	username := getUsername(w, r)
 	out, err := exec.Command("ping", "-c5", url).Output()
 	if err != nil {
@@ -1578,13 +1606,20 @@ func ping(w http.ResponseWriter, r *http.Request) {
 	}
 	outs := string(out)
 	//fmt.Fprintln(w, "%s", outs)
-	type data struct {
-		Title string
-		Message string
-		UN string
+	title := "TKOT - Pinging " + url
+	p, err := loadPage(title, username)
+	data := struct {
+		Page *Page
+	    Title string
+	    UN string
+	    Message string
+	} {
+		p,
+		title,
+		username,
+		outs,
 	}
-	d := data{Title: "Pinging " + url, Message: outs, UN: username}
-	err = renderTemplate(w, "result.tmpl", d)
+	err = renderTemplate(w, "lg.tmpl", data)
 	if err != nil {
 		log.Println(err)
 	}	
@@ -1752,6 +1787,11 @@ func main() {
 	api.HandleFunc("/user/new", GuardPath(addUser)).Methods("POST")
 	//Short URL calls
 	api.HandleFunc("/shorten/new", shortUrlFormHandler).Methods("POST")
+	//Looking glass calls
+	api.HandleFunc("/ping", ping)
+
+	//Looking Glass
+	gen.HandleFunc("/lg", lgHandler).Methods("GET")
 
 	//Auth
 	gen.HandleFunc("/login", loginHandler).Methods("POST")
@@ -1759,7 +1799,6 @@ func main() {
 	gen.HandleFunc("/logout", logoutHandler).Methods("POST", "GET")
 
 	//Pastebin functions
-	gen.HandleFunc("/ping", ping)
 	gen.HandleFunc("/p", pastePageHandler).Methods("GET")
 	gen.HandleFunc("/p/{id}", pasteHandler).Methods("GET")
 
