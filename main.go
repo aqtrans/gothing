@@ -1761,6 +1761,7 @@ func main() {
 	gen := r.Host("go.jba.io").Subrouter()
 	if fLocal {
 		gen = r.Host("go.dev").Subrouter()
+		log.Println("Listening on .dev domains due to -l flag...")
 	}
 	//w := r.PathPrefix("/+").Subrouter()
 	gen.HandleFunc(`/+edit/{page}`, GuardPath(editSnipHandler)).Methods("GET")
