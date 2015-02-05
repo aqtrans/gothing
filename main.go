@@ -1659,7 +1659,7 @@ func NewMyLogger() *Logger {
 
 func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	start := time.Now()
-	l.Printf("Started %s %s ; Host: %s ; Raw URL: %s", r.Method, r.URL.Path, r.Host, r.Header.Get("X-Raw-URL"))
+	l.Printf("Started %s %s | Host: %s | Raw URL: %s | UserAgent: %s | HTTPS: %s | IP: %s", r.Method, r.URL.Path, r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), r.Header.Get("Scheme"), r.Header.Get("X-Forwarded-For"))
 
 	next(rw, r)
 

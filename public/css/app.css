@@ -1,0 +1,22 @@
+.row {
+  max-width: 90%; 
+}
+
+button.tiny, .button.tiny {
+    padding-top: 0.25rem;
+    padding-right: 1.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 1.25rem;
+    font-size: 0.6875rem; 
+    margin-bottom: 0.25rem;
+}
+
+.sidebar
+{
+  z-index: 20;
+  box-shadow: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22);
+}
+
+textarea {
+  height: 20rem;
+}
