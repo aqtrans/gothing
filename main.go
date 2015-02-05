@@ -1647,6 +1647,26 @@ func newSnipFormHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("New Snip at "+title+" created from search box")
 }
 
+type Logger struct {
+	// Logger inherits from log.Logger used to log messages with the Logger middleware
+	*log.Logger
+}
+
+// NewLogger returns a new Logger instance
+func NewMyLogger() *Logger {
+	return &Logger{log.New(os.Stdout, "[negroni] ", 0)}
+}
+
+func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	start := time.Now()
+	l.Printf("Started %s %s ; Host: %s ; Raw URL: %s", r.Method, r.URL.Path, r.Host, r.Header.Get("X-Raw-URL"))
+
+	next(rw, r)
+
+	res := rw.(negroni.ResponseWriter)
+	l.Printf("Completed %v %s in %v", res.Status(), http.StatusText(res.Status()), time.Since(start))
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -1768,14 +1788,15 @@ func main() {
 	gen.HandleFunc(`/+raw/{page}`, rawSnipHandler).Methods("GET")
 
 	//Short URL router
-	short := r.Host("s.es.gy").Subrouter()
+	//short := r.Host("s.es.gy").Subrouter()
 	s := r.Host("{short}.es.gy").Subrouter()	
 
 	if fLocal {
-		short = r.Host("short.dev").Subrouter()
+		//short = r.Host("short.dev").Subrouter()
 		s = r.Host("{short}.dev").Subrouter()
 	}
-	short.HandleFunc("/", shortenPageHandler)
+	//short.HandleFunc("/", shortenPageHandler)
+	gen.HandleFunc("/s", shortenPageHandler)
 	//Short URL wildcard subdomain router
 
 	// Only matches if domain is "www.domain.com".
@@ -1848,7 +1869,8 @@ func main() {
 	//Index
 	gen.HandleFunc("/", indexHandler).Methods("GET")
 
-	n := negroni.Classic()
+	//n := negroni.Classic()
+	n := negroni.New(negroni.NewRecovery(), NewMyLogger(), negroni.NewStatic(http.Dir("public")))
 	n.UseHandler(r)
 	//n.UseHandler(s)
 	n.Run(":" + port)
