@@ -1667,6 +1667,40 @@ func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.Ha
 	l.Printf("Completed %v %s in %v", res.Status(), http.StatusText(res.Status()), time.Since(start))
 }
 
+func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+    name := vars["page"]
+	username := getUsername(w, r)
+	p, err := loadPage(name, username)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+    body, err := ioutil.ReadFile("./"+name+".md")
+	//unsafe := blackfriday.MarkdownCommon(body)
+	md := markdownRender(body) 
+	mdhtml := template.HTML(md)
+	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)	
+
+	data := struct {
+		Page *Page
+	    Title string
+	    UN string
+	    MD template.HTML
+	} {
+		p,
+		name,
+		username,
+		mdhtml,
+	}
+	err = renderTemplate(w, "md.tmpl", data)	
+    if err != nil {
+    	log.Println(err)
+    }
+	log.Println(name + " Page rendered!")
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -1789,7 +1823,7 @@ func main() {
 
 	//Short URL router
 	//short := r.Host("s.es.gy").Subrouter()
-	s := r.Host("{short}.es.gy").Subrouter()	
+	s := r.Host("{short}.es.gy").Subrouter()
 
 	if fLocal {
 		//short = r.Host("short.dev").Subrouter()
@@ -1802,6 +1836,7 @@ func main() {
 	// Only matches if domain is "www.domain.com".
 	//s.Host("s.es.gy").HandleFunc("/{short}", shortUrlHandler).Methods("GET")
 	// Matches a dynamic subdomain.
+	//s.HandleFunc("/robots.txt", http.NotFound)
 	s.HandleFunc("/", shortUrlHandler).Methods("GET", "HEAD")
 
 
@@ -1861,6 +1896,8 @@ func main() {
 	gen.HandleFunc("/d/{name}", downloadHandler).Methods("GET")
 
 	gen.HandleFunc("/s/{short}", shortUrlHandler).Methods("GET", "HEAD")
+
+	gen.HandleFunc("/{page}.md", viewMarkdownHandler)
 
 	//Wiki functions
 	gen.HandleFunc(`/{page}`, snipHandler).Methods("GET")
