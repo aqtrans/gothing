@@ -51,9 +51,13 @@ var (
     myPw string = "***REMOVED***"
     myEmail string = "me@jba.io"
     _24K int64 = (1 << 20) * 24
+	fLocal bool
 )
 
 var Db, _ = bolt.Open("./data/bolt.db", 0600, nil)
+
+//Flags
+//var fLocal = flag.Bool("l", false, "Turn on localhost resolving for Handlers")
 
 //Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
 type Page struct {
@@ -99,6 +103,7 @@ type Shorturl struct {
 }
 
 func init() {
+	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
 		templates = make(map[string]*template.Template)
@@ -190,10 +195,10 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 		    log.Println(err)
 		    return
-		}			
+		}
 	} else if err != nil && err.Error() == "httpauth: already authenticated" {
 		log.Println(username + " already logged in.")
-		messages := aaa.Messages(w, r)  
+		messages := aaa.Messages(w, r)
 		p, err := loadPage("Already Logged In", username)
 		data := struct {
     		Page *Page
@@ -231,7 +236,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 		    log.Println(err)
 		    return
-		}	
+		}
 
 	}
 }
@@ -243,9 +248,9 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		return
-	} 
+	}
 	log.Println("Logout")
-	messages := aaa.Messages(w, r)	
+	messages := aaa.Messages(w, r)
 	p, err := loadPage("Logged out", username)
 	data := struct {
 		Page *Page
@@ -270,7 +275,7 @@ func GuardPath(next http.HandlerFunc) http.HandlerFunc {
 		err := aaa.Authorize(w, r, true)
 		if err != nil {
 			fmt.Println(err)
-			messages := aaa.Messages(w, r)  
+			messages := aaa.Messages(w, r)
 			p, err := loadPage("Please log in", "")
 			data := struct {
 	    		Page *Page
@@ -288,7 +293,7 @@ func GuardPath(next http.HandlerFunc) http.HandlerFunc {
 			    log.Println(err)
 			    return
 			}
-	
+
 		}
 		user, err := aaa.CurrentUser(w, r)
 		if err == nil {
@@ -306,7 +311,7 @@ func GuardAdminPath(next http.HandlerFunc) http.HandlerFunc {
 		err := aaa.AuthorizeRole(w, r, "admin", true)
 		if err != nil {
 			fmt.Println(err)
-			messages := aaa.Messages(w, r)  
+			messages := aaa.Messages(w, r)
 			p, err := loadPage("Please log in", "")
 			data := struct {
 	    		Page *Page
@@ -324,7 +329,7 @@ func GuardAdminPath(next http.HandlerFunc) http.HandlerFunc {
 			    log.Println(err)
 			    return
 			}
-						
+
 		}
 		_, err = aaa.CurrentUser(w, r)
 		if err == nil {
@@ -396,8 +401,8 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "searchHandler")
 	vars := mux.Vars(r)
-	term := vars["term"]	
-	sterm := regexp.MustCompile(term)	
+	term := vars["term"]
+	sterm := regexp.MustCompile(term)
 
 	file := &File{}
 	paste := &Paste{}
@@ -421,7 +426,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
     		for _, scontent := range snip.Content {
 	    		if sterm.MatchString(scontent) {
 	    			fmt.Fprintln(w, slink)
-	    		}    			
+	    		}
     		}
 	        return nil
 	    })
@@ -452,7 +457,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
     			fmt.Fprintln(w, flink)
     		}
 	        return nil
-	    })	    	    
+	    })
 	    return nil
 	})
 
@@ -481,7 +486,7 @@ func pastePageHandler(w http.ResponseWriter, r *http.Request) {
 	//log.Println(r.Form)
 	if err != nil {
 		log.Println(err)
-	}	
+	}
 }
 
 func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -495,7 +500,7 @@ func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 	//log.Println(r.Form)
 	if err != nil {
 		log.Println(err)
-	}	
+	}
 }
 
 func loginPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -559,11 +564,11 @@ func rawSnipHandler(w http.ResponseWriter, r *http.Request) {
     		/*
     		data := struct {
     			Page *Page
-    			Snip *Snip    
+    			Snip *Snip
     		} {
     			p,
     			snip,
-    		} */   		
+    		} */
     		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
     		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
 	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
@@ -576,7 +581,7 @@ func rawSnipHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Println(err)
-	}	
+	}
 }
 
 func privHandler(w http.ResponseWriter, r *http.Request) {
@@ -637,7 +642,7 @@ func loadMainPage(title, user string) (interface{}, error) {
 		Page *Page
 	} {
 		p,
-	}	
+	}
 	return data, nil
 }
 
@@ -647,7 +652,7 @@ func loadListPage(user string) (*ListPage, error) {
         log.Println(perr)
     }
 
-	/*pfiles, _ := ioutil.ReadDir("./data/paste")	
+	/*pfiles, _ := ioutil.ReadDir("./data/paste")
 	wfiles, _ := ioutil.ReadDir("./data/wiki")
 	files, _ := ioutil.ReadDir("./data/uploads")
 
@@ -658,7 +663,7 @@ func loadListPage(user string) (*ListPage, error) {
 	//List of stuffs info
 	pi := []string{}
 	wi := []string{}
-	fi := []string{}	
+	fi := []string{}
 	*/
 
 	//layout := "Jan 2, 2006 at 3:04pm (CST)"
@@ -678,7 +683,7 @@ func loadListPage(user string) (*ListPage, error) {
 				wtime := wsub.ModTime().String()
 				wsize := strconv.FormatInt(wsub.Size(), 8)
 				wl = append(wl, wlink)
-				wi = append(wi, wtime, wsize)					
+				wi = append(wi, wtime, wsize)
 			}
 		} else {
 		wlink := strings.TrimSuffix(w.Name(), myExt)
@@ -744,7 +749,7 @@ func loadListPage(user string) (*ListPage, error) {
 	        return nil
 	    })
 	    return nil
-	})	
+	})
 
 	/*
 	for _, p := range pfiles {
@@ -848,8 +853,8 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Filename:")
 	log.Println(fileName)
 	log.Println("Path:")
-	log.Println(path)	
-	*/	
+	log.Println(path)
+	*/
 	dlpath := "./data/uploads/"
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
@@ -880,14 +885,14 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
     fi := &File{
         Created: time.Now().Format(timestamp),
         Filename: fileName,
-    }       
-    err = fi.save() 
+    }
+    err = fi.save()
     if err != nil {
         log.Println(err)
     }
 
 	//fmt.Printf("%s with %v bytes downloaded", fileName, size)
-	fmt.Fprintf(w, "%s with %v bytes downloaded", fileName, size)		
+	fmt.Fprintf(w, "%s with %v bytes downloaded", fileName, size)
 	log.Println("Filename:")
 	log.Println(fileName)
 }
@@ -976,14 +981,14 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
     fi := &File{
         Created: time.Now().Format(timestamp),
         Filename: filename,
-    }       
-    err = fi.save() 
+    }
+    err = fi.save()
     if err != nil {
         log.Println(err)
     }
 
 	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, r.Header.Get("Scheme")+"://"+r.Host+"/d/%s\n", filename)		
+	fmt.Fprintf(w, r.Header.Get("Scheme")+"://"+r.Host+"/d/%s\n", filename)
 }
 
 func (f *File) save() error {
@@ -1030,22 +1035,22 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
     		}
 	        count := (shorturl.Hits + 1)
 	        http.Redirect(w, r, shorturl.Long, 302)
-	     
+
 	        s := &Shorturl{
 	            Created: shorturl.Created,
 	            Short: shorturl.Short,
-	            Long: shorturl.Long, 
+	            Long: shorturl.Long,
 	            Hits: count,
 	        }
 	        encoded, err := json.Marshal(s)
 	        /*
     		data := struct {
     			Page *Page
-    			Snip *Snip    
+    			Snip *Snip
     		} {
     			p,
     			s,
-    		}    		
+    		}
     		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
     		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
 	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
@@ -1071,7 +1076,7 @@ func shortUrlFormHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-	}	
+	}
 	short := r.PostFormValue("short")
 	if short != "" {
 		short = short
@@ -1102,7 +1107,7 @@ func shortUrlFormHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	//http.Redirect(w, r, myURL + "/p/" + title, 302)
-    fmt.Fprintln(w, "Your Short URL is available at: %s", s.Short)	
+    fmt.Fprintln(w, "Your Short URL is available at: %s", s.Short)
 	log.Println("Short: " + s.Short)
 	log.Println("Long: " + s.Long)
 }
@@ -1147,7 +1152,7 @@ func pasteUpHandler(w http.ResponseWriter, r *http.Request) {
 	    Title: name,
 	    Content: bpaste,
 	}
-	err := p.save() 
+	err := p.save()
 	if err != nil {
 		log.Println(err)
 	}
@@ -1163,8 +1168,8 @@ func pasteFormHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-	}	
-	title := r.PostFormValue("title")	
+	}
+	title := r.PostFormValue("title")
 	if title != "" {
 		title = title
 	} else {
@@ -1181,8 +1186,8 @@ func pasteFormHandler(w http.ResponseWriter, r *http.Request) {
 	    Created: time.Now().Format(timestamp),
 	    Title: title,
 	    Content: paste,
-	}		
-	err = p.save() 
+	}
+	err = p.save()
 	if err != nil {
 		log.Println(err)
 	}
@@ -1243,7 +1248,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
         p := &Paste{
             Created: paste.Created,
             Title: paste.Title,
-            Content: paste.Content, 
+            Content: paste.Content,
             Hits: count,
         }
         encoded, err := json.Marshal(p)
@@ -1251,7 +1256,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
     })
     if err != nil{
     	log.Println(err)
-    }  	
+    }
 }
 
 //Snip handlers
@@ -1272,7 +1277,7 @@ func editSnipHandler(w http.ResponseWriter, r *http.Request) {
     	//After JSON Unmarshal, Content should be in paste.Content field
     	if v == nil {
 			p = &Page{Title: title, UN: username}
-			s := &Snip{Created: time.Now().Format(timestamp), Title: title,}		
+			s := &Snip{Created: time.Now().Format(timestamp), Title: title,}
 			data := struct {
 				Page *Page
 				Snip *Snip
@@ -1346,18 +1351,18 @@ func snipHandler(w http.ResponseWriter, r *http.Request) {
 	        s := &Snip{
 	            Created: snip.Created,
 	            Title: snip.Title,
-	            Content: snip.Content, 
+	            Content: snip.Content,
 	            Hits: count,
 	        }
 	        encoded, err := json.Marshal(s)
-	        
+
     		data := struct {
     			Page *Page
-    			Snip *Snip    
+    			Snip *Snip
     		} {
     			p,
     			s,
-    		}    		
+    		}
     		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
     		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
 	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
@@ -1385,7 +1390,7 @@ func snipHandler(w http.ResponseWriter, r *http.Request) {
         s := &Snip{
             Created: snip.Created,
             Title: snip.Title,
-            Content: snip.Content, 
+            Content: snip.Content,
             Hits: count,
         }
         encoded, err := json.Marshal(s)
@@ -1404,7 +1409,7 @@ func saveSnipHandler(w http.ResponseWriter, r *http.Request) {
 	title := vars["page"]
 	body := r.FormValue("body")
 	//fmattertitle := r.FormValue("fmatter-title")
-	fmattercats := r.FormValue("fmatter-cats")	
+	fmattercats := r.FormValue("fmatter-cats")
 	//fmatter := r.FormValue("fmatter")
 	//newbody := strings.Replace(body, "\r", "", -1)
 	bodslice := []string{}
@@ -1413,12 +1418,12 @@ func saveSnipHandler(w http.ResponseWriter, r *http.Request) {
 	    Created: time.Now().Format(timestamp),
 	    Title: title,
 	    Cats: fmattercats,
-	    Content: bodslice,		
+	    Content: bodslice,
 	}
-	err := s.save() 
+	err := s.save()
 	if err != nil {
 		log.Println(err)
-	}	
+	}
 	http.Redirect(w, r, "/"+title, http.StatusFound)
 	log.Println(title + " page saved!")
 	//timer.Step("wiki page saved")
@@ -1454,7 +1459,7 @@ func appendSnipHandler(w http.ResponseWriter, r *http.Request) {
 	    }
 		log.Println("SNIP APPENDED")
 		log.Println(encoded)
-		log.Println(s)    
+		log.Println(s)
 	    return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
@@ -1501,12 +1506,12 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
         count := (file.Hits + 1)
         fi := &File{
             Created: file.Created,
-            Filename: file.Filename,    
+            Filename: file.Filename,
             Hits: count,
         }
         encoded, err := json.Marshal(fi)
         return b.Put([]byte(name), encoded)
-    })    
+    })
     http.ServeFile(w, r, fpath)
 }
 
@@ -1517,7 +1522,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	fname := vars["name"]
 	if ftype == "snip" {
 		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + fname + " has been deleted")			
+			log.Println(ftype + fname + " has been deleted")
 		    return tx.Bucket([]byte("Snips")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1527,7 +1532,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else if ftype == "file" {
 		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + fname + " has been deleted")			
+			log.Println(ftype + fname + " has been deleted")
 		    return tx.Bucket([]byte("Files")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1544,7 +1549,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, fpath + " has been deleted")
 	} else if ftype == "paste" {
 		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + fname + " has been deleted")			
+			log.Println(ftype + fname + " has been deleted")
 		    return tx.Bucket([]byte("Pastes")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1553,7 +1558,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(fname + " has been deleted")
 	} else if ftype == "shorturl" {
 		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + fname + " has been deleted")			
+			log.Println(ftype + fname + " has been deleted")
 		    return tx.Bucket([]byte("Shorturls")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1580,7 +1585,7 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             panic(err)
         }
-        
+
         d := data{User:user, Roles:roles, Users:users, Msg:messages}
     	//username := getUsername(w, r)
 		//fmt.Fprintln(w, l)
@@ -1588,7 +1593,7 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		//log.Println("Admin page rendered!")    
+		//log.Println("Admin page rendered!")
 	}
 }
 
@@ -1597,8 +1602,8 @@ func ping(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-	}	
-	url := r.PostFormValue("ping")	
+	}
+	url := r.PostFormValue("ping")
 	username := getUsername(w, r)
 	out, err := exec.Command("ping", "-c5", url).Output()
 	if err != nil {
@@ -1622,7 +1627,7 @@ func ping(w http.ResponseWriter, r *http.Request) {
 	err = renderTemplate(w, "lg.tmpl", data)
 	if err != nil {
 		log.Println(err)
-	}	
+	}
 }
 
 
@@ -1633,8 +1638,8 @@ func newSnipFormHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-	}	
-	title := r.PostFormValue("newsnip")	
+	}
+	title := r.PostFormValue("newsnip")
 	//http.Redirect(w, r, r.Header.Get("Scheme")+"://"+r.Host+"/+edit/"+title, 302)
 	http.Redirect(w, r, "/+edit/"+title, http.StatusFound)
 	//log.Println("Paste written to ./data/paste/" + title)
@@ -1669,7 +1674,7 @@ func main() {
 		_, err = tx.CreateBucketIfNotExists([]byte("Shorturls"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
-		}						
+		}
 		return nil
 	})
 
@@ -1693,7 +1698,7 @@ func main() {
     	e.ForEach(func(k, v []byte) error {
         	fmt.Printf("key=%s, value=%s\n", k, v)
         	return nil
-    	})      	    	
+    	})
     	return nil
 	})
 
@@ -1701,7 +1706,7 @@ func main() {
 	if port == "" {
 		port = "3000"
 	}
-	
+
 	//var err error
 	//httpauth
 	os.Create(backendfile)
@@ -1728,10 +1733,10 @@ func main() {
 	aaa, err = httpauth.NewAuthorizer(backend, []byte("ieP2Aengoovu4AhZeimoo"), "user", roles)
 	if err != nil {
 		panic(err)
-	}	
+	}
 	//THIS SHOULD BE IN FORM OF: []byte("userpass")
 	//hash, err := bcrypt.GenerateFromPassword([]byte("***REMOVED******REMOVED***"), 8)
-	hash, err := bcrypt.GenerateFromPassword([]byte(myUn + myPw), 8)	
+	hash, err := bcrypt.GenerateFromPassword([]byte(myUn + myPw), 8)
 	if err != nil {
 		panic(err)
 	}
@@ -1745,7 +1750,7 @@ func main() {
 	users, err := backend.Users()
 	if err != nil {
 		panic(err)
-	}	
+	}
 	log.Println("USERS:")
 	log.Println(users)
 	*/
@@ -1754,16 +1759,24 @@ func main() {
 
 	r := mux.NewRouter()
 	gen := r.Host("go.jba.io").Subrouter()
-
+	if fLocal {
+		gen = r.Host("go.dev").Subrouter()
+	}
 	//w := r.PathPrefix("/+").Subrouter()
 	gen.HandleFunc(`/+edit/{page}`, GuardPath(editSnipHandler)).Methods("GET")
 	gen.HandleFunc(`/+raw/{page}`, rawSnipHandler).Methods("GET")
 
 	//Short URL router
 	short := r.Host("s.es.gy").Subrouter()
+	s := r.Host("{short}.es.gy").Subrouter()	
+
+	if fLocal {
+		short = r.Host("short.dev").Subrouter()
+		s = r.Host("{short}.dev").Subrouter()
+	}
 	short.HandleFunc("/", shortenPageHandler)
-	//Short URL wildcard subdomain router	
-	s := r.Host("{short}.es.gy").Subrouter()
+	//Short URL wildcard subdomain router
+
 	// Only matches if domain is "www.domain.com".
 	//s.Host("s.es.gy").HandleFunc("/{short}", shortUrlHandler).Methods("GET")
 	// Matches a dynamic subdomain.
@@ -1773,14 +1786,14 @@ func main() {
 
 	//API Functions
 	api := gen.PathPrefix("/api").Subrouter()
-	api.HandleFunc(`/delete/{type}/{name}`, GuardPath(deleteHandler)).Methods("GET")		
+	api.HandleFunc(`/delete/{type}/{name}`, GuardPath(deleteHandler)).Methods("GET")
 	//Wiki API calls
 	api.HandleFunc("/wiki/new", GuardPath(newSnipFormHandler)).Methods("POST", "PUT")
 	api.HandleFunc(`/wiki/new/{page:[0-9a-zA-Z\_\-]+($|\/[0-9a-zA-Z\_\-]+)}`, GuardPath(saveSnipHandler)).Methods("POST", "PUT")
 	api.HandleFunc(`/wiki/append/{page:[0-9a-zA-Z\_\-]+($|\/[0-9a-zA-Z\_\-]+)}`, GuardPath(appendSnipHandler)).Methods("POST")
 	//Paste API calls
 	api.HandleFunc("/paste/new", pasteFormHandler).Methods("POST")
-	//File API calls	
+	//File API calls
 	api.HandleFunc("/file/new", putHandler).Methods("POST")
 	api.HandleFunc("/file/remote", remoteDownloadHandler).Methods("POST")
 	//User API calls
@@ -1795,7 +1808,7 @@ func main() {
 
 	//Auth
 	gen.HandleFunc("/login", loginHandler).Methods("POST")
-	gen.HandleFunc("/login", loginPageHandler).Methods("GET")	
+	gen.HandleFunc("/login", loginPageHandler).Methods("GET")
 	gen.HandleFunc("/logout", logoutHandler).Methods("POST", "GET")
 
 	//Pastebin functions
@@ -1805,7 +1818,7 @@ func main() {
 	//Pastebin API, kept on the same route for accessibility from CLI
 	gen.HandleFunc("/p/{id}", pasteUpHandler).Methods("PUT", "POST")
 	gen.HandleFunc("/p", pasteUpHandler).Methods("POST")
-	gen.HandleFunc("/p/", pasteUpHandler).Methods("POST")	
+	gen.HandleFunc("/p/", pasteUpHandler).Methods("POST")
 
 	//Upload functions
 	gen.HandleFunc("/up", putHandler).Methods("POST", "PUT")
@@ -1827,7 +1840,7 @@ func main() {
 
 	gen.HandleFunc("/s/{short}", shortUrlHandler).Methods("GET", "HEAD")
 
-	//Wiki functions	
+	//Wiki functions
 	gen.HandleFunc(`/{page}`, snipHandler).Methods("GET")
 	//r.HandleFunc(`/{page}/`, snipHandler).Methods("GET")
 
