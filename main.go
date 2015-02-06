@@ -1814,7 +1814,8 @@ func main() {
 	r := mux.NewRouter()
 	gen := r.Host("go.jba.io").Subrouter()
 	if fLocal {
-		gen = r.Host("go.dev").Subrouter()
+		//gen = r.Host("go.dev").Subrouter()
+		gen = r.Host("localhost").Subrouter()		
 		log.Println("Listening on .dev domains due to -l flag...")
 	}
 	//w := r.PathPrefix("/+").Subrouter()
