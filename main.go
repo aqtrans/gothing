@@ -95,6 +95,7 @@ type File struct {
 	Created string
 	Filename string
 	Hits	int64
+	RemoteURL string
 }
 
 type Shorturl struct {
@@ -574,7 +575,11 @@ func rawSnipHandler(w http.ResponseWriter, r *http.Request) {
     		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
     		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
 	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
-			fmt.Fprintf(w, "%s", strings.Trim(fmt.Sprint(snip.Content), "[]"))
+	   		for s := range snip.Content {
+	   			fmt.Fprintln(w, template.HTMLEscapeString(snip.Content[s]))
+	   		}
+			//fmt.Fprintf(w, "%s", strings.Trim(fmt.Sprint(snip.Content), "[]"))
+
 			//err = renderTemplate(w, "view.tmpl", data)
 			//if err != nil {
 			//	log.Println(err)
@@ -844,10 +849,15 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 
 func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	remoteURL := r.FormValue("remote")
-	fileURL, err := url.Parse(remoteURL)
+	finURL := remoteURL
+	if !strings.HasPrefix(remoteURL,"http") {
+		log.Println("remoteURL does not contain a URL prefix, so adding http")
+		finURL = "http://"+remoteURL
+	}
+	fileURL, err := url.Parse(finURL)
 	if err != nil {
 		panic(err)
-	}
+	}	
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
 	fileName := segments[len(segments)-1]
@@ -870,7 +880,7 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
 			return nil
 			},
 	}
-	resp, err := check.Get(remoteURL)
+	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -887,6 +897,7 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
     fi := &File{
         Created: time.Now().Format(timestamp),
         Filename: fileName,
+        RemoteURL: finURL,
     }
     err = fi.save()
     if err != nil {
@@ -894,9 +905,10 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
     }
 
 	//fmt.Printf("%s with %v bytes downloaded", fileName, size)
-	fmt.Fprintf(w, "%s with %v bytes downloaded", fileName, size)
-	log.Println("Filename:")
-	log.Println(fileName)
+	fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
+	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
+	//log.Println("Filename:")
+	//log.Println(fileName)
 }
 
 func putHandler(w http.ResponseWriter, r *http.Request) {
@@ -905,78 +917,110 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 	var reader io.Reader
 	var f io.WriteCloser
 	var err error
-	reader = r.Body
-	if contentLength == -1 {
-		// queue file to disk, because s3 needs content length
-		var err error
-		var f io.Reader
-
-		f = reader
-
-		var b bytes.Buffer
-
-		n, err := io.CopyN(&b, f, _24K+1)
-		if err != nil && err != io.EOF {
-			log.Printf("%s", err.Error())
-			http.Error(w, err.Error(), 500)
+	var filename string
+	path := "./data/uploads/"
+	contentType := r.Header.Get("Content-Type")	
+	if contentType == "" {
+		log.Println("Content-type blank, so this should be a CLI upload...")
+		//Then this should be an upload from the command line...
+		reader = r.Body
+		if contentLength == -1 {
+			var err error
+			var f io.Reader
+			f = reader
+			var b bytes.Buffer
+			n, err := io.CopyN(&b, f, _24K+1)
+			if err != nil && err != io.EOF {
+				log.Printf("%s", err.Error())
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			if n > _24K {
+				file, err := ioutil.TempFile("./tmp/", "transfer-")
+				if err != nil {
+					log.Printf("%s", err.Error())
+					http.Error(w, err.Error(), 500)
+					return
+				}
+				defer file.Close()
+				n, err = io.Copy(file, io.MultiReader(&b, f))
+				if err != nil {
+					os.Remove(file.Name())
+					log.Printf("%s", err.Error())
+					http.Error(w, err.Error(), 500)
+					return
+				}
+				reader, err = os.Open(file.Name())
+			} else {
+				reader = bytes.NewReader(b.Bytes())
+			}
+			contentLength = n
+		}
+		filename := sanitize.Path(filepath.Base(vars["filename"]))
+		if filename == "." {
+			//filename := sanitize.Path(filepath.Base(vars["filename"]))
+			log.Println("Filename is blank " + filename)
+			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+			var bytes = make([]byte, 4)
+			rand.Read(bytes)
+			for k, v := range bytes {
+				bytes[k] = dictionary[v%byte(len(dictionary))]
+			}
+			filename = string(bytes)
+		}
+		log.Printf("Uploading %s %d %s", filename, contentLength, contentType)
+		
+		if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
+			fmt.Printf("%s", err.Error())
+			http.Error(w, errors.New("Could not save file").Error(), 500)
 			return
 		}
-
-		if n > _24K {
-			file, err := ioutil.TempFile("./tmp/", "transfer-")
-			if err != nil {
-				log.Printf("%s", err.Error())
-				http.Error(w, err.Error(), 500)
-				return
-			}
-
-			defer file.Close()
-
-			n, err = io.Copy(file, io.MultiReader(&b, f))
-			if err != nil {
-				os.Remove(file.Name())
-				log.Printf("%s", err.Error())
-				http.Error(w, err.Error(), 500)
-				return
-			}
-
-			reader, err = os.Open(file.Name())
-		} else {
-			reader = bytes.NewReader(b.Bytes())
-		}
-
-		contentLength = n
-	}
-
-	contentType := r.Header.Get("Content-Type")
-
-	if contentType == "" {
+		defer f.Close()
+		if _, err = io.Copy(f, reader); err != nil {
+			return
+		}		
 		contentType = mime.TypeByExtension(filepath.Ext(vars["filename"]))
+	} else {
+		log.Println("Content-type is "+contentType)
+	    mr, err := r.MultipartReader()
+	    if err != nil {
+	    	log.Println("Multipart reader error")
+	    	log.Println(err)
+	        return
+	    }
+	    //filename := mr.currentPart.FileHeader.Filename
+
+	    for {
+
+	        part, err := mr.NextPart()
+	        if err == io.EOF {
+	            break
+	        }
+			//if part.FileName() is empty, skip this iteration.
+			if part.FileName() != "" {
+				filename = part.FileName()
+			} 	        
+	        var read int64
+	        var p float32
+	        dst, err := os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	        if err != nil {
+	            return
+	        }
+	        for {
+	            buffer := make([]byte, 100000)
+	            cBytes, err := part.Read(buffer)
+	            if err == io.EOF {
+	                break
+	            }
+	            read = read + int64(cBytes)
+	            //fmt.Printf("read: %v \n",read )
+	            p = float32(read) / float32(contentLength) *100
+	            fmt.Fprintf(w, "progress: %v \n",p )
+	            dst.Write(buffer[0:cBytes])
+	        }
+	    }		
 	}
 
-	filename := sanitize.Path(filepath.Base(vars["filename"]))
-	if filename == "." {
-		//filename := sanitize.Path(filepath.Base(vars["filename"]))
-		log.Println("Filename is blank " + filename)
-		dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		var bytes = make([]byte, 4)
-		rand.Read(bytes)
-		for k, v := range bytes {
-			bytes[k] = dictionary[v%byte(len(dictionary))]
-		}
-		filename = string(bytes)
-	}
-	log.Printf("Uploading %s %d %s", filename, contentLength, contentType)
-	path := "./data/uploads/"
-	if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
-		fmt.Printf("%s", err.Error())
-		http.Error(w, errors.New("Could not save file").Error(), 500)
-		return
-	}
-	defer f.Close()
-	if _, err = io.Copy(f, reader); err != nil {
-		return
-	}
 	// w.Statuscode = 200
 
 	//BoltDB stuff
@@ -1231,7 +1275,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
     		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
     		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
 	   		//safe := bluemonday.UGCPolicy().Sanitize(paste.Content)
-	   		safe := sanitize.HTML(paste.Content)
+	   		safe := template.HTMLEscapeString(paste.Content)
 			fmt.Fprintf(w, "%s", safe)
     		return nil
 	})
@@ -1600,36 +1644,97 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ping(w http.ResponseWriter, r *http.Request) {
+func lgAction(w http.ResponseWriter, r *http.Request) {
 	//url := "google.com"
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
-	url := r.PostFormValue("ping")
-	username := getUsername(w, r)
-	out, err := exec.Command("ping", "-c5", url).Output()
-	if err != nil {
-		log.Println(err)
-	}
-	outs := string(out)
-	//fmt.Fprintln(w, "%s", outs)
-	title := "TKOT - Pinging " + url
-	p, err := loadPage(title, username)
-	data := struct {
-		Page *Page
-	    Title string
-	    UN string
-	    Message string
-	} {
-		p,
-		title,
-		username,
-		outs,
-	}
-	err = renderTemplate(w, "lg.tmpl", data)
-	if err != nil {
-		log.Println(err)
+	if r.Form.Get("lg-action") == "ping" {
+		//Ping stuff
+		url := r.PostFormValue("url")
+		username := getUsername(w, r)
+		out, err := exec.Command("ping", "-c10", url).Output()
+		if err != nil {
+			log.Println(err)
+		}
+		outs := string(out)
+		//fmt.Fprintln(w, "%s", outs)
+		title := "TKOT - Pinging " + url
+		p, err := loadPage(title, username)
+		data := struct {
+			Page *Page
+		    Title string
+		    UN string
+		    Message string
+		} {
+			p,
+			title,
+			username,
+			outs,
+		}
+		err = renderTemplate(w, "lg.tmpl", data)
+		if err != nil {
+			log.Println(err)
+		}
+	} else if r.Form.Get("lg-action") == "mtr" {
+		//MTR stuff
+		url := r.PostFormValue("url")
+		username := getUsername(w, r)
+		out, err := exec.Command("mtr", "--report-wide", "-c10", url).Output()
+		if err != nil {
+			log.Println(err)
+		}
+		outs := string(out)
+		//fmt.Fprintln(w, "%s", outs)
+		title := "TKOT - MTR to " + url
+		p, err := loadPage(title, username)
+		data := struct {
+			Page *Page
+		    Title string
+		    UN string
+		    Message string
+		} {
+			p,
+			title,
+			username,
+			outs,
+		}
+		err = renderTemplate(w, "lg.tmpl", data)
+		if err != nil {
+			log.Println(err)
+		}
+	} else if r.Form.Get("lg-action") == "traceroute" {
+		//Traceroute stuff
+		url := r.PostFormValue("url")
+		username := getUsername(w, r)
+		out, err := exec.Command("traceroute", url).Output()
+		if err != nil {
+			log.Println(err)
+		}
+		outs := string(out)
+		//fmt.Fprintln(w, "%s", outs)
+		title := "TKOT - Traceroute to " + url
+		p, err := loadPage(title, username)
+		data := struct {
+			Page *Page
+		    Title string
+		    UN string
+		    Message string
+		} {
+			p,
+			title,
+			username,
+			outs,
+		}
+		err = renderTemplate(w, "lg.tmpl", data)
+		if err != nil {
+			log.Println(err)
+		}
+	} else {
+	    //If formvalue isn't MTR, Ping, or traceroute, this should be hit
+		http.NotFound(w, r)
+		return	    		
 	}
 }
 
@@ -1818,7 +1923,7 @@ func main() {
 	gen := r.Host("go.jba.io").Subrouter()
 	if fLocal {
 		//gen = r.Host("go.dev").Subrouter()
-		gen = r.Host("localhost").Subrouter()		
+		gen = r.Host("go.dev").Subrouter()		
 		log.Println("Listening on .dev domains due to -l flag...")
 	}
 	//w := r.PathPrefix("/+").Subrouter()
@@ -1862,7 +1967,7 @@ func main() {
 	//Short URL calls
 	api.HandleFunc("/shorten/new", shortUrlFormHandler).Methods("POST")
 	//Looking glass calls
-	api.HandleFunc("/ping", ping)
+	api.HandleFunc("/lg", lgAction).Methods("POST")
 
 	//Looking Glass
 	gen.HandleFunc("/lg", lgHandler).Methods("GET")
