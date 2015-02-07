@@ -11,12 +11,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/codegangsta/negroni"
+	//"github.com/zenazn/goji"
+	//"github.com/zenazn/goji/web"		
 	"github.com/oxtoacart/bpool"
-	"github.com/microcosm-cc/bluemonday"
+	//"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 	"github.com/kennygrant/sanitize"
 	"github.com/apexskier/httpauth"
-	"github.com/codegangsta/negroni"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
 	"html/template"
@@ -1228,7 +1230,8 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
     		}
     		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
     		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
-	   		safe := bluemonday.UGCPolicy().Sanitize(paste.Content)
+	   		//safe := bluemonday.UGCPolicy().Sanitize(paste.Content)
+	   		safe := sanitize.HTML(paste.Content)
 			fmt.Fprintf(w, "%s", safe)
     		return nil
 	})
