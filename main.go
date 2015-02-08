@@ -1145,6 +1145,9 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
     			log.Println(err)
     		}
 	        count := (shorturl.Hits + 1)
+	        if strings.Contains(shorturl.Long, "es.gy/") {
+	        	log.Println("LONG URL CONTAINS ES.GY")
+	        }
 	        http.Redirect(w, r, shorturl.Long, 302)
 
 	        s := &Shorturl{
