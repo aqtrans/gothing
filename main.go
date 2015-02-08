@@ -1147,6 +1147,14 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	        count := (shorturl.Hits + 1)
 	        if strings.Contains(shorturl.Long, "es.gy/") {
 	        	log.Println("LONG URL CONTAINS ES.GY")
+	        	if strings.HasPrefix(shorturl.Long, "http://i.es.gy/") {
+	        		u, err := url.Parse(shorturl.Long)
+	        		if err != nil {
+	        			log.Println(err)
+	        		}
+	        		log.Println("Serving "+shorturl.Long+" file directly")
+	        		http.ServeFile(w, r, "/srv/http/app/qchan/"+u.Path) 
+	        	}
 	        }
 	        http.Redirect(w, r, shorturl.Long, 302)
 
