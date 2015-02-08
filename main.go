@@ -24,6 +24,7 @@ import (
 	"github.com/apexskier/httpauth"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
+	"github.com/disintegration/imaging"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -100,6 +101,7 @@ type ListPage struct {
     Pastes  []Paste
     Files   []File
     Shorturls []Shorturl
+    Images  []Image
 }
 
 //BoltDB structs:
@@ -119,6 +121,13 @@ type Snip struct {
 }
 
 type File struct {
+	Created string
+	Filename string
+	Hits	int64
+	RemoteURL string
+}
+
+type Image struct {
 	Created string
 	Filename string
 	Hits	int64
@@ -565,6 +574,18 @@ func uploadPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func uploadImagePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "uploadImagePageHandler")
+	username := getUsername(c, w, r)
+	//fmt.Fprintf(w, indexPage)
+	title := "upimg"
+	p, _ := loadMainPage(title, username)
+	err := renderTemplate(w, "upimg.tmpl", p)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func pastePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pastePageHandler")
 	username := getUsername(c, w, r)
@@ -872,7 +893,44 @@ func loadListPage(user string) (*ListPage, error) {
 	    return nil
 	})
 
-	return &ListPage{Page: page, Snips: snips, Pastes: pastes, Files: files, Shorturls: shorts}, nil
+	image := &Image{}
+	var images []Image
+	//Lets try this with boltDB now!
+	Db.View(func(tx *bolt.Tx) error {
+	    b := tx.Bucket([]byte("Images"))
+	    b.ForEach(func(k, v []byte) error {
+	        //fmt.Printf("key=%s, value=%s\n", k, v)
+	        err := json.Unmarshal(v, &image)
+    		if err != nil {
+    			log.Println(err)
+    		}
+    		ilink := image.Filename
+    		//ptime := paste.Created.Format(timestamp)
+    		ihits := image.Hits
+    		//pl = append(pl, plink)
+    		//pi = append(pi, ptime, string(phits))
+    		images = []Image{
+    			Image{
+    			Created: image.Created,
+    			Filename: ilink,
+    			Hits: ihits,
+    			},
+    		}
+	        img, err := imaging.Open("./uploads/images/"+image.Filename)
+	        if err != nil {
+	            panic(err)
+	        }
+	        thumb := imaging.Thumbnail(img, 100, 100, imaging.CatmullRom) 
+		    err = imaging.Save(thumb, "./public/thumbs/thumb-"+image.Filename+".jpg")
+		    if err != nil {
+		        panic(err)
+		    }	           		
+	        return nil
+	    })
+	    return nil
+	})
+
+	return &ListPage{Page: page, Snips: snips, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
 }
 
 
@@ -1098,6 +1156,8 @@ func (f *File) save() error {
     log.Println("FILE SAVED")
     return nil
 }
+
+
 
 //Short URL Handlers
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
@@ -1644,6 +1704,34 @@ func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     http.ServeFile(w, r, fpath)
 }
 
+func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "downloadImageHandler")
+	//vars := mux.Vars(r)
+    //name := vars["name"]
+    name := c.URLParams["name"]
+    fpath := "./uploads/images/" + path.Base(name)
+
+    //Attempt to increment file hit counter...
+    image := &Image{}
+    Db.Update(func(tx *bolt.Tx) error {
+        b := tx.Bucket([]byte("Images"))
+        v := b.Get([]byte(name))
+        err := json.Unmarshal(v, &image)
+        if err != nil {
+            log.Println(err)
+        }
+        count := (image.Hits + 1)
+        imi := &Image{
+            Created: image.Created,
+            Filename: image.Filename,
+            Hits: count,
+        }
+        encoded, err := json.Marshal(imi)
+        return b.Put([]byte(name), encoded)
+    })
+    http.ServeFile(w, r, fpath)
+}
+
 func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//Requests should come in on /api/delete/{type}/{name}
 	//vars := mux.Vars(r)
@@ -1847,6 +1935,212 @@ func LoggerMiddleware(h http.Handler) http.Handler {
 	}
 	return http.HandlerFunc(handler)
 }*/
+
+
+
+func remoteImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+    remoteURL := r.FormValue("remote-image")
+    finURL := remoteURL
+    if !strings.HasPrefix(remoteURL,"http") {
+        log.Println("remoteURL does not contain a URL prefix, so adding http")
+        log.Println(remoteURL)
+        finURL = "http://"+remoteURL
+    }
+    fileURL, err := url.Parse(finURL)
+    if err != nil {
+        panic(err)
+    }   
+    path := fileURL.Path
+    segments := strings.Split(path, "/")
+    fileName := segments[len(segments)-1]
+    /*
+    log.Println("Filename:")
+    log.Println(fileName)
+    log.Println("Path:")
+    log.Println(path)
+    */
+    dlpath := "./uploads/images/"
+    file, err := os.Create(filepath.Join(dlpath, fileName))
+    if err != nil {
+        fmt.Println(err)
+        panic(err)
+    }
+    defer file.Close()
+    check := http.Client{
+            CheckRedirect: func(r *http.Request, via [] *http.Request) error {
+            r.URL.Opaque = r.URL.Path
+            return nil
+            },
+    }
+    resp, err := check.Get(finURL)
+    if err != nil {
+        fmt.Println(err)
+        panic(err)
+    }
+    defer resp.Body.Close()
+    fmt.Println(resp.Status)
+
+    size, err := io.Copy(file, resp.Body)
+    if err != nil {
+        panic(err)
+    }
+
+    //BoltDB stuff
+    imi := &Image{
+        Created: time.Now().Format(timestamp),
+        Filename: fileName,
+        RemoteURL: finURL,
+    }
+    err = imi.save()
+    if err != nil {
+        log.Println(err)
+    }
+
+    //fmt.Printf("%s with %v bytes downloaded", fileName, size)
+    fmt.Fprintf(w, "%s image with %v bytes downloaded from %s", fileName, size, finURL)
+    fmt.Printf("%s image with %v bytes downloaded from %s", fileName, size, finURL)
+    //log.Println("Filename:")
+    //log.Println(fileName)
+}
+
+func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+    //vars := mux.Vars(r)
+    contentLength := r.ContentLength
+    var reader io.Reader
+    var f io.WriteCloser
+    var err error
+    var filename string
+    path := "./uploads/images/"
+    contentType := r.Header.Get("Content-Type") 
+    if contentType == "" {
+        log.Println("Content-type blank, so this should be a CLI upload...")
+        //Then this should be an upload from the command line...
+        reader = r.Body
+        if contentLength == -1 {
+            var err error
+            var f io.Reader
+            f = reader
+            var b bytes.Buffer
+            n, err := io.CopyN(&b, f, _24K+1)
+            if err != nil && err != io.EOF {
+                log.Printf("%s", err.Error())
+                http.Error(w, err.Error(), 500)
+                return
+            }
+            if n > _24K {
+                file, err := ioutil.TempFile("./tmp/", "transfer-")
+                if err != nil {
+                    log.Printf("%s", err.Error())
+                    http.Error(w, err.Error(), 500)
+                    return
+                }
+                defer file.Close()
+                n, err = io.Copy(file, io.MultiReader(&b, f))
+                if err != nil {
+                    os.Remove(file.Name())
+                    log.Printf("%s", err.Error())
+                    http.Error(w, err.Error(), 500)
+                    return
+                }
+                reader, err = os.Open(file.Name())
+            } else {
+                reader = bytes.NewReader(b.Bytes())
+            }
+            contentLength = n
+        }
+        filename := sanitize.Path(filepath.Base(c.URLParams["filename"]))
+        if filename == "." {
+            //filename := sanitize.Path(filepath.Base(vars["filename"]))
+            log.Println("Filename is blank " + filename)
+            dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            var bytes = make([]byte, 4)
+            rand.Read(bytes)
+            for k, v := range bytes {
+                bytes[k] = dictionary[v%byte(len(dictionary))]
+            }
+            filename = string(bytes)
+        }
+        log.Printf("Uploading image %s %d %s", filename, contentLength, contentType)
+        
+        if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
+            fmt.Printf("%s", err.Error())
+            http.Error(w, errors.New("Could not save image").Error(), 500)
+            return
+        }
+        defer f.Close()
+        if _, err = io.Copy(f, reader); err != nil {
+            return
+        }       
+        contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["filename"]))
+    } else {
+        log.Println("Content-type is "+contentType)
+        mr, err := r.MultipartReader()
+        if err != nil {
+            log.Println("Multipart reader error")
+            log.Println(err)
+            return
+        }
+        //filename := mr.currentPart.FileHeader.Filename
+
+        for {
+
+            part, err := mr.NextPart()
+            if err == io.EOF {
+                break
+            }
+            //if part.FileName() is empty, skip this iteration.
+            if part.FileName() != "" {
+                filename = part.FileName()
+            }           
+            var read int64
+            var p float32
+            dst, err := os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+            if err != nil {
+                return
+            }
+            for {
+                buffer := make([]byte, 100000)
+                cBytes, err := part.Read(buffer)
+                if err == io.EOF {
+                    break
+                }
+                read = read + int64(cBytes)
+                //fmt.Printf("read: %v \n",read )
+                p = float32(read) / float32(contentLength) *100
+                fmt.Fprintf(w, "progress: %v \n",p )
+                dst.Write(buffer[0:cBytes])
+            }
+        }       
+    }
+
+    // w.Statuscode = 200
+
+    //BoltDB stuff
+    imi := &Image{
+        Created: time.Now().Format(timestamp),
+        Filename: filename,
+    }
+    err = imi.save()
+    if err != nil {
+        log.Println(err)
+    }
+
+    w.Header().Set("Content-Type", "text/plain")
+    fmt.Fprintf(w, r.Header.Get("Scheme")+"://"+r.Host+"/d/%s\n", filename)
+}
+
+func (i *Image) save() error {
+    Db.Update(func(tx *bolt.Tx) error {
+        b := tx.Bucket([]byte("Images"))
+        encoded, err := json.Marshal(i)
+        if err != nil {
+            return err
+        }
+        return b.Put([]byte(i.Filename), encoded)
+    })
+    log.Println("+IMAGE SAVED")
+    return nil
+}
 
 func LoggerMiddleware(c *web.C, h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -2096,6 +2390,10 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
+		_, err = tx.CreateBucketIfNotExists([]byte("Images"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}		
 		return nil
 	})
 
@@ -2120,6 +2418,11 @@ func main() {
         	fmt.Printf("key=%s, value=%s\n", k, v)
         	return nil
     	})
+    	f := tx.Bucket([]byte("Images"))
+    	f.ForEach(func(k, v []byte) error {
+        	fmt.Printf("key=%s, value=%s\n", k, v)
+        	return nil
+    	})    	
     	return nil
 	})
 
@@ -2128,7 +2431,6 @@ func main() {
 		port = "3000"
 	}
 
-	//var err error
 	//httpauth
 	os.Create(backendfile)
 	//defer os.Remove(backendfile)
@@ -2218,10 +2520,14 @@ func main() {
 	g.Get("/p/:id", pasteHandler)
 	//New Upload Page
 	g.Get("/up", uploadPageHandler)
+	//New Image Upload Page
+	g.Get("/iup", uploadImagePageHandler)
 	//Search page
 	g.Handle("/search/:term", searchHandler)
 	//Download files
 	g.Get("/d/:name", downloadHandler)
+	//Download images
+	g.Get("/i/:name", downloadImageHandler)	
 	//Markdown rendering
 	g.Get("/md/:page", viewMarkdownHandler)
 
@@ -2273,6 +2579,8 @@ func main() {
 	api.Post("/file/remote", remoteDownloadHandler)
 	api.Post("/shorten/new", shortUrlFormHandler)
 	api.Post("/lg", lgAction)
+	api.Post("/image/new", putImageHandler)
+	api.Post("/image/remote", remoteImageHandler)
 
 	//http.Handle("go.dev/", g)
 	if fLocal {
