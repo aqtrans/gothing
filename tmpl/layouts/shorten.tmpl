@@ -1,0 +1,14 @@
+{{ define "title" }}<title>New Short URL</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>New Short URL</h1>
+<hr />
+<form action="/api/shorten/new" method="POST">
+Short URL:<input type="text" name="short"><br>
+Long URL:<input type="text" name="long"><br>
+<input type="submit" class="button success" value="Submit">
+</form>
+{{ end }}

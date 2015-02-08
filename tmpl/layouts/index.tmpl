@@ -1,0 +1,18 @@
+{{ define "title" }}<title>TKOT - The King of Things!</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>Welcome to TKOT!</h1>
+<hr />
+<h2>The King Of Things; Cause it does a lot of things!</h2>
+	<h3 class="subheader">Paste stuff from CLI</h3>
+  <div class="panel callout">
+curl --data "STUFF" http://go.jba.io/p(/ID)
+  </div>
+<h3 class="subheader">Upload file from CLI</h3>
+<div class="panel callout">	
+curl -T "file-to-upload" http://go.jba.io/up/
+</div>
+{{ end }}

@@ -4,3 +4,7 @@ data/uploads/
 data/wiki/
 data/auth.gob
 data/bolt.db
+bolt.db
+auth.gob
+uploads/*
+md/*
