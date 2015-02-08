@@ -1,0 +1,13 @@
+{{ define "title" }}<title>{{ .Page.Title }}</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>{{ .Page.Title }}</h1>
+{{$title := .Page.Title}}
+<hr />
+<div>
+{{.MD}}
+</div>
+{{ end }}

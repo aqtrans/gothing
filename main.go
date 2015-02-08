@@ -10,10 +10,13 @@ import (
 	"flag"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/codegangsta/negroni"
-	//"github.com/zenazn/goji"
-	//"github.com/zenazn/goji/web"		
+	//"github.com/gorilla/mux"
+	//"github.com/codegangsta/negroni"
+	"github.com/zenazn/goji"
+	"github.com/zenazn/goji/web"
+	"github.com/zenazn/goji/web/middleware"
+	"github.com/zenazn/goji/web/mutil"
+	"github.com/hypebeast/gojistatic"
 	"github.com/oxtoacart/bpool"
 	//"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
@@ -45,7 +48,7 @@ var (
     backend httpauth.GobFileAuthBackend
     aaa httpauth.Authorizer
     roles map[string]httpauth.Role
-    backendfile = "./data/auth.gob"
+    backendfile = "./auth.gob"
     bufpool *bpool.BufferPool
     templates map[string]*template.Template
     myUn string = "***REMOVED***"
@@ -54,9 +57,33 @@ var (
     myEmail string = "me@jba.io"
     _24K int64 = (1 << 20) * 24
 	fLocal bool
+
+	// Normal colors
+	nBlack   = []byte{'\033', '[', '3', '0', 'm'}
+	nRed     = []byte{'\033', '[', '3', '1', 'm'}
+	nGreen   = []byte{'\033', '[', '3', '2', 'm'}
+	nYellow  = []byte{'\033', '[', '3', '3', 'm'}
+	nBlue    = []byte{'\033', '[', '3', '4', 'm'}
+	nMagenta = []byte{'\033', '[', '3', '5', 'm'}
+	nCyan    = []byte{'\033', '[', '3', '6', 'm'}
+	nWhite   = []byte{'\033', '[', '3', '7', 'm'}
+	// Bright colors
+	bBlack   = []byte{'\033', '[', '3', '0', ';', '1', 'm'}
+	bRed     = []byte{'\033', '[', '3', '1', ';', '1', 'm'}
+	bGreen   = []byte{'\033', '[', '3', '2', ';', '1', 'm'}
+	bYellow  = []byte{'\033', '[', '3', '3', ';', '1', 'm'}
+	bBlue    = []byte{'\033', '[', '3', '4', ';', '1', 'm'}
+	bMagenta = []byte{'\033', '[', '3', '5', ';', '1', 'm'}
+	bCyan    = []byte{'\033', '[', '3', '6', ';', '1', 'm'}
+	bWhite   = []byte{'\033', '[', '3', '7', ';', '1', 'm'}
+
+	reset = []byte{'\033', '[', '0', 'm'}
+
 )
 
-var Db, _ = bolt.Open("./data/bolt.db", 0600, nil)
+var isTTY bool
+
+var Db, _ = bolt.Open("./bolt.db", 0600, nil)
 
 //Flags
 //var fLocal = flag.Bool("l", false, "Turn on localhost resolving for Handlers")
@@ -106,12 +133,18 @@ type Shorturl struct {
 }
 
 func init() {
+	fil, err := os.Stdout.Stat()
+	if err == nil {
+		m := os.ModeDevice | os.ModeCharDevice
+		isTTY = fil.Mode()&m == m
+	}
+
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
 		templates = make(map[string]*template.Template)
 	}
-	templatesDir := "./data/tmpl/"
+	templatesDir := "./tmpl/"
 	layouts, err := filepath.Glob(templatesDir + "layouts/*.tmpl")
 	if err != nil {
 		log.Fatal(err)
@@ -124,6 +157,17 @@ func init() {
 		files := append(includes, layout)
 		//DEBUG TEMPLATE LOADING log.Println(files)
 		templates[filepath.Base(layout)] = template.Must(template.ParseFiles(files...))
+	}
+}
+
+// colorWrite
+func cW(buf *bytes.Buffer, color []byte, s string, args ...interface{}) {
+	if isTTY {
+		buf.Write(color)
+	}
+	fmt.Fprintf(buf, s, args...)
+	if isTTY {
+		buf.Write(reset)
 	}
 }
 
@@ -151,13 +195,38 @@ func markdownRender(content []byte) []byte {
 
 }
 
-func getUsername(w http.ResponseWriter, r *http.Request) (username string) {
+func getUsername(c web.C, w http.ResponseWriter, r *http.Request) (username string) {
 	//defer timeTrack(time.Now(), "getUsername")
 	username = ""
+	//var username string
 	user, err := aaa.CurrentUser(w, r)
 	if err == nil {
         username = user.Username
+        //log.Println(username)
+        c.Env["user"] = username
+        if un, ok := c.Env["user"]; ok {
+        	log.Println("c.env user is not nil: "+un.(string))
+        } else {
+        	log.Println("c.env user is nil")
+        	//log.Println(c.Env)
+        	c.Env["user"] = map[string]string{
+        		"user": user.Username,
+        	}        	
+        }
 	}
+	if err != nil {
+		log.Println("Error retrieving current user:")
+		log.Println(err)
+	}
+	/*
+	if user, ok := c.Env["user"].(string); ok {
+		username = user
+	} else {
+		username = ""
+	}
+	*/
+	//log.Println("getusername: "+username)
+
 	return username
 }
 
@@ -174,7 +243,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "loginHandler")
 	username := template.HTMLEscapeString(r.FormValue("username"))
 	password := template.HTMLEscapeString(r.FormValue("password"))
@@ -183,6 +252,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(username + " successfully logged in.")
 		messages := aaa.Messages(w, r)
 		p, err := loadPage("Successfully Logged In", username)
+		user, err := aaa.CurrentUser(w, r)
+		if err == nil {
+	        username = user.Username
+	        if c.Env["user"] == nil {
+	        	c.Env["user"] = map[string]string{
+	        		"User": user.Username,
+	        	}
+        	}
+		}
 		data := struct {
     		Page *Page
 		    Title string
@@ -203,6 +281,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(username + " already logged in.")
 		messages := aaa.Messages(w, r)
 		p, err := loadPage("Already Logged In", username)
+		user, err := aaa.CurrentUser(w, r)
+		if err == nil {
+	        username = user.Username
+	        if c.Env["user"] == nil {
+	        	c.Env["user"] = map[string]string{
+	        		"user": user.Username,
+	        	}
+        	}	        
+		}		
 		data := struct {
     		Page *Page
 		    Title string
@@ -244,9 +331,9 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func logoutHandler(w http.ResponseWriter, r *http.Request) {
+func logoutHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "logoutHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	err := aaa.Logout(w, r)
 	if err != nil {
 		fmt.Println(err)
@@ -296,7 +383,6 @@ func GuardPath(next http.HandlerFunc) http.HandlerFunc {
 			    log.Println(err)
 			    return
 			}
-
 		}
 		user, err := aaa.CurrentUser(w, r)
 		if err == nil {
@@ -366,9 +452,9 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 	return nil
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "indexHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	//fmt.Fprintf(w, indexPage)
 	title := "index"
 	p, _ := loadMainPage(title, username)
@@ -378,9 +464,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func lgHandler(w http.ResponseWriter, r *http.Request) {
+func lgHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "lgHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	//fmt.Fprintf(w, indexPage)
 	title := "lg"
 	p, err := loadPage(title, username)
@@ -401,10 +487,11 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func searchHandler(w http.ResponseWriter, r *http.Request) {
+func searchHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "searchHandler")
-	vars := mux.Vars(r)
-	term := vars["term"]
+	//vars := mux.Vars(r)
+	//term := vars["term"]
+	term := c.URLParams["term"]
 	sterm := regexp.MustCompile(term)
 
 	file := &File{}
@@ -466,9 +553,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
+func uploadPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "uploadPageHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	//fmt.Fprintf(w, indexPage)
 	title := "up"
 	p, _ := loadMainPage(title, username)
@@ -478,9 +565,9 @@ func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func pastePageHandler(w http.ResponseWriter, r *http.Request) {
+func pastePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pastePageHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	//fmt.Fprintf(w, indexPage)
 	title := "paste"
 	p, _ := loadMainPage(title, username)
@@ -492,9 +579,9 @@ func pastePageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
+func shortenPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "shortenPageHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	//fmt.Fprintf(w, indexPage)
 	title := "shorten"
 	p, _ := loadMainPage(title, username)
@@ -506,9 +593,9 @@ func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func loginPageHandler(w http.ResponseWriter, r *http.Request) {
+func loginPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "loginPageHandler")
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	title := "login"
 	//p, _ := loadPage(title, username)
 	messages := aaa.Messages(w, r)
@@ -540,11 +627,12 @@ func ParseBool(value string) bool {
     return boolValue
 }
 
-func rawSnipHandler(w http.ResponseWriter, r *http.Request) {
+func rawSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "rawSnipHandler")
-	vars := mux.Vars(r)
+	//vars := mux.Vars(r)
 	//username := getUsername(w, r)
-	title := vars["page"]
+	//title := vars["page"]
+	title := c.URLParams["page"]
 	snip := &Snip{}
 	//p, err := loadPage(title, username)
 	err := Db.View(func(tx *bolt.Tx) error {
@@ -591,7 +679,7 @@ func rawSnipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func privHandler(w http.ResponseWriter, r *http.Request) {
+func privHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	err := aaa.Authorize(w, r, true)
 	if err != nil {
 		fmt.Println(err)
@@ -599,7 +687,7 @@ func privHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := aaa.CurrentUser(w, r)
-	username := getUsername(w, r)
+	username := getUsername(c, w, r)
 	if err == nil {
 		p, err := loadPage("Please Login", username)
 		data := struct {
@@ -658,48 +746,6 @@ func loadListPage(user string) (*ListPage, error) {
     if perr != nil {
         log.Println(perr)
     }
-
-	/*pfiles, _ := ioutil.ReadDir("./data/paste")
-	wfiles, _ := ioutil.ReadDir("./data/wiki")
-	files, _ := ioutil.ReadDir("./data/uploads")
-
-	//List of stuff
-	//pl := []string{}
-	wl := []string{}
-	fl := []string{}
-	//List of stuffs info
-	pi := []string{}
-	wi := []string{}
-	fi := []string{}
-	*/
-
-	//layout := "Jan 2, 2006 at 3:04pm (CST)"
-	/*
-	for _, f := range files {
-		flink := string(f.Name())
-		ftime := f.ModTime().String()
-		fsize := strconv.FormatInt(f.Size(), 8)
-		fl = append(fl, flink)
-		fi = append(fi, ftime, fsize)
-	}
-	for _, w := range wfiles {
-		if w.IsDir() {
-			sd, _ := ioutil.ReadDir("./data/wiki/" + w.Name())
-			for _, wsub := range sd {
-				wlink := w.Name() + "/" + strings.TrimSuffix(wsub.Name(), myExt)
-				wtime := wsub.ModTime().String()
-				wsize := strconv.FormatInt(wsub.Size(), 8)
-				wl = append(wl, wlink)
-				wi = append(wi, wtime, wsize)
-			}
-		} else {
-		wlink := strings.TrimSuffix(w.Name(), myExt)
-		wtime := w.ModTime().String()
-		wsize := strconv.FormatInt(w.Size(), 8)
-		wl = append(wl, wlink)
-		wi = append(wi, wtime, wsize)
-		}
-	}*/
 
 	snip := &Snip{}
 	var snips []Snip
@@ -830,15 +876,18 @@ func loadListPage(user string) (*ListPage, error) {
 }
 
 
-func listHandler(w http.ResponseWriter, r *http.Request) {
+func listHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "listHandler")
 	//vars := mux.Vars(r)
 	//page := vars["page"]
-	username := getUsername(w, r)
-	l, _ := loadListPage(username)
+	username := getUsername(c, w, r)
+	l, err := loadListPage(username)
+	if err != nil {
+		log.Println(err)
+	}
 	//fmt.Fprintln(w, l)
 
-	err := renderTemplate(w, "list.tmpl", l)
+	err = renderTemplate(w, "list.tmpl", l)
 	if err != nil {
 		log.Println(err)
 	}
@@ -847,7 +896,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 	//log.Println(l)
 }
 
-func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
+func remoteDownloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
 	if !strings.HasPrefix(remoteURL,"http") {
@@ -867,7 +916,7 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Path:")
 	log.Println(path)
 	*/
-	dlpath := "./data/uploads/"
+	dlpath := "./uploads/"
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
@@ -911,14 +960,14 @@ func remoteDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	//log.Println(fileName)
 }
 
-func putHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	//vars := mux.Vars(r)
 	contentLength := r.ContentLength
 	var reader io.Reader
 	var f io.WriteCloser
 	var err error
 	var filename string
-	path := "./data/uploads/"
+	path := "./uploads/"
 	contentType := r.Header.Get("Content-Type")	
 	if contentType == "" {
 		log.Println("Content-type blank, so this should be a CLI upload...")
@@ -956,7 +1005,7 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			contentLength = n
 		}
-		filename := sanitize.Path(filepath.Base(vars["filename"]))
+		filename := sanitize.Path(filepath.Base(c.URLParams["filename"]))
 		if filename == "." {
 			//filename := sanitize.Path(filepath.Base(vars["filename"]))
 			log.Println("Filename is blank " + filename)
@@ -979,7 +1028,7 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 		if _, err = io.Copy(f, reader); err != nil {
 			return
 		}		
-		contentType = mime.TypeByExtension(filepath.Ext(vars["filename"]))
+		contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["filename"]))
 	} else {
 		log.Println("Content-type is "+contentType)
 	    mr, err := r.MultipartReader()
@@ -1054,10 +1103,26 @@ func (f *File) save() error {
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer timeTrack(time.Now(), "shortUrlHandler")
-	vars := mux.Vars(r)
+	//vars := mux.Vars(r)
 	//username := getUsername(w, r)
-	title := vars["short"]
+	//title := vars["short"]
+	//title := c.URLParams["short"]
+
 	shorturl := &Shorturl{}
+
+	//The Host that the user queried.
+	host := r.Host
+	host = strings.TrimSpace(host)
+	//Figure out if a subdomain exists in the host given.
+	host_parts := strings.Split(host, ".")
+	subdomain := ""
+	log.Println("Received Short URL request for "+host)
+	if len(host_parts) > 2 {
+	    //The subdomain exists, we store it as the first element 
+	    //in a new array
+	    subdomain = string(host_parts[0])
+	}
+	title := subdomain
 	//p, err := loadPage(title, username)
 	//err = Db.View(func(tx *bolt.Tx) error {
 	err := Db.Update(func(tx *bolt.Tx) error {
@@ -1070,7 +1135,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 			//http.NotFound(w, r)
 			//http.Redirect(w, r, "https://m.jba.io", 302)
 			http.Error(w, "Error 400 - No such domain at this address", 400)
-			err := errors.New("No Such Short URL")
+			err := errors.New(title + "No Such Short URL")
 			return err
 			//return err
 			//log.Println(err)
@@ -1115,7 +1180,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func shortUrlFormHandler(w http.ResponseWriter, r *http.Request) {
+func shortUrlFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "shortUrlFormHandler")
 	//vars := mux.Vars(r)
 	//var name = ""
@@ -1172,9 +1237,9 @@ func (s *Shorturl) save() error {
 }
 
 //Pastebin handlers
-func pasteUpHandler(w http.ResponseWriter, r *http.Request) {
+func pasteUpHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pasteUpHandler")
-	vars := mux.Vars(r)
+	//vars := mux.Vars(r)
 	log.Println("Paste request...")
 	log.Println(r.Header.Get("Scheme"))
 	paste := r.Body
@@ -1182,8 +1247,8 @@ func pasteUpHandler(w http.ResponseWriter, r *http.Request) {
 	buf.ReadFrom(paste)
 	bpaste := buf.String()
 	var name = ""
-	if vars["id"] != "" {
-		name = vars["id"]
+	if c.URLParams["id"] != "" {
+		name = c.URLParams["id"]
 	} else {
 		dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		var bytes = make([]byte, 4)
@@ -1204,10 +1269,10 @@ func pasteUpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintln(w, r.Header.Get("Scheme")+"://"+r.Host+"/p/"+name)
 	//log.Println(r.Header.Get("Scheme"))
-	log.Println("Paste written to ./data/paste/" + name)
+	log.Println("Paste written to ./paste/" + name)
 }
 
-func pasteFormHandler(w http.ResponseWriter, r *http.Request) {
+func pasteFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pasteFormHandler")
 	//vars := mux.Vars(r)
 	//var name = ""
@@ -1238,7 +1303,7 @@ func pasteFormHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	http.Redirect(w, r, r.Header.Get("Scheme")+"://"+r.Host+"/p/"+title, 302)
-	log.Println("Paste written to ./data/paste/" + title)
+	log.Println("Paste written to ./paste/" + title)
 	log.Println(r.Header.Get("Scheme")+"://"+r.Host+"/p/"+title)
 }
 
@@ -1255,10 +1320,11 @@ func (p *Paste) save() error {
 	return nil
 }
 
-func pasteHandler(w http.ResponseWriter, r *http.Request) {
+func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pasteHandler")
-	vars := mux.Vars(r)
-	title := vars["id"]
+	//vars := mux.Vars(r)
+	//title := vars["id"]
+	title := c.URLParams["id"]
 	paste := &Paste{}
 	err := Db.View(func(tx *bolt.Tx) error {
     	v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
@@ -1307,12 +1373,13 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 //Snip handlers
-func editSnipHandler(w http.ResponseWriter, r *http.Request) {
+func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "editSnipHandler")
 	//title, err := getTitle(w, r)
-	vars := mux.Vars(r)
-	title := vars["page"]
-	username := getUsername(w, r)
+	//vars := mux.Vars(r)
+	//title := vars["page"]
+	title := c.URLParams["page"]
+	username := getUsername(c, w, r)
 	snip := &Snip{}
 	p, err := loadPage(title, username)
 	if err != nil {
@@ -1373,11 +1440,12 @@ func editSnipHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func snipHandler(w http.ResponseWriter, r *http.Request) {
+func snipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "snipHandler")
-	vars := mux.Vars(r)
-	username := getUsername(w, r)
-	title := vars["page"]
+	//vars := mux.Vars(r)
+	username := getUsername(c, w, r)
+	//title := vars["page"]
+	title := c.URLParams["page"]
 	snip := &Snip{}
 	p, err := loadPage(title, username)
 //	err = Db.View(func(tx *bolt.Tx) error {
@@ -1449,11 +1517,12 @@ func snipHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func saveSnipHandler(w http.ResponseWriter, r *http.Request) {
+func saveSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "saveSnipHandler")
 	//title, err := getTitle(w, r)
-	vars := mux.Vars(r)
-	title := vars["page"]
+	//vars := mux.Vars(r)
+	//title := vars["page"]
+	title := c.URLParams["page"]
 	body := r.FormValue("body")
 	//fmattertitle := r.FormValue("fmatter-title")
 	fmattercats := r.FormValue("fmatter-cats")
@@ -1476,11 +1545,12 @@ func saveSnipHandler(w http.ResponseWriter, r *http.Request) {
 	//timer.Step("wiki page saved")
 }
 
-func appendSnipHandler(w http.ResponseWriter, r *http.Request) {
+func appendSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "appendSnipHandler")
 	//title, err := getTitle(w, r)
-	vars := mux.Vars(r)
-	title := vars["page"]
+	//vars := mux.Vars(r)
+	//title := vars["page"]
+	title := c.URLParams["page"]
 	body := r.FormValue("append")
 	//newbody := strings.Replace(body, "\r", "", -1)
 
@@ -1535,11 +1605,12 @@ func (s *Snip) save() error {
 	return nil
 }
 
-func downloadHandler(w http.ResponseWriter, r *http.Request) {
+func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "downloadHandler")
-	vars := mux.Vars(r)
-    name := vars["name"]
-    fpath := "./data/uploads/" + path.Base(name)
+	//vars := mux.Vars(r)
+    //name := vars["name"]
+    name := c.URLParams["name"]
+    fpath := "./uploads/" + path.Base(name)
 
     //Attempt to increment file hit counter...
     file := &File{}
@@ -1562,11 +1633,13 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
     http.ServeFile(w, r, fpath)
 }
 
-func deleteHandler(w http.ResponseWriter, r *http.Request) {
+func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//Requests should come in on /api/delete/{type}/{name}
-	vars := mux.Vars(r)
-	ftype := vars["type"]
-	fname := vars["name"]
+	//vars := mux.Vars(r)
+	//ftype := vars["type"]
+	//fname := vars["name"]
+	ftype := c.URLParams["type"]
+	fname := c.URLParams["name"]
 	if ftype == "snip" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + fname + " has been deleted")
@@ -1586,7 +1659,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		fpath := "./data/uploads/" + fname
+		fpath := "./uploads/" + fname
 		log.Println(fpath + " has been deleted")
 		err = os.Remove(fpath)
 		if err != nil {
@@ -1619,7 +1692,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 //func notFoundHandler(w http.ResponseWriter, r *http.Request) {}
 
-func handleAdmin(w http.ResponseWriter, r *http.Request) {
+func handleAdmin(c web.C, w http.ResponseWriter, r *http.Request) {
     if user, err := aaa.CurrentUser(w, r); err == nil {
         type data struct {
             User httpauth.UserData
@@ -1644,16 +1717,17 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func lgAction(w http.ResponseWriter, r *http.Request) {
+func lgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 	//url := "google.com"
+	username := getUsername(c, w, r)
+	url := r.PostFormValue("url")
+
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff
-		url := r.PostFormValue("url")
-		username := getUsername(w, r)
 		out, err := exec.Command("ping", "-c10", url).Output()
 		if err != nil {
 			log.Println(err)
@@ -1679,8 +1753,6 @@ func lgAction(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if r.Form.Get("lg-action") == "mtr" {
 		//MTR stuff
-		url := r.PostFormValue("url")
-		username := getUsername(w, r)
 		out, err := exec.Command("mtr", "--report-wide", "-c10", url).Output()
 		if err != nil {
 			log.Println(err)
@@ -1706,8 +1778,6 @@ func lgAction(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if r.Form.Get("lg-action") == "traceroute" {
 		//Traceroute stuff
-		url := r.PostFormValue("url")
-		username := getUsername(w, r)
 		out, err := exec.Command("traceroute", url).Output()
 		if err != nil {
 			log.Println(err)
@@ -1739,7 +1809,7 @@ func lgAction(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func newSnipFormHandler(w http.ResponseWriter, r *http.Request) {
+func newSnipFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "newSnipFormHandler")
 	//vars := mux.Vars(r)
 	//var name = ""
@@ -1748,44 +1818,111 @@ func newSnipFormHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	title := r.PostFormValue("newsnip")
-	//http.Redirect(w, r, r.Header.Get("Scheme")+"://"+r.Host+"/+edit/"+title, 302)
 	http.Redirect(w, r, "/+edit/"+title, http.StatusFound)
-	//log.Println("Paste written to ./data/paste/" + title)
-	//log.Println(r.Header.Get("Scheme")+"://"+r.Host+"/p/"+title)
 	log.Println("New Snip at "+title+" created from search box")
 }
 
-type Logger struct {
-	// Logger inherits from log.Logger used to log messages with the Logger middleware
-	*log.Logger
+//Goji Logger middleware
+/*
+func LoggerMiddleware(h http.Handler) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		rawurl := r.Header.Get("X-Raw-URL")
+		ua := r.Header.Get("User-Agent")
+		scheme := r.Header.Get("Scheme")
+		ip := r.Header.Get("X-Forwarded-For")
+		log.Println("Started "+r.Method+" "+r.URL.Path+"| Host: "+r.Host+" | Raw URL: "+rawurl+" | UserAgent: "+ua+" | HTTPS: "+scheme+" | IP: "+ip) 
+		h.ServeHTTP(w, r)
+		log.Println("After request")
+	}
+	return http.HandlerFunc(handler)
+}*/
+
+func LoggerMiddleware(c *web.C, h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		reqID := middleware.GetReqID(*c)
+		printStart(reqID, r)
+
+		lw := mutil.WrapWriter(w)
+
+		t1 := time.Now()
+		h.ServeHTTP(lw, r)
+
+		if lw.Status() == 0 {
+			lw.WriteHeader(http.StatusOK)
+		}
+		t2 := time.Now()
+
+		printEnd(reqID, lw, t2.Sub(t1))
+	}
+
+	return http.HandlerFunc(fn)
 }
 
-// NewLogger returns a new Logger instance
-func NewMyLogger() *Logger {
-	return &Logger{log.New(os.Stdout, "[negroni] ", 0)}
+func printStart(reqID string, r *http.Request) {
+	var buf bytes.Buffer
+
+	if reqID != "" {
+		cW(&buf, bWhite, "[%s] ", reqID)
+	}
+	buf.WriteString("Started ")
+	cW(&buf, bMagenta, "%s ", r.Method)
+	cW(&buf, nBlue, "%q ", r.URL.String())
+	cW(&buf, nGreen, "|Host: %s |RawURL: %s |UserAgent: %s |Scheme: %s |IP: %s ", r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), r.Header.Get("Scheme"), r.Header.Get("X-Forwarded-For"))
+	buf.WriteString("from ")
+	buf.WriteString(r.RemoteAddr)
+
+	log.Print(buf.String())
 }
 
-func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	start := time.Now()
-	l.Printf("Started %s %s | Host: %s | Raw URL: %s | UserAgent: %s | HTTPS: %s | IP: %s", r.Method, r.URL.Path, r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), r.Header.Get("Scheme"), r.Header.Get("X-Forwarded-For"))
+func printEnd(reqID string, w mutil.WriterProxy, dt time.Duration) {
+	var buf bytes.Buffer
 
-	next(rw, r)
+	if reqID != "" {
+		cW(&buf, bWhite, "[%s] ", reqID)
+	}
+	buf.WriteString("Returning ")
+	status := w.Status()
+	if status < 200 {
+		cW(&buf, bBlue, "%03d", status)
+	} else if status < 300 {
+		cW(&buf, bGreen, "%03d", status)
+	} else if status < 400 {
+		cW(&buf, bCyan, "%03d", status)
+	} else if status < 500 {
+		cW(&buf, bYellow, "%03d", status)
+	} else {
+		cW(&buf, bRed, "%03d", status)
+	}
+	buf.WriteString(" in ")
+	if dt < 500*time.Millisecond {
+		cW(&buf, nGreen, "%s", dt)
+	} else if dt < 5*time.Second {
+		cW(&buf, nYellow, "%s", dt)
+	} else {
+		cW(&buf, nRed, "%s", dt)
+	}
 
-	res := rw.(negroni.ResponseWriter)
-	l.Printf("Completed %v %s in %v", res.Status(), http.StatusText(res.Status()), time.Since(start))
+	log.Print(buf.String())
 }
 
-func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-    name := vars["page"]
-	username := getUsername(w, r)
+
+func viewMarkdownHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	//vars := mux.Vars(r)
+    //name := vars["page"]
+    name := c.URLParams["page"]
+	username := getUsername(c, w, r)
 	p, err := loadPage(name, username)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-    body, err := ioutil.ReadFile("./"+name+".md")
+    body, err := ioutil.ReadFile("./md/"+name+".md")
+	if err != nil {
+		http.NotFound(w, r)
+		log.Println(err)
+		return
+	}    
 	//unsafe := blackfriday.MarkdownCommon(body)
 	md := markdownRender(body) 
 	mdhtml := template.HTML(md)
@@ -1809,6 +1946,117 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(name + " Page rendered!")
 }
 
+func Readme(c web.C, w http.ResponseWriter, r *http.Request) {
+    name := "README"
+	username := getUsername(c, w, r)
+	p, err := loadPage(name, username)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+    body, err := ioutil.ReadFile("./"+name+".md")
+	if err != nil {
+		log.Println(err)
+		return
+	}    
+	//unsafe := blackfriday.MarkdownCommon(body)
+	md := markdownRender(body) 
+	mdhtml := template.HTML(md)
+	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)	
+	data := struct {
+		Page *Page
+	    Title string
+	    UN string
+	    MD template.HTML
+	} {
+		p,
+		name,
+		username,
+		mdhtml,
+	}
+	err = renderTemplate(w, "md.tmpl", data)	
+    if err != nil {
+    	log.Println(err)
+    }
+	log.Println(name + " Page rendered!")
+}
+
+func Changelog(c web.C, w http.ResponseWriter, r *http.Request) {
+    name := "CHANGELOG"
+	username := getUsername(c, w, r)
+	p, err := loadPage(name, username)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+    body, err := ioutil.ReadFile("./"+name+".md")
+	if err != nil {
+		log.Println(err)
+		return
+	}    
+	//unsafe := blackfriday.MarkdownCommon(body)
+	md := markdownRender(body) 
+	mdhtml := template.HTML(md)
+	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)	
+	data := struct {
+		Page *Page
+	    Title string
+	    UN string
+	    MD template.HTML
+	} {
+		p,
+		name,
+		username,
+		mdhtml,
+	}
+	err = renderTemplate(w, "md.tmpl", data)	
+    if err != nil {
+    	log.Println(err)
+    }
+	log.Println(name + " Page rendered!")
+}
+
+//Auth Handler for Goji
+func AuthMiddleware(c *web.C, h http.Handler) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		err := aaa.Authorize(w, r, true)
+		if err != nil {
+			log.Println("AuthMiddleware mitigating: "+ r.Host + r.URL.String())
+			messages := aaa.Messages(w, r)
+			p, err := loadPage("Please log in", "")
+			data := struct {
+	    		Page *Page
+			    Title string
+			    UN string
+			    Msg []string
+			} {
+	    		p,
+	    		"Please log in",
+	    		"",
+	    		messages,
+			}
+			err = renderTemplate(w, "login.tmpl", data)
+			if err != nil {
+			    log.Println(err)
+			    return
+			}			
+			return
+		}
+		user, err := aaa.CurrentUser(w, r)
+		if err == nil {
+	        if err != nil {
+	        	panic(err)
+	        }
+	        log.Println(user.Username + " is visiting " + r.Referer())
+	        h.ServeHTTP(w, r)
+		}
+	}
+	return http.HandlerFunc(handler)
+}
+
+
+
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -1817,7 +2065,7 @@ func main() {
 	fmt.Println(string(p2.Body))
 	*/
 
-	//var db, _ = bolt.Open("./data/bolt.db", 0600, nil)
+	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
 	defer Db.Close()
 
 	Db.Update(func(tx *bolt.Tx) error {
@@ -1918,7 +2166,118 @@ func main() {
 	*/
 
 	flag.Parse()
+	flag.Set("bind", ":3000")
+	
+	g := web.New()
+	g.Use(middleware.EnvInit)
+	//g.Use(AuthMiddleware)
+	//g.Abandon(AuthMiddleware)
+	g.Use(LoggerMiddleware)
+	//Static handler
+	g.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
+	g.Get("/", indexHandler)
+	g.Get("/readme", Readme)
+	g.Get("/changelog", Changelog)
 
+	//Login/logout
+	g.Post("/login", loginHandler)
+	g.Get("/login", loginPageHandler)
+	g.Get("/logout", logoutHandler)
+	g.Post("/logout", logoutHandler)
+
+	//Protected Functions:
+
+	g.Use(AuthMiddleware)
+	//Edit Snippet
+	g.Get("/+edit/:page", editSnipHandler)
+	g.Abandon(AuthMiddleware)
+
+	//List of everything
+	g.Get("/list", listHandler)
+	//Raw snippet page
+	g.Get("/+raw/:page", rawSnipHandler)
+	//New short URL page
+	g.Get("/s", shortenPageHandler)
+	g.Get("/short", shortenPageHandler)	
+	//Looking Glass page
+	g.Get("/lg", lgHandler)
+	//New Paste Page
+	g.Get("/p", pastePageHandler)
+	//View existing Paste page
+	g.Get("/p/:id", pasteHandler)
+	//New Upload Page
+	g.Get("/up", uploadPageHandler)
+	//Search page
+	g.Handle("/search/:term", searchHandler)
+	//Download files
+	g.Get("/d/:name", downloadHandler)
+	//Markdown rendering
+	g.Get("/md/:page", viewMarkdownHandler)
+
+	//Test Goji Context
+	g.Get("/c-test",  func(c web.C, w http.ResponseWriter, r *http.Request) {
+		username := getUsername(c, w, r)
+		c.Env["user"] = username
+		log.Println("c-Env:")
+		log.Println(c.Env)
+		log.Println(c.Env["user"])
+		if user, ok := c.Env["user"].(string); ok {
+			w.Write([]byte("Hello " + user))
+		} else {
+			w.Write([]byte("Hello Stranger!"))
+			//log.Println(username)
+			//log.Println(c.Env)
+			log.Println(c.Env["user"].(string))
+		}
+	})
+
+	//View Snippet 
+	g.Get("/:page", snipHandler) 
+
+	//Pastebin upload
+	g.Post("/up/:id", putHandler)
+	g.Put("/up/:id", putHandler)
+	g.Post("/up", putHandler)	
+	g.Put("/up", putHandler)
+	//File upload
+	g.Post("/p/:id", pasteUpHandler)
+	g.Put("/p/:id", pasteUpHandler)
+	g.Post("/p", pasteUpHandler)	
+	g.Post("/p/", pasteUpHandler)
+	//API Stuff	
+	api := web.New()
+	g.Handle("/api/*", api)
+	api.Use(middleware.SubRouter)
+	api.Use(AuthMiddleware)
+	api.Post("/user/new", addUser)
+	api.Get("/delete/:type/:name", deleteHandler)
+	api.Abandon(AuthMiddleware)
+	api.Put("/wiki/new", newSnipFormHandler)
+	api.Post("/wiki/new", newSnipFormHandler)
+	api.Put("/wiki/new/:page", newSnipFormHandler)
+	api.Post("/wiki/new/:page", newSnipFormHandler)	
+	api.Post("/wiki/append/:page", appendSnipHandler)
+	api.Post("/paste/new", pasteFormHandler)
+	api.Post("/file/new", putHandler)
+	api.Post("/file/remote", remoteDownloadHandler)
+	api.Post("/shorten/new", shortUrlFormHandler)
+	api.Post("/lg", lgAction)
+
+	//http.Handle("go.dev/", g)
+	if fLocal {
+		log.Println("Listening on .dev domains due to -l flag...")		
+		http.Handle("go.dev/", g)
+	} else {
+		log.Println("Listening on go.jba.io domain")
+		http.Handle("go.jba.io/", g)
+	}
+	//Should be the catchall, sends to shortURL for the time being
+	//Unsure how to combine Gorilla Mux's wildcard subdomain matching and Goji yet :(
+	goji.Get("/", shortUrlHandler)
+	goji.Serve()
+
+	//Old Gorilla routes:
+	/*
 	r := mux.NewRouter()
 	gen := r.Host("go.jba.io").Subrouter()
 	if fLocal {
@@ -2020,6 +2379,6 @@ func main() {
 	n.UseHandler(r)
 	//n.UseHandler(s)
 	n.Run(":" + port)
-
+	*/
 
 }
