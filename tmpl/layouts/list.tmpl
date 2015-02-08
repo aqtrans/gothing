@@ -1,0 +1,73 @@
+{{ define "title" }}<title>List</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>List of things</h1>
+<hr />
+<h2>Pastes</h2>
+<table>
+<tr>
+<th width="80">Link</th>
+<th width="200">Date</th>
+<th width="10">Hits</th>
+</tr>
+{{$user := .UN}}
+{{range .Pastes}}
+<tr>
+<td><a href=/p/{{.Title}}>{{.Title}}</a></td>
+<td>{{.Created}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/paste/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
+</tr>
+{{ end }}
+</table>
+<h2>Snippet pages</h2>
+<table>
+<tr>
+<th width="80">Link</th>
+<th width="200">Date</th>
+<th width="20">Hits</th>
+</tr>
+{{range .Snips}}
+<tr>
+<td><a href=/{{.Title}}>{{.Title}}</a></td>
+<td>{{.Created}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/snip/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
+</tr>
+{{ end }}
+</table>
+<h2>Files</h2>
+<table>
+<tr>
+<th width="80">Link</th>
+<th width="200">Date</th>
+<th width="20">Hits</th>
+</tr>
+{{range .Files}}
+<tr>
+<td><a href=/d/{{.Filename}}>{{.Filename}}</a></td>
+<td>{{.Created}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/file/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
+{{ end }}
+</table>
+<h2>Short URLs</h2>
+<table>
+<tr>
+<th width="80">Short URL</th>
+<th width="300">Long URL</th>
+<th width="200">Date</th>
+<th width="20">Hits</th>
+</tr>
+{{range .Shorturls}}
+<tr>
+<td><a href=http://{{.Short}}.es.gy>{{.Short}}</a></td>
+<td><a href={{.Long}}>{{.Long}}</a></td>
+<td>{{.Created}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/shorturl/{{.Short}} class="button tiny alert">Delete</a></td>{{ end }}
+{{ end }}
+{{ end }}

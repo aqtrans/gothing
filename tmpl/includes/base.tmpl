@@ -1,0 +1,38 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]--> 
+<html class="no-js" lang="en" >
+<head>
+  {{ template "title" . }}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gowiki">
+  <link rel="shortcut icon" type="image/png" href="/favicon.png"/>
+  <link rel="shortcut icon" type="image/ico" href="/favicon.ico" />
+  <link rel="stylesheet" href="/css/normalize.css"> 
+  <link rel="stylesheet" href="/css/foundation.css"> 
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/font-awesome.min.css">
+  <!--<script src="//code.jquery.com/jquery-1.10.1.min.js"></script>-->
+  <script src="/js/modernizr.js"></script>
+ </head>
+<body>
+<div class="row">
+  <div class="small-2 columns sidebar">
+      <a href="/"><h3>The King Of Things...<br>
+          cause it does and stores lots of things!</a></h3>
+      {{ template "sidebar" .}}
+  </div>
+<div class="small-10 columns body">
+{{ template "content" . }}
+</div>
+</div>
+<footer>
+</footer>
+<script src="/js/jquery.min.js"></script>
+<script src="/js/foundation.min.js"></script>  
+<script> $(document).foundation(); </script> 
+</body>
+</html>
+{{ end }}
+{{ define "sidebar" }}{{ end }}

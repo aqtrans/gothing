@@ -1,0 +1,43 @@
+{{ define "title" }}<title>Editing {{ .Page.Title }}</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+{{ end }} 
+{{ define "content" }}       
+<h1>Editing {{ .Page.Title }}</h1>
+{{$title := .Page.Title}}
+{{ if .Page.UN }}
+<div>
+<ul class="tabs">
+  <li class="tab-title "><a href="/{{$title}}">View</a></li>
+  <li class="tab-title active"><a href="#">Edit</a></li>
+  <li class="tab-title"><a href="/+raw/{{$title}}">Raw</a></li>
+</ul>
+</div>
+{{ end }}
+<hr />
+<form action="/api/wiki/new/{{.Page.Title}}" method="POST">
+  <div class="row">
+    <div class="small-4 columns">
+    <label>Title:
+  	<input type="text" id="fmatter-title" name="fmatter-title" value='{{printf "%s" .Page.Title}}' size="12" disabled></label>
+  	</div>
+  	<div class="small-4 columns">
+  	<label>Categories:
+  	<input type="text" id="fmatter-cats" name="fmatter-cats" value='{{printf "%s" .Snip.Cats}}' size="12"></label>
+  	</div>
+  	<div class="small-4 columns">
+  	<!--<label>Categories:
+  	<input type="text" id="fmatter-cats" name="fmatter-cats" value='{{printf "%s" .Snip.Cats}}' size="12"></label>-->
+  	</div>  	
+  </div>
+  <div class="row">
+    <div class="small-10 columns">
+      <label>Content:
+        <textarea name="body">{{range .Snip.Content}} {{.}} {{printf "\n"}} {{ end }}</textarea>
+      </label>
+      <input type="submit" class="button success" value="Save">
+    </div>
+  </div>
+
+</form>
+{{ end }}

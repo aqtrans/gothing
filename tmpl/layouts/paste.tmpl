@@ -1,0 +1,14 @@
+{{ define "title" }}<title>New Pastebin</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>New paste</h1>
+<hr />
+<form action="/api/paste/new" method="POST">
+Title:<input type="text" name="title"><br>
+<textarea name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
+<input type="submit" value="Submit" class="button success">
+</form>
+{{ end }}

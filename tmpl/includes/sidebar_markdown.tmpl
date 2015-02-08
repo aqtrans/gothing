@@ -1,0 +1,80 @@
+{{ define "sidebar_markdown" }}
+<pre><code>
+~~~~~~~~
+Page metadata:
+---
+Title: Haskell and Category Theory
+Date: (now|Fri 01/23/2015 at 01:29:53am CST)
+Categories: stuff,and,cats
+---
+
+Blog metadata:
+---
+title: About
+menu:
+  main:
+     name: "About"
+     pre: "<i class='fa fa-info fa-lg fa-fw'></i>&nbsp;"
+     weight: 1
+date: 2014-01-01
+title: "Installing Sensu on ArchLinux"
+slug: "installing-sensu-on-arch"
+categories: blog
+tags: [ howto, pkgbuild ]
+---
+
+# Section heading
+
+## Subsection
+
+Formatting:  *italics*,
+**bold**, super^script^,
+sub~script~, ~~strikeout~~.
+A line break  
+can be forced with two spaces
+at the end of the line.
+
+> Indented quotation
+
+Links:
+[external](http://google.com),
+[Wiki Link](),
+![image](/img/gitit-banner.png),
+[to heading](#section-heading).
+
+Indented code block:
+
+    #include <stdbool.h>
+
+Or use a delimited code block:
+
+~~~ { .haskell }
+let a = 1:a in head a
+~~~
+
+```html
+<a href="http://google.com">OMG</a>
+```
+
+- bulleted
+- list
+
+* * * * *
+
+1.  ordered
+2.  list
+    a. sublist (indent 4 spaces)
+    b. another
+3.  item three
+
+term
+:   definition
+
+orange
+:   orange fruit
+
+~~~~~~~~
+</code></pre>
+For more: [markdown syntax](http://daringfireball.net/projects/markdown),
+[pandoc extensions](http://johnmacfarlane.net/pandoc/README.html).
+{{ end }}
