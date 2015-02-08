@@ -1,0 +1,12 @@
+{{ define "title" }}<title>Login</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>Login</h1>
+{{ if .Msg }}
+<p>{{ .Msg }}</p>
+{{ end }}
+{{ template "login_form" .}}
+{{ end }}
