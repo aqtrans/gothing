@@ -1785,7 +1785,7 @@ func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	file.Close()
 	//convert ./up-imgs/small_image.jpg -resize 2000x -coalesce -layers optimize ./tmp/big_image.jpg
 	bigName := "./tmp/BIG-"+name
-	resize := exec.Command("/usr/bin/convert", fpath, "-resize", "2000x", "-coalesce", "-layers", "optimize", bigName)
+	resize := exec.Command("/usr/bin/convert", fpath, "-resize", "2000x", "-coalesce", bigName)
 	err = resize.Run()
 	if err != nil {
 		log.Println(err)
