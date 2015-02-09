@@ -8,3 +8,6 @@ bolt.db
 auth.gob
 uploads/*
 md/*
+tmp/*
+up-files/*
+up-imgs/*

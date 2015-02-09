@@ -13,9 +13,18 @@
 	<h1>Upload a file</h1>
 	<hr />
 	<form action="/api/file/new" method="post" enctype="multipart/form-data" class="dropzone">
-	<label for="file">Filename:</label>
-	<input type="file" name="file" id="file">
-	<input type="submit" name="submit" value="Submit" class="button success">
+    <div class="row collapse">
+      <div class="small-6 columns">
+        <input type="text" name="local-file-name" placeholder="Optional filename">
+      </div>
+      <div class="small-4 columns">      
+		<label for="file">Filename:</label>
+		<input type="file" name="file" id="file">
+	  </div>
+	  <div class="small-2 columns">
+		<input type="submit" name="submit" value="Submit" class="button success">
+	  </div>
+	</div>
 	</form>
   </div>
   <div class="content" id="panel2">
@@ -23,14 +32,17 @@
 	<hr />
 	<form method="post" action="/api/file/remote" id="rup">
 	<div class="row collapse">
-	<div class="small-10 columns">
+	<div class="small-6 columns">
 	  <input type="text" name="remote" placeholder="Enter your URL...">
 	</div>
+	<div class="small-4 columns">
+	  <input type="text" name="remote-file-name" placeholder="Optional filename">
+	</div>    	
     <div class="small-2 columns">
       <input type="submit" name="submit" value="Submit" class="button success postfix">
     </div>
   </div>
-
+  </form>
   </div>
 </div>
 {{ end }}
