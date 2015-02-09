@@ -146,18 +146,21 @@ type Shorturl struct {
 }
 
 func init() {
+	//TTY detection for Gojis terminal color output
 	fil, err := os.Stdout.Stat()
 	if err == nil {
 		m := os.ModeDevice | os.ModeCharDevice
 		isTTY = fil.Mode()&m == m
 	}
 
+	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
+
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
 		templates = make(map[string]*template.Template)
 	}
-	templatesDir := "./tmpl/"
+	templatesDir := "./templates/"
 	layouts, err := filepath.Glob(templatesDir + "layouts/*.tmpl")
 	if err != nil {
 		log.Fatal(err)
