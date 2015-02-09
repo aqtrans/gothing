@@ -15,7 +15,11 @@
 {{$user := .UN}}
 {{range .Images}}
 <tr>
-<td><a href=/i/{{.Filename}}><img class="freezeframe" src="/thumbs/{{.Filename}}"></a></td>
+<td>
+<a class="th" href="/i/{{.Filename}}">
+<img class="freezeframe" src="/thumbs/{{.Filename}}">
+</a>
+</td>
 <td>{{.Created}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
