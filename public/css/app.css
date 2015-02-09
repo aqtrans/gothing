@@ -32,3 +32,6 @@ figure.freezeframe-container {
   max-height: 300px;
 }
 
+figure {
+    margin: 0;
+}
