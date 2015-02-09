@@ -13,7 +13,10 @@
   <link rel="stylesheet" href="/css/foundation.css"> 
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/font-awesome.min.css">
-  <!--<script src="//code.jquery.com/jquery-1.10.1.min.js"></script>-->
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/foundation.min.js"></script>  
+  <script> $(document).foundation(); </script> 
+  {{ template "extra_scripts" . }}
   <script src="/js/modernizr.js"></script>
  </head>
 <body>
@@ -29,12 +32,8 @@
 </div>
 <footer>
 </footer>
-<script src="/js/jquery.min.js"></script>
-<script src="/js/foundation.min.js"></script>  
-<script> $(document).foundation(); </script> 
-{{ template "bottom_scripts" . }}
 </body>
 </html>
 {{ end }}
 {{ define "sidebar" }}{{ end }}
-{{ define "bottom_scripts" }}{{ end }}
+{{ define "extra_scripts" }}{{ end }}
