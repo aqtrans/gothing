@@ -15,18 +15,19 @@
 {{$user := .UN}}
 {{range .Images}}
 <tr>
-<td><a href=/i/{{.Filename}}><img class="lazy" data-original="/thumbs/{{.Filename}}"></a></td>
+<td><a href=/i/{{.Filename}}><img class="freezeframe" src="/thumbs/{{.Filename}}"></a></td>
 <td>{{.Created}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 {{ end }}
 </table>
+Using <a href="http://freezeframe.chrisantonellis.com">FreezeFrame</a>
+ by <a href="http://www.chrisantonellis.com">Chris Antonellis</a>
 {{ end }}
-{{ define "bottom_scripts" }}
-<script src="/js/jquery.lazyload.min.js" type="text/javascript"></script>
-<script type="text/javascript" charset="utf-8">
-$(function() {
- $("img.lazy").lazyload();
-});
+{{ define "extra_scripts" }}
+<script src="/js/freezeframe.js" type="text/javascript">
+freezeframe_options = {
+	loading_background_color: "white"
+}
 </script>
 {{ end }}
