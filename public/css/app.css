@@ -22,7 +22,13 @@ textarea {
   height: 20rem;
 }
 
-.lazy {
+.freezeframe_done {
   max-width: 300px;
   max-height: 300px;
 }
+
+figure.freezeframe-container {
+  max-width: 300px;
+  max-height: 300px;
+}
+
