@@ -21,3 +21,8 @@ button.tiny, .button.tiny {
 textarea {
   height: 20rem;
 }
+
+.lazy {
+  max-width: 300px;
+  max-height: 300px;
+}
