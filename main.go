@@ -25,6 +25,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
 	//"github.com/disintegration/imaging"
+	//"github.com/nfnt/resize"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -1770,6 +1771,28 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     http.ServeFile(w, r, fpath)
 }
 
+//Resizes all images using raw imagemagick 'convert' command, due to image.resize failing at animated GIFs
+func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+    name := c.URLParams["name"]
+    fpath := "./up-imgs/" + path.Base(name)
+    contentType := mime.TypeByExtension(fpath)
+    log.Println(contentType)
+	file, err := os.Open(fpath)
+	if err != nil {
+	     log.Println(err)
+	     return
+	}
+	file.Close()
+	//convert ./up-imgs/small_image.jpg -resize 2000x -coalesce -layers optimize ./tmp/big_image.jpg
+	bigName := "./tmp/BIG-"+name
+	resize := exec.Command("/usr/bin/convert", fpath, "-resize", "2000x", "-coalesce", "-layers", "optimize", bigName)
+	err = resize.Run()
+	if err != nil {
+		log.Println(err)
+	}
+    http.ServeFile(w, r, "./tmp/BIG-"+name)
+}
+
 //Delete stuff
 //TODO: Add images to this
 func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -2612,6 +2635,8 @@ func main() {
 	g.Handle("/search/:term", searchHandler)
 	//Download files
 	g.Get("/d/:name", downloadHandler)
+	//Download BIG images
+	g.Get("/big/:name", imageBigHandler)		
 	//Download images
 	g.Get("/i/:name", downloadImageHandler)	
 	//Markdown rendering
