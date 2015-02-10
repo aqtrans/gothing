@@ -12,10 +12,12 @@ import (
 	"fmt"
 	//"github.com/gorilla/mux"
 	//"github.com/codegangsta/negroni"
-	"github.com/zenazn/goji"
+	//"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
 	"github.com/zenazn/goji/web/mutil"
+	"github.com/zenazn/goji/bind"
+    "github.com/zenazn/goji/graceful"
 	"github.com/hypebeast/gojistatic"
 	"github.com/oxtoacart/bpool"
 	//"github.com/microcosm-cc/bluemonday"
@@ -147,6 +149,13 @@ type Shorturl struct {
 }
 
 func init() {
+	//Goji DefaultMux overrides
+	bind.WithFlag()
+	if fl := log.Flags(); fl&log.Ltime != 0 {
+	log.SetFlags(fl | log.Lmicroseconds)
+	}
+	graceful.DoubleKickWindow(2 * time.Second)
+
 	//TTY detection for Gojis terminal color output
 	fil, err := os.Stdout.Stat()
 	if err == nil {
@@ -2280,6 +2289,15 @@ func printStart(reqID string, r *http.Request) {
 	buf.WriteString("from ")
 	buf.WriteString(r.RemoteAddr)
 
+	//Log to file
+	f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+	    log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(io.MultiWriter(os.Stdout, f))
+
 	log.Print(buf.String())
 }
 
@@ -2310,6 +2328,15 @@ func printEnd(reqID string, w mutil.WriterProxy, dt time.Duration) {
 	} else {
 		cW(&buf, nRed, "%s", dt)
 	}
+
+	//Log to file
+	f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+	    log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(io.MultiWriter(os.Stdout, f))
 
 	log.Print(buf.String())
 }
@@ -2594,7 +2621,10 @@ func main() {
 	g.Use(middleware.EnvInit)
 	//g.Use(AuthMiddleware)
 	//g.Abandon(AuthMiddleware)
-	g.Use(LoggerMiddleware)
+	g.Use(middleware.RequestID)
+    g.Use(LoggerMiddleware)
+    g.Use(middleware.Recoverer)
+    g.Use(middleware.AutomaticOptions)		
 	//Static handler
 	g.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
 	g.Get("/", indexHandler)
@@ -2707,9 +2737,33 @@ func main() {
 	}
 	//Should be the catchall, sends to shortURL for the time being
 	//Unsure how to combine Gorilla Mux's wildcard subdomain matching and Goji yet :(
-	goji.Use(LoggerMiddleware)
-	goji.Get("/", shortUrlHandler)
-	goji.Serve()
+	//goji.Use(LoggerMiddleware)
+	//goji.Get("/", shortUrlHandler)
+	//goji.Serve()
+
+
+	//My Goji Mux
+	mygoji := web.New()
+	mygoji.Use(middleware.RequestID)
+    mygoji.Use(LoggerMiddleware)
+    mygoji.Use(middleware.Recoverer)
+    mygoji.Use(middleware.AutomaticOptions)	
+    mygoji.Get("/", shortUrlHandler)
+    mygoji.Compile()
+
+    http.Handle("/", mygoji)
+    listener := bind.Default()
+    log.Println("Starting Goji on", listener.Addr())
+	graceful.HandleSignals()
+	bind.Ready()
+	graceful.PreHook(func() { log.Printf("Goji received signal, gracefully stopping") })
+	graceful.PostHook(func() { log.Printf("Goji stopped") })
+	err = graceful.Serve(listener, http.DefaultServeMux)
+	if err != nil {
+		log.Fatal(err)
+	}
+	graceful.Wait()    
+
 
 	//Old Gorilla routes:
 	/*
