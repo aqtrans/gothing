@@ -1,12 +1,6 @@
-moes
-data/paste/
-data/uploads/
-data/wiki/
-data/auth.gob
-data/bolt.db
 bolt.db
 auth.gob
-uploads/*
+bak/*
 md/*
 tmp/*
 up-files/*
