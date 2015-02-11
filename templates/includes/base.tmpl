@@ -13,17 +13,12 @@
   <link rel="stylesheet" href="/css/foundation.css"> 
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/font-awesome.min.css">
-  <script src="/js/jquery.min.js"></script>
-  <script src="/js/foundation.min.js"></script>  
-  <script> $(document).foundation(); </script> 
-  {{ template "extra_scripts" . }}
   <script src="/js/modernizr.js"></script>
  </head>
 <body>
 <div class="row">
   <div class="small-2 columns sidebar">
-      <a href="/"><h3>The King Of Things...<br>
-          cause it does and stores lots of things!</a></h3>
+      <a href="/"><h3>tkot</a></h3>
       {{ template "sidebar" .}}
   </div>
 <div class="small-10 columns body">
@@ -32,6 +27,11 @@
 </div>
 <footer>
 </footer>
+  <script src="/js/jquery.js"></script>
+  <script src="/js/fastclick.js"></script>
+  <script src="/js/foundation.min.js"></script>   
+  {{ template "extra_scripts" . }}
+  <script> $(document).foundation(); </script>
 </body>
 </html>
 {{ end }}
