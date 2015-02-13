@@ -22,6 +22,10 @@ textarea {
   height: 20rem;
 }
 
+.thumbspacer {
+  height: 300px;
+}
+
 .freezeframe_done {
   max-width: 300px;
   max-height: 300px;
@@ -34,4 +38,12 @@ figure.freezeframe-container {
 
 figure {
     margin: 0;
+}
+
+.inline-list li {
+  margin-left: 0.3rem;
+}
+
+ul.inline-list  {
+  line-height: 1;
 }
