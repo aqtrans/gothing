@@ -536,6 +536,26 @@ func galleryHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//log.Println(l)
 }
 
+func galleryEsgyHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "galleryEsgyHandler")
+	//vars := mux.Vars(r)
+	//page := vars["page"]
+	username := getUsername(c, w, r)
+	l, err := loadGalleryPage(username)
+	if err != nil {
+		log.Println(err)
+	}
+	//fmt.Fprintln(w, l)
+
+	err = renderTemplate(w, "gallery-esgy.tmpl", l)
+	if err != nil {
+		log.Println(err)
+	}
+	//log.Println("List rendered!")
+	//timer.Step("list page rendered")
+	//log.Println(l)
+}
+
 func galleryListHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "galleryListHandler")
 	//vars := mux.Vars(r)
@@ -2781,7 +2801,7 @@ func main() {
     i.Use(middleware.AutomaticOptions)		
 	//Static handler
 	i.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
-	i.Get("/", galleryHandler)	
+	i.Get("/", galleryEsgyHandler)	
 	//Thumbs
 	i.Get("/thumbs/:name", imageThumbHandler)
 	//Huge images
@@ -2798,7 +2818,8 @@ func main() {
 	big.Use(middleware.RequestID)
     big.Use(LoggerMiddleware)
     big.Use(middleware.Recoverer)
-    big.Use(middleware.AutomaticOptions)		
+    big.Use(middleware.AutomaticOptions)	
+	big.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))    	
 	//Huge images
 	big.Get("/:name", imageBigHandler)	
 	http.Handle("big.es.gy/", big)
