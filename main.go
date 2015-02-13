@@ -536,6 +536,26 @@ func galleryHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//log.Println(l)
 }
 
+func galleryListHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "galleryListHandler")
+	//vars := mux.Vars(r)
+	//page := vars["page"]
+	username := getUsername(c, w, r)
+	l, err := loadGalleryPage(username)
+	if err != nil {
+		log.Println(err)
+	}
+	//fmt.Fprintln(w, l)
+
+	err = renderTemplate(w, "admin-list.tmpl", l)
+	if err != nil {
+		log.Println(err)
+	}
+	//log.Println("List rendered!")
+	//timer.Step("list page rendered")
+	//log.Println(l)
+}
+
 func lgHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "lgHandler")
 	username := getUsername(c, w, r)
@@ -2683,6 +2703,8 @@ func main() {
 	g.Get("/thumbs/:name", imageThumbHandler)
 	//Image Gallery
 	g.Get("/i", galleryHandler)
+	//Image Gallery
+	g.Get("/il", galleryListHandler)
 
 	//Test Goji Context
 	g.Get("/c-test",  func(c web.C, w http.ResponseWriter, r *http.Request) {
