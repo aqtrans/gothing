@@ -1,7 +1,8 @@
 {{ define "title" }}<title>Image Gallery - tkot</title>{{ end }}
 {{ define "sidebar" }}
-    {{ template "sidebar_nav" . }}
-    {{ template "login_form" . }}
+    <ul class="side-nav">
+      <li><a href="/"><span>Gallery</span></a></li>
+    </ul>
 {{ end }}
 {{ define "content" }}       
 <h1>Image Gallery</h1>
