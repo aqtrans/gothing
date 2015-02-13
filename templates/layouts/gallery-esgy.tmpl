@@ -1,0 +1,30 @@
+{{ define "title" }}<title>Image Gallery - tkot</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+    {{ template "login_form" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>Image Gallery</h1>
+<div class="row">
+	<ul class="inline-list"> 
+	{{range .Images}}
+	<li>
+	<div class="thumbspacer">
+	<a class="th" href="/{{.Filename}}">
+	<img class="freezeframe" src="/thumbs/{{.Filename}}">
+	</a>
+	</div>
+	</li> 
+	{{ end }}
+	</ul>
+</div>
+Using <a href="http://freezeframe.chrisantonellis.com">FreezeFrame</a>
+ by <a href="http://www.chrisantonellis.com">Chris Antonellis</a>
+{{ end }}
+{{ define "extra_scripts" }}
+<script src="/js/freezeframe.js" type="text/javascript">
+freezeframe_options = {
+	loading_background_color: "white"
+}
+</script>
+{{ end }}
