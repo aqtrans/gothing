@@ -1780,26 +1780,34 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     http.ServeFile(w, r, fpath)
 }
 
-//Resizes all images using raw imagemagick 'convert' command, due to image.resize failing at animated GIFs
+//Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
+//Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
-    fpath := "./up-imgs/" + path.Base(name)
-    contentType := mime.TypeByExtension(fpath)
-    log.Println(contentType)
-	file, err := os.Open(fpath)
-	if err != nil {
-	     log.Println(err)
-	     return
+    smallPath := "./up-imgs/"+path.Base(name)
+    bigPath := "./tmp/BIG-"+path.Base(name)
+
+    //Check to see if the large image already exists
+    //If so, serve it directly
+	if _, err := os.Stat(bigPath); err == nil {
+		log.Println("Pre-existing BIG gif already found, serving it...")
+		http.ServeFile(w, r, "./tmp/BIG-"+path.Base(name))
+	} else {
+		log.Println("BIG gif not found. Running gifsicle...")
+		file, err := os.Open(smallPath)
+		if err != nil {
+		     log.Println(err)
+		     return
+		}
+		file.Close()
+		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
+		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256","--resize", "2000x_", smallPath, "-o", bigPath)
+		err = resize.Run()
+		if err != nil {
+			log.Println(err)
+		}
+	    http.ServeFile(w, r, "./tmp/BIG-"+name)
 	}
-	file.Close()
-	//convert ./up-imgs/small_image.jpg -resize 2000x -coalesce -layers optimize ./tmp/big_image.jpg
-	bigName := "./tmp/BIG-"+name
-	resize := exec.Command("/usr/bin/convert", fpath, "-resize", "2000x", "-coalesce", bigName)
-	err = resize.Run()
-	if err != nil {
-		log.Println(err)
-	}
-    http.ServeFile(w, r, "./tmp/BIG-"+name)
 }
 
 //Delete stuff
