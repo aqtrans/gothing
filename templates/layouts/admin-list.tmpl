@@ -5,19 +5,26 @@
 {{ end }}
 {{ define "content" }}       
 <h1>Image Gallery</h1>
-<div class="row">
-	<ul class="inline-list"> 
-	{{range .Images}}
-	<li>
-	<div class="thumbspacer">
-	<a class="th" href="/i/{{.Filename}}">
-	<img class="freezeframe" src="/thumbs/{{.Filename}}">
-	</a>
-	</div>
-	</li> 
-	{{ end }}
-	</ul>
-</div>
+<h2>Images</h2>
+<table>
+<tr>
+<th width="80">Link</th>
+<th width="200">Date</th>
+<th width="20">Hits</th>
+</tr>
+{{$user := .UN}}
+{{range .Images}}
+<tr>
+<td>
+<a class="th" href="/i/{{.Filename}}">
+<img class="freezeframe" src="/thumbs/{{.Filename}}">
+</a>
+</td>
+<td>{{.Created}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
+{{ end }}
+</table>
 Using <a href="http://freezeframe.chrisantonellis.com">FreezeFrame</a>
  by <a href="http://www.chrisantonellis.com">Chris Antonellis</a>
 {{ end }}

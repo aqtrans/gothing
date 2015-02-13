@@ -2735,6 +2735,7 @@ func main() {
 	api.Post("/image/new", putImageHandler)
 	api.Post("/image/remote", remoteImageHandler)
 
+
 	//http.Handle("go.dev/", g)
 	if fLocal {
 		log.Println("Listening on .dev domains due to -l flag...")		
@@ -2749,6 +2750,36 @@ func main() {
 	//goji.Get("/", shortUrlHandler)
 	//goji.Serve()
 
+	//Dedicated image subdomain routes
+	i := web.New()
+	i.Use(middleware.EnvInit)
+	i.Use(middleware.RequestID)
+    i.Use(LoggerMiddleware)
+    i.Use(middleware.Recoverer)
+    i.Use(middleware.AutomaticOptions)		
+	//Static handler
+	i.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
+	i.Get("/", galleryHandler)	
+	//Thumbs
+	i.Get("/thumbs/:name", imageThumbHandler)
+	//Huge images
+	i.Get("/big/:name", imageBigHandler)		
+	//Download images
+	i.Get("/:name", downloadImageHandler)
+	http.Handle("i.es.gy/", i)
+
+	//Dedicated BIG image subdomain for easy linking
+	big := web.New()
+	big.Use(middleware.EnvInit)
+	//g.Use(AuthMiddleware)
+	//g.Abandon(AuthMiddleware)
+	big.Use(middleware.RequestID)
+    big.Use(LoggerMiddleware)
+    big.Use(middleware.Recoverer)
+    big.Use(middleware.AutomaticOptions)		
+	//Huge images
+	big.Get("/:name", imageBigHandler)	
+	http.Handle("big.es.gy/", big)
 
 	//My Goji Mux
 	mygoji := web.New()
@@ -2757,7 +2788,12 @@ func main() {
     mygoji.Use(middleware.Recoverer)
     mygoji.Use(middleware.AutomaticOptions)	
     mygoji.Get("/", shortUrlHandler)
+
     mygoji.Compile()
+	api.Compile()
+	g.Compile()   
+	i.Compile()	 
+	big.Compile()	
 
     http.Handle("/", mygoji)
     listener := bind.Default()
