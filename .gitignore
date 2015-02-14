@@ -1,8 +1,9 @@
 bolt.db
 auth.gob
-bak/*
+bak/**
 md/*
 tmp/*
 up-files/*
 up-imgs/*
 req.log
+
