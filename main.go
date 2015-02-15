@@ -2610,25 +2610,13 @@ func main() {
    if err != nil {
       os.Mkdir("./up-imgs", 0755)
    }
-   if !imgs.IsDir() {
-     fmt.Println("./up-imgs/ is not a directory")
-     os.Exit(1)
-   }
    files, err := os.Stat("./up-files")
    if err != nil {
       os.Mkdir("./up-files", 0755)
    }
-   if !files.IsDir() {
-     fmt.Println("./up-files/ is not a directory")
-     os.Exit(1)
-   }
    bigimgs, err := os.Stat("./big-imgs")
    if err != nil {
       os.Mkdir("./big-imgs", 0755)
-   }
-   if !bigimgs.IsDir() {
-     fmt.Println("./big-imgs/ is not a directory")
-     os.Exit(1)
    }
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
