@@ -1331,6 +1331,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	        			log.Println(err)
 	        		}
 	        		log.Println("Serving "+shorturl.Long+" file directly")
+	        		log.Println(u.Path)
 	        		http.ServeFile(w, r, "./up-imgs/"+u.Path) 
 	        	}
 	        }	        
