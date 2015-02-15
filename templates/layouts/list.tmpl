@@ -21,7 +21,7 @@
 {{range .Pastes}}
     <tr>
     <td><a href=/p/{{.Title}}>{{.Title}}</a></td>
-    <td>{{.Created}}</td>
+    <td>{{.Created | prettyDate}}</td>
     <td>{{.Hits}}</td>
     {{if $user}}<td><a href=/api/delete/paste/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
     </tr>
@@ -41,7 +41,7 @@
 {{range .Snips}}
 <tr>
 <td><a href=/{{.Title}}>{{.Title}}</a></td>
-<td>{{.Created}}</td>
+<td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/snip/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
@@ -61,7 +61,7 @@
 {{range .Files}}
 <tr>
 <td><a href=/d/{{.Filename}}>{{.Filename}}</a></td>
-<td>{{.Created}}</td>
+<td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/file/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
@@ -83,7 +83,7 @@
 <tr>
 <td><a href=http://{{.Short}}.es.gy>{{.Short}}</a></td>
 <td><a href={{.Long}}>{{.Long}}</a></td>
-<td>{{.Created}}</td>
+<td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/shorturl/{{.Short}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
