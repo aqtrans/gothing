@@ -1335,7 +1335,6 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 				    segments := strings.Split(u.Path, "/")
 				    fileName := segments[len(segments)-1]	        		
 	        		log.Println("Serving "+shorturl.Long+" file directly")
-	        		log.Println(u.Path)
 	        		http.ServeFile(w, r, "./up-imgs/"+fileName) 
 	        	}
 	        }	        
@@ -2617,6 +2616,17 @@ func AuthMiddleware(c *web.C, h http.Handler) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
+//Generate a random key of specific length
+func RandKey(leng int8) string {
+	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	rb := make([]byte, leng)
+	rand.Read(rb)
+	for k, v := range rb {
+		rb[k] = dictionary[v%byte(len(dictionary))]
+	}
+	sess_id := string(rb)
+	return sess_id
+}
 
 
 
@@ -2726,6 +2736,7 @@ func main() {
 	roles["gator"] = 2
 	roles["admin"] = 10
 
+	/*
 	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	rb := make([]byte, 32)
 	rand.Read(rb)
@@ -2733,7 +2744,9 @@ func main() {
 		rb[k] = dictionary[v%byte(len(dictionary))]
 	}
 	sess_id := string(rb)
-	log.Println("Session ID: " + sess_id)
+	*/
+	new_sess := RandKey(32)
+	log.Println("Session ID: " + new_sess)
 
 	aaa, err = httpauth.NewAuthorizer(backend, []byte("ieP2Aengoovu4AhZeimoo"), "user", roles)
 	if err != nil {
