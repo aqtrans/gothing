@@ -179,7 +179,7 @@ Db.Update(func(tx *bolt.Tx) error {
             RemoteURL: image.RemoteURL,
         }
         encoded, err := json.Marshal(i)
-		return shorts.Put(k, encoded)
+		return images.Put(k, encoded)
     })              
     return nil
 })
