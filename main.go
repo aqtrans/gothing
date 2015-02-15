@@ -1320,7 +1320,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	        			log.Println(err)
 	        		}
 	        		log.Println("Serving "+shorturl.Long+" file directly")
-	        		http.ServeFile(w, r, "/srv/http/app/qchan/"+u.Path) 
+	        		http.ServeFile(w, r, "./up-imgs/"+u.Path) 
 	        	}
 	        }
 	        http.Redirect(w, r, shorturl.Long, 302)
