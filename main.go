@@ -1876,7 +1876,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		fpath := "./up-imgs/" + fname
+		fpath := "./up-files/" + fname
 		http.Redirect(w, r, "/list", 302)
 		log.Println(fpath + " has been deleted")
 		err = os.Remove(fpath)
@@ -1886,6 +1886,25 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, "/list", 302)
 		//fmt.Fprintf(w, fpath + " has been deleted")
+	} else if ftype == "image" {
+		err := Db.Update(func(tx *bolt.Tx) error {
+			log.Println(ftype + fname + " has been deleted")
+		    return tx.Bucket([]byte("Images")).Delete([]byte(fname))
+		})
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		fpath := "./up-imgs/" + fname
+		http.Redirect(w, r, "/list", 302)
+		log.Println(fpath + " has been deleted")
+		err = os.Remove(fpath)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		http.Redirect(w, r, "/list", 302)
+		//fmt.Fprintf(w, fpath + " has been deleted")		
 	} else if ftype == "paste" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + fname + " has been deleted")
