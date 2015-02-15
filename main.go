@@ -1323,6 +1323,17 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	        		http.ServeFile(w, r, "./up-imgs/"+u.Path) 
 	        	}
 	        }
+	        if strings.Contains(shorturl.Long, "go.jba.io/i/") {
+	        	log.Println("LONG URL CONTAINS GO.JBA.IO")
+	        	if strings.HasPrefix(shorturl.Long, "http://go.jba.io/i/") {
+	        		u, err := url.Parse(shorturl.Long)
+	        		if err != nil {
+	        			log.Println(err)
+	        		}
+	        		log.Println("Serving "+shorturl.Long+" file directly")
+	        		http.ServeFile(w, r, "./up-imgs/"+u.Path) 
+	        	}
+	        }	        
 	        http.Redirect(w, r, shorturl.Long, 302)
 
 	        s := &Shorturl{
