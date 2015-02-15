@@ -46,7 +46,8 @@ import (
 	"mime"
 )
 
-const timestamp = "2006-01-02_at_03:04:05PM"
+//const timestamp = "2006-01-02_at_03:04:05PM"
+const timestamp = "2006-01-02 at 03:04:05PM"
 
 var (
     backend httpauth.GobFileAuthBackend
@@ -113,14 +114,14 @@ type GalleryPage struct {
 
 //BoltDB structs:
 type Paste struct {
-	Created string
+	Created int64
 	Title string
 	Content string
 	Hits	int64
 }
 
 type Snip struct {
-	Created string
+	Created int64
 	Title string
 	Cats string
 	Content []string
@@ -128,21 +129,21 @@ type Snip struct {
 }
 
 type File struct {
-	Created string
+	Created int64
 	Filename string
 	Hits	int64
 	RemoteURL string
 }
 
 type Image struct {
-	Created string
+	Created int64
 	Filename string
 	Hits	int64
 	RemoteURL string
 }
 
 type Shorturl struct {
-	Created string
+	Created int64
 	Short 	string
 	Long 	string
 	Hits 	int64
@@ -179,11 +180,19 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+    funcMap := template.FuncMap {"prettyDate": PrettyDate}
+
 	for _, layout := range layouts {
 		files := append(includes, layout)
 		//DEBUG TEMPLATE LOADING log.Println(files)
-		templates[filepath.Base(layout)] = template.Must(template.ParseFiles(files...))
+		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
+}
+
+func PrettyDate(date int64) string {
+	t := time.Unix(date, 0)
+	return t.Format(timestamp)
 }
 
 // colorWrite
@@ -620,7 +629,6 @@ func searchHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     			log.Println(err)
     		}
     		slink := snip.Title
-    		//ptime := paste.Created.Format(timestamp)
     		//sfull := snip.Title + snip.Content
     		if sterm.MatchString(slink) {
     			fmt.Fprintln(w, slink)
@@ -640,7 +648,6 @@ func searchHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     			log.Println(err)
     		}
     		plink := paste.Title
-    		//ptime := paste.Created.Format(timestamp)
     		pfull := paste.Title + paste.Content
     		if sterm.MatchString(pfull) {
     			fmt.Fprintln(w, plink)
@@ -1070,7 +1077,7 @@ func remoteDownloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	//BoltDB stuff
     fi := &File{
-        Created: time.Now().Format(timestamp),
+        Created: time.Now().Unix(),
         Filename: fileName,
         RemoteURL: finURL,
     }
@@ -1232,7 +1239,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	//BoltDB stuff
     fi := &File{
-        Created: time.Now().Format(timestamp),
+        Created: time.Now().Unix(),
         Filename: filename,
     }
     err = fi.save()
@@ -1373,7 +1380,7 @@ func shortUrlFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 	long := r.PostFormValue("long")
 	s := &Shorturl{
-	    Created: time.Now().Format(timestamp),
+	    Created: time.Now().Unix(),
 	    Short: short,
 	    Long: long,
 	}
@@ -1430,7 +1437,7 @@ func pasteUpHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		name = string(bytes)
 	}
 	p := &Paste{
-	    Created: time.Now().Format(timestamp),
+	    Created: time.Now().Unix(),
 	    Title: name,
 	    Content: bpaste,
 	}
@@ -1465,7 +1472,7 @@ func pasteFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 	paste := r.PostFormValue("paste")
 	p := &Paste{
-	    Created: time.Now().Format(timestamp),
+	    Created: time.Now().Unix(),
 	    Title: title,
 	    Content: paste,
 	}
@@ -1562,7 +1569,7 @@ func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     	//After JSON Unmarshal, Content should be in paste.Content field
     	if v == nil {
 			p = &Page{Title: title, UN: username}
-			s := &Snip{Created: time.Now().Format(timestamp), Title: title,}
+			s := &Snip{Created: time.Now().Unix(), Title: title,}
 			data := struct {
 				Page *Page
 				Snip *Snip
@@ -1697,7 +1704,7 @@ func saveSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	bodslice := []string{}
 	bodslice = append(bodslice, body)
 	s := &Snip{
-	    Created: time.Now().Format(timestamp),
+	    Created: time.Now().Unix(),
 	    Title: title,
 	    Cats: fmattercats,
 	    Content: bodslice,
@@ -2159,7 +2166,7 @@ func remoteImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
     //BoltDB stuff
     imi := &Image{
-        Created: time.Now().Format(timestamp),
+        Created: time.Now().Unix(),
         Filename: fileName,
         RemoteURL: finURL,
     }
@@ -2323,7 +2330,7 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
     //BoltDB stuff
     imi := &Image{
-        Created: time.Now().Format(timestamp),
+        Created: time.Now().Unix(),
         Filename: filename,
     }
     err = imi.save()
@@ -2604,6 +2611,11 @@ func main() {
 	p2, _ := loadPage("TestPage")
 	fmt.Println(string(p2.Body))
 	*/
+	//t := time.Now().Unix()
+	//tm := time.Unix(t, 0)
+	//log.Println(t)
+	//log.Println(tm)
+	//log.Println(tm.Format(timestamp))
 
 	//Check for essential directory existence
    _, err := os.Stat("./up-imgs")
