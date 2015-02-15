@@ -2606,15 +2606,15 @@ func main() {
 	*/
 
 	//Check for essential directory existence
-   imgs, err := os.Stat("./up-imgs")
+   _, err := os.Stat("./up-imgs")
    if err != nil {
       os.Mkdir("./up-imgs", 0755)
    }
-   files, err := os.Stat("./up-files")
+   _, err = os.Stat("./up-files")
    if err != nil {
       os.Mkdir("./up-files", 0755)
    }
-   bigimgs, err := os.Stat("./big-imgs")
+   _, err = os.Stat("./big-imgs")
    if err != nil {
       os.Mkdir("./big-imgs", 0755)
    }
