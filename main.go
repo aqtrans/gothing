@@ -1825,13 +1825,13 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
     smallPath := "./up-imgs/"+path.Base(name)
-    bigPath := "./tmp/BIG-"+path.Base(name)
+    bigPath := "./big-imgs/"+path.Base(name)
 
     //Check to see if the large image already exists
     //If so, serve it directly
 	if _, err := os.Stat(bigPath); err == nil {
 		log.Println("Pre-existing BIG gif already found, serving it...")
-		http.ServeFile(w, r, "./tmp/BIG-"+path.Base(name))
+		http.ServeFile(w, r, "./big-imgs/"+path.Base(name))
 	} else {
 		log.Println("BIG gif not found. Running gifsicle...")
 		file, err := os.Open(smallPath)
@@ -1846,7 +1846,36 @@ func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-	    http.ServeFile(w, r, "./tmp/BIG-"+name)
+	    http.ServeFile(w, r, "./big-imgs/"+name)
+	}
+}
+
+//Separate function to resize GIFs in a goroutine
+func embiggenHandler(i string) {
+    name := i
+    smallPath := "./up-imgs/"+path.Base(name)
+    bigPath := "./big-imgs/"+path.Base(name)
+
+    //Check to see if the large image already exists
+    //If so, serve it directly
+	if _, err := os.Stat(bigPath); err == nil {
+		log.Println("Pre-existing BIG gif already found, serving it...")
+		return
+	} else {
+		log.Println("BIG gif not found. Running gifsicle...")
+		file, err := os.Open(smallPath)
+		if err != nil {
+		     log.Println(err)
+		     return
+		}
+		file.Close()
+		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
+		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256","--resize", "2000x_", smallPath, "-o", bigPath)
+		err = resize.Run()
+		if err != nil {
+			log.Println(err)
+		}
+	    log.Println(name+" BIG GIF has been saved.")
 	}
 }
 
@@ -2316,6 +2345,14 @@ func (i *Image) save() error {
         }
         return b.Put([]byte(i.Filename), encoded)
     })
+    //Detect what kind of image, so we can embiggen GIFs from the get-go
+
+    contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
+    if contentType == "image/gif" {
+    	log.Println("GIF detected; Running embiggen function...")
+    	go embiggenHandler(i.Filename)
+    }
+    //log.Println(contentType)
     log.Println("+IMAGE SAVED")
     return nil
 }
@@ -2567,6 +2604,32 @@ func main() {
 	p2, _ := loadPage("TestPage")
 	fmt.Println(string(p2.Body))
 	*/
+
+	//Check for essential directory existence
+   imgs, err := os.Stat("./up-imgs")
+   if err != nil {
+      os.Mkdir("./up-imgs", 0755)
+   }
+   if !imgs.IsDir() {
+     fmt.Println("./up-imgs/ is not a directory")
+     os.Exit(1)
+   }
+   files, err := os.Stat("./up-files")
+   if err != nil {
+      os.Mkdir("./up-files", 0755)
+   }
+   if !files.IsDir() {
+     fmt.Println("./up-files/ is not a directory")
+     os.Exit(1)
+   }
+   bigimgs, err := os.Stat("./big-imgs")
+   if err != nil {
+      os.Mkdir("./big-imgs", 0755)
+   }
+   if !bigimgs.IsDir() {
+     fmt.Println("./big-imgs/ is not a directory")
+     os.Exit(1)
+   }
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
 	defer Db.Close()
