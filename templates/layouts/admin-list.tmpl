@@ -20,7 +20,7 @@
 <img class="freezeframe" src="/thumbs/{{.Filename}}">
 </a>
 </td>
-<td>{{.Created}}</td>
+<td>{{.Created | prettyDate}}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 {{ end }}
