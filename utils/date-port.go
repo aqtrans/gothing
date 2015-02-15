@@ -1,4 +1,4 @@
-package migrate
+package main
 
 //This file was used by me to reformat the dates on already-uploaded files, from a stupid string-based thing, to a Unix epoch timestamp
 //I'm now using a template funcMap to take the Unix timestamp and properly format it when printed
