@@ -1,8 +1,7 @@
 package main
 
 // TODO
-// - LIST PAGE IS BROKEN, ONLY SHOWING THE LATEST ITEM :(
-// - This seems to have to do with Pointers ; The ForEach function is properly spitting out the variables
+// - Guard file/image upload pages from respective filetypes
 
 import (
 	"crypto/rand"
