@@ -35,6 +35,7 @@ import (
 	"os/exec"
 	"net/http"
 	"net/url"
+	"runtime"
 	"os"
 	"time"
 	"regexp"
@@ -2628,6 +2629,26 @@ func RandKey(leng int8) string {
 	return sess_id
 }
 
+func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+
+  memStats := &runtime.MemStats{}
+
+  nsInMs := float64(time.Millisecond)
+
+  runtime.ReadMemStats(memStats)
+
+  now := time.Now()
+
+  fmt.Fprintf(w, "%v.goroutines %s \n", float64(runtime.NumGoroutine()), now)
+  fmt.Fprintf(w, "%v.memory.allocated %s \n", float64(memStats.Alloc), now)
+  fmt.Fprintf(w, "%v.memory.mallocs %s \n", float64(memStats.Mallocs), now)
+  fmt.Fprintf(w, "%v.memory.frees %s \n", float64(memStats.Frees), now)
+  fmt.Fprintf(w, "%v.memory.gc.total_pause %s \n", float64(memStats.PauseTotalNs)/nsInMs, now)
+  fmt.Fprintf(w, "%v.memory.heap %s \n", float64(memStats.HeapAlloc), now)
+  fmt.Fprintf(w, "%v.memory.stack %s \n", float64(memStats.StackInuse), now)
+  fmt.Fprintf(w, "%v.memory.gc.num %s \n", int(memStats.NumGC), now)
+  
+}
 
 
 func main() {
@@ -2789,6 +2810,8 @@ func main() {
 	g.Get("/", indexHandler)
 	g.Get("/readme", Readme)
 	g.Get("/changelog", Changelog)
+	//Runtime stats
+	g.Get("/stats", runtimeStatsHandler)
 
 	//Login/logout
 	g.Post("/login", loginHandler)
