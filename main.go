@@ -25,6 +25,7 @@ import (
 	"github.com/apexskier/httpauth"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
+	"github.com/prometheus/client_golang/prometheus"
 	//"github.com/disintegration/imaging"
 	//"github.com/nfnt/resize"
 	"html/template"
@@ -84,6 +85,114 @@ var (
 
 	reset = []byte{'\033', '[', '0', 'm'}
 
+	//Prometheus stuff
+    tx_num = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "tx",
+        Name:      "total",
+        Help:      "Total number of BoltDB TX requests.",
+    })
+    tx_page_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "tx",
+        Name:      "page_count",
+        Help:      "Total number of BoltDB TX pages.",
+    })
+    tx_cursor_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "tx",
+        Name:      "cursor_count",
+        Help:      "Total number of BoltDB TX cursors.",
+    })
+    tx_write_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "tx",
+        Name:      "write_count",
+        Help:      "Total number of BoltDB TX writes.",
+    })       
+    tx_write_time = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "tx",
+        Name:      "write_time",
+        Help:      "Time spent writing BoltDB transactions.",
+    })   
+    paste_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "paste",
+        Name:      "count",
+        Help:      "Total number of Pastes.",
+    })
+    file_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "file",
+        Name:      "count",
+        Help:      "Total number of Files.",
+    })    
+    snips_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "snips",
+        Name:      "count",
+        Help:      "Total number of Snips.",
+    })
+    shorturl_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "shorturl",
+        Name:      "count",
+        Help:      "Total number of Shorturls.",
+    })
+    images_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "image",
+        Name:      "count",
+        Help:      "Total number of Images.",
+    })
+    goroutine_count = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Name:      "goroutines",
+        Help:      "Total number of Goroutines.",
+    })      
+    memory_allocated = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "allocated",
+        Help:      "Memory allocated.",
+    })  
+    memory_mallocs = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "mallocs",
+        Help:      "Memory mallocs.",
+    }) 
+    memory_frees = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "frees",
+        Help:      "Memory frees.",
+    })
+    memory_gc_total_pause = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "gc_total_pause",
+        Help:      "Memory GC total pauses.",
+    })     
+    memory_heap = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "heap",
+        Help:      "Memory heap size.",
+    })     
+    memory_stack = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "stack",
+        Help:      "Memory stack size.",
+    })  
+    memory_gc_num = prometheus.NewGauge(prometheus.GaugeOpts{
+        Namespace: "tkot",
+        Subsystem: "memory",
+        Name:      "gc_num",
+        Help:      "Memory GC number.",
+    })                       
 )
 
 var isTTY bool
@@ -2628,27 +2737,92 @@ func RandKey(leng int8) string {
 	return sess_id
 }
 
+//Generate stats, printed in format directly compatible with http://prometheus.io
+//I could use the Prometheus client library, but seeing as the runtime stats and boltdb stats provide all I need, I see no point
+/*
 func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
-  memStats := &runtime.MemStats{}
+	memStats := &runtime.MemStats{}
 
-  nsInMs := float64(time.Millisecond)
+	nsInMs := float64(time.Millisecond)
 
-  runtime.ReadMemStats(memStats)
+	runtime.ReadMemStats(memStats)
 
-  now := time.Now()
+	//now := time.Now()
 
-  fmt.Fprintf(w, "%v.goroutines %s \n", float64(runtime.NumGoroutine()), now)
-  fmt.Fprintf(w, "%v.memory.allocated %s \n", float64(memStats.Alloc), now)
-  fmt.Fprintf(w, "%v.memory.mallocs %s \n", float64(memStats.Mallocs), now)
-  fmt.Fprintf(w, "%v.memory.frees %s \n", float64(memStats.Frees), now)
-  fmt.Fprintf(w, "%v.memory.gc.total_pause %s \n", float64(memStats.PauseTotalNs)/nsInMs, now)
-  fmt.Fprintf(w, "%v.memory.heap %s \n", float64(memStats.HeapAlloc), now)
-  fmt.Fprintf(w, "%v.memory.stack %s \n", float64(memStats.StackInuse), now)
-  fmt.Fprintf(w, "%v.memory.gc.num %s \n", int(memStats.NumGC), now)
+	//How much stuff is being held, taken from BoltDB buckets
+	ds := Db.Stats()
+	dst := ds.TxStats
+	
+	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
+	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
+	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
+	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
+	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
+	
+
+
+	err := Db.View(func(tx *bolt.Tx) error {
+		p := tx.Bucket([]byte("Pastes"))
+		ps := p.Stats()		
+    	f := tx.Bucket([]byte("Files"))
+    	fs := f.Stats()
+    	s := tx.Bucket([]byte("Snips"))
+    	ss := s.Stats()
+    	sh := tx.Bucket([]byte("Shorturls"))
+    	shs := sh.Stats()
+    	i := tx.Bucket([]byte("Images"))
+    	is := i.Stats()
+
+		paste_count.Set(float64(ps.KeyN))
+		file_count.Set(float64(fs.KeyN))
+		snips_count.Set(float64(ss.KeyN))
+		shorturl_count.Set(float64(shs.KeyN))
+		images_count.Set(float64(is.KeyN))
+
+    	
+		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
+		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
+		fmt.Fprintf(w, "tkot_snips_total %v\n", ss.KeyN)
+		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
+		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
+		
+		return nil
+	})
+	if err != nil {
+		log.Println(err)
+	}
+
+	
+	//Runtime stats
+	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
+	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
+	fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
+	fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
+	fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
+	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
+	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
+	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
+	
+
+	tx_num.Set(float64(ds.TxN))
+	tx_page_count.Set(float64(dst.PageCount))
+	tx_cursor_count.Set(float64(dst.CursorCount))
+	tx_write_count.Set(float64(dst.Write))
+	tx_write_time.Set(float64(dst.WriteTime))
+	goroutine_count.Set(float64(runtime.NumGoroutine()))
+	memory_allocated.Set(float64(memStats.Alloc))
+	memory_mallocs.Set(float64(memStats.Mallocs))
+	memory_frees.Set(float64(memStats.Frees))
+	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs)/nsInMs)
+	memory_heap.Set(float64(memStats.HeapAlloc))
+	memory_stack.Set(float64(memStats.StackInuse))
+	memory_gc_num.Set(float64(memStats.NumGC))
+
+
   
 }
-
+*/
 
 func main() {
 	/* for reference
@@ -2703,7 +2877,7 @@ func main() {
 		}		
 		return nil
 	})
-
+	/*
 	Db.View(func(tx *bolt.Tx) error {
     	b := tx.Bucket([]byte("Pastes"))
     	log.Println("-------BOLTDB Pastes: ")
@@ -2736,7 +2910,7 @@ func main() {
         	return nil
     	})    	
     	return nil
-	})
+	})*/
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -2793,6 +2967,102 @@ func main() {
 	log.Println(users)
 	*/
 
+	memStats := &runtime.MemStats{}
+
+	nsInMs := float64(time.Millisecond)
+
+	runtime.ReadMemStats(memStats)
+
+	//now := time.Now()
+
+	//How much stuff is being held, taken from BoltDB buckets
+	ds := Db.Stats()
+	dst := ds.TxStats
+	/*
+	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
+	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
+	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
+	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
+	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
+	*/
+
+
+	err = Db.View(func(tx *bolt.Tx) error {
+		p := tx.Bucket([]byte("Pastes"))
+		ps := p.Stats()		
+    	f := tx.Bucket([]byte("Files"))
+    	fs := f.Stats()
+    	s := tx.Bucket([]byte("Snips"))
+    	ss := s.Stats()
+    	sh := tx.Bucket([]byte("Shorturls"))
+    	shs := sh.Stats()
+    	i := tx.Bucket([]byte("Images"))
+    	is := i.Stats()
+
+		paste_count.Set(float64(ps.KeyN))
+		file_count.Set(float64(fs.KeyN))
+		snips_count.Set(float64(ss.KeyN))
+		shorturl_count.Set(float64(shs.KeyN))
+		images_count.Set(float64(is.KeyN))
+
+    	/*
+		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
+		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
+		fmt.Fprintf(w, "tkot_snips_total %v\n", ss.KeyN)
+		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
+		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
+		*/
+		return nil
+	})
+	if err != nil {
+		log.Println(err)
+	}
+
+	/*
+	//Runtime stats
+	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
+	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
+	fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
+	fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
+	fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
+	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
+	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
+	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
+	*/
+
+	tx_num.Set(float64(ds.TxN))
+	tx_page_count.Set(float64(dst.PageCount))
+	tx_cursor_count.Set(float64(dst.CursorCount))
+	tx_write_count.Set(float64(dst.Write))
+	tx_write_time.Set(float64(dst.WriteTime))
+	goroutine_count.Set(float64(runtime.NumGoroutine()))
+	memory_allocated.Set(float64(memStats.Alloc))
+	memory_mallocs.Set(float64(memStats.Mallocs))
+	memory_frees.Set(float64(memStats.Frees))
+	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs)/nsInMs)
+	memory_heap.Set(float64(memStats.HeapAlloc))
+	memory_stack.Set(float64(memStats.StackInuse))
+	memory_gc_num.Set(float64(memStats.NumGC))
+
+	prometheus.MustRegister(tx_num)
+	prometheus.MustRegister(tx_page_count)
+	prometheus.MustRegister(tx_cursor_count)
+	prometheus.MustRegister(tx_write_count)
+	prometheus.MustRegister(paste_count)
+	prometheus.MustRegister(snips_count)
+	prometheus.MustRegister(file_count)
+	prometheus.MustRegister(shorturl_count)
+	prometheus.MustRegister(images_count)
+	prometheus.MustRegister(goroutine_count)
+	prometheus.MustRegister(memory_allocated)
+	prometheus.MustRegister(memory_mallocs)
+	prometheus.MustRegister(memory_frees)
+	prometheus.MustRegister(memory_gc_total_pause)
+	prometheus.MustRegister(memory_heap)
+	prometheus.MustRegister(memory_stack)
+	prometheus.MustRegister(memory_gc_num)
+
+
 	flag.Parse()
 	flag.Set("bind", ":3000")
 	
@@ -2810,7 +3080,7 @@ func main() {
 	g.Get("/readme", Readme)
 	g.Get("/changelog", Changelog)
 	//Runtime stats
-	g.Get("/stats", runtimeStatsHandler)
+	//g.Get("/stats", runtimeStatsHandler)
 
 	//Login/logout
 	g.Post("/login", loginHandler)
@@ -2910,14 +3180,18 @@ func main() {
 	api.Post("/image/new", putImageHandler)
 	api.Post("/image/remote", remoteImageHandler)
 
+	//g.Get("/metrics", prometheus.Handler())
+
 
 	//http.Handle("go.dev/", g)
 	if fLocal {
-		log.Println("Listening on .dev domains due to -l flag...")		
-		http.Handle("go.dev/", g)
+		log.Println("Listening on .dev domains due to -l flag...")
+		http.Handle("go.dev/metrics", prometheus.Handler())	
+		http.Handle("go.dev/", prometheus.InstrumentHandler("general",g))
 	} else {
 		log.Println("Listening on go.jba.io domain")
-		http.Handle("go.jba.io/", g)
+		http.Handle("go.jba.io/metrics", prometheus.Handler())	
+		http.Handle("go.jba.io/", prometheus.InstrumentHandler("general",g))
 	}
 	//Should be the catchall, sends to shortURL for the time being
 	//Unsure how to combine Gorilla Mux's wildcard subdomain matching and Goji yet :(
@@ -2941,7 +3215,7 @@ func main() {
 	i.Get("/big/:name", imageBigHandler)		
 	//Download images
 	i.Get("/:name", downloadImageHandler)
-	http.Handle("i.es.gy/", i)
+	http.Handle("i.es.gy/", prometheus.InstrumentHandler("images",i))
 
 	//Dedicated BIG image subdomain for easy linking
 	big := web.New()
@@ -2955,7 +3229,7 @@ func main() {
 	big.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))    	
 	//Huge images
 	big.Get("/:name", imageBigHandler)	
-	http.Handle("big.es.gy/", big)
+	http.Handle("big.es.gy/", prometheus.InstrumentHandler("big_gifs", big))
 
 	//My Goji Mux
 	mygoji := web.New()
@@ -2971,7 +3245,9 @@ func main() {
 	i.Compile()	 
 	big.Compile()	
 
-    http.Handle("/", mygoji)
+	//http.Handle("/metrics", prometheus.Handler())
+
+    http.Handle("/", prometheus.InstrumentHandler("shorturls",mygoji))
     listener := bind.Default()
     log.Println("Starting Goji on", listener.Addr())
 	graceful.HandleSignals()
