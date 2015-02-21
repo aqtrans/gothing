@@ -3186,11 +3186,11 @@ func main() {
 	//http.Handle("go.dev/", g)
 	if fLocal {
 		log.Println("Listening on .dev domains due to -l flag...")
-		http.Handle("go.dev/metrics", prometheus.Handler())	
+		http.Handle("go.dev/metrics", prometheus.UninstrumentedHandler())	
 		http.Handle("go.dev/", prometheus.InstrumentHandler("general",g))
 	} else {
 		log.Println("Listening on go.jba.io domain")
-		http.Handle("go.jba.io/metrics", prometheus.Handler())	
+		http.Handle("go.jba.io/metrics", prometheus.UninstrumentedHandler())	
 		http.Handle("go.jba.io/", prometheus.InstrumentHandler("general",g))
 	}
 	//Should be the catchall, sends to shortURL for the time being
@@ -3243,9 +3243,7 @@ func main() {
 	api.Compile()
 	g.Compile()   
 	i.Compile()	 
-	big.Compile()	
-
-	//http.Handle("/metrics", prometheus.Handler())
+	big.Compile()
 
     http.Handle("/", prometheus.InstrumentHandler("shorturls",mygoji))
     listener := bind.Default()
