@@ -21,7 +21,7 @@ import (
 	"github.com/oxtoacart/bpool"
 	//"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
-	"github.com/***REMOVED***/sanitize"
+	"github.com/kennygrant/sanitize"
 	"github.com/apexskier/httpauth"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
@@ -1658,8 +1658,12 @@ func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     		}
     		//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
     		//I need '<' and '>' in tact for scripts and such
+
 	   		//safe := template.HTMLEscapeString(paste.Content)
-	   		safe := sanitize.HTML(paste.Content)
+	   		//safe := sanitize.HTML(paste.Content)
+
+	   		safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
+	   		//safe := paste.Content
 			fmt.Fprintf(w, "%s", safe)
     		return nil
 	})
