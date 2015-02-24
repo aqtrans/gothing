@@ -4,6 +4,8 @@ This is my first major programming project, and my first major experience with G
 I started out with the Golang.org Wiki guide, but after finishing that up quicker than I thought, I decided to see what other functionality I could build in...
 **Note: I may have gotten carried away. :D**
 
+You can see it in action [here](http://go.jba.io).
+
 #Features
 As of now, the doodad has the following features:
 - User authentication, using [httpauth](https://github.com/apexskier/httpauth) library, with 3 user levels
@@ -30,13 +32,13 @@ I have added comments here for clarity, so if copying and pasting, remove them:
 	"Port": "3000",
 
 	//Username of the initial admin user
-    "Username": "***REMOVED***",
+    "Username": "admin",
 
     //Password of the initial admin user
-    "Password": "***REMOVED***",
+    "Password": "admin",
 
     //Email of the initial admin user
-    "Email": "me@jba.io",
+    "Email": "me@me.com",
 
     //Directoy where images should be uploaded to
     "ImgDir": "./up-imgs/",
