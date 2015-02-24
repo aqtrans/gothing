@@ -1,0 +1,13 @@
+{
+	"Port": "3000",
+    "Username": "admin",
+    "Password": "admin",
+    "Email": "admin@example.com",
+    "ImgDir": "./up-imgs/",
+    "FileDir": "./up-files/",
+    "GifDir": "./big-imgs/",
+    "MainTLD": "go.jba.io",
+    "ShortTLD": "es.gy",
+    "ImageTLD": "i.es.gy",
+    "GifTLD": "big.es.gy"
+}
