@@ -64,6 +64,8 @@ type Configuration struct {
 	GifTLD   string
 }
 
+var cfg = Configuration{}
+
 var (
     backend httpauth.GobFileAuthBackend
     aaa httpauth.Authorizer
@@ -71,10 +73,6 @@ var (
     backendfile = "./auth.gob"
     bufpool *bpool.BufferPool
     templates map[string]*template.Template
-    myUn string = "***REMOVED***"
-    myURL string = "http://localhost:3000"
-    myPw string = "***REMOVED***"
-    myEmail string = "me@jba.io"
     _24K int64 = (1 << 20) * 24
 	fLocal bool
 
@@ -1178,7 +1176,7 @@ func remoteDownloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	log.Println("Path:")
 	log.Println(path)
 	*/
-	dlpath := "./up-files/"
+	dlpath := cfg.FileDir
     if r.FormValue("remote-file-name") != "" {
     	log.Println("custom remote file name: "+sanitize.Name(r.FormValue("remote-file-name")))
     	fileName = sanitize.Name(r.FormValue("remote-file-name"))
@@ -1233,7 +1231,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	var f io.WriteCloser
 	var err error
 	var filename string
-	path := "./up-files/"
+	path := cfg.FileDir
 	contentType := r.Header.Get("Content-Type")	
 	if contentType == "" {
 		log.Println("Content-type blank, so this should be a CLI upload...")
@@ -1431,13 +1429,9 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
     	//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
     	//After JSON Unmarshal, Content should be in paste.Content field
     	if v == nil {
-			//http.Redirect(w, r, "/+edit/"+title, http.StatusFound)
-			//http.NotFound(w, r)
-			//http.Redirect(w, r, "https://m.jba.io", 302)
 			http.Error(w, "Error 400 - No such domain at this address", 400)
 			err := errors.New(title + "No Such Short URL")
 			return err
-			//return err
 			//log.Println(err)
     	} else {
     		err := json.Unmarshal(v, &shorturl)
@@ -1445,9 +1439,10 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
     			log.Println(err)
     		}
 	        count := (shorturl.Hits + 1)
-	        if strings.Contains(shorturl.Long, "es.gy/") {
-	        	log.Println("LONG URL CONTAINS ES.GY")
-	        	if strings.HasPrefix(shorturl.Long, "http://i.es.gy/") {
+	        //If the shorturl is local, just serve whatever file being requested
+	        if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
+	        	log.Println("LONG URL CONTAINS ShortTLD")
+	        	if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
 	        		u, err := url.Parse(shorturl.Long)
 	        		if err != nil {
 	        			log.Println(err)
@@ -1455,12 +1450,12 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 				    segments := strings.Split(u.Path, "/")
 				    fileName := segments[len(segments)-1]	        		
 	        		log.Println("Serving "+shorturl.Long+" file directly")
-	        		http.ServeFile(w, r, "./up-imgs/"+fileName) 
+	        		http.ServeFile(w, r, cfg.ImgDir+fileName) 
 	        	}
 	        }
-	        if strings.Contains(shorturl.Long, "go.jba.io/i/") {
-	        	log.Println("LONG URL CONTAINS GO.JBA.IO")
-	        	if strings.HasPrefix(shorturl.Long, "http://go.jba.io/i/") {
+	        if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
+	        	log.Println("LONG URL CONTAINS MainTLD")
+	        	if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
 	        		u, err := url.Parse(shorturl.Long)	        		
 	        		if err != nil {
 	        			log.Println(err)
@@ -1468,7 +1463,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 				    segments := strings.Split(u.Path, "/")
 				    fileName := segments[len(segments)-1]	        		
 	        		log.Println("Serving "+shorturl.Long+" file directly")
-	        		http.ServeFile(w, r, "./up-imgs/"+fileName) 
+	        		http.ServeFile(w, r, cfg.ImgDir+fileName) 
 	        	}
 	        }	        
 	        http.Redirect(w, r, shorturl.Long, 302)
@@ -1914,7 +1909,7 @@ func (s *Snip) save() error {
 func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "downloadHandler")
     name := c.URLParams["name"]
-    fpath := "./up-files/" + path.Base(name)
+    fpath := cfg.FileDir + path.Base(name)
 
     //Attempt to increment file hit counter...
     file := &File{}
@@ -1940,7 +1935,7 @@ func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "downloadImageHandler")
     name := c.URLParams["name"]
-    fpath := "./up-imgs/" + path.Base(name)
+    fpath := cfg.ImgDir + path.Base(name)
 
     //Attempt to increment file hit counter...
     image := &Image{}
@@ -1967,7 +1962,7 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
-    fpath := "./up-imgs/" + path.Base(name)
+    fpath := cfg.ImgDir + path.Base(name)
     http.ServeFile(w, r, fpath)
 }
 
@@ -1975,14 +1970,14 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
-    smallPath := "./up-imgs/"+path.Base(name)
-    bigPath := "./big-imgs/"+path.Base(name)
+    smallPath := cfg.ImgDir+path.Base(name)
+    bigPath := cfg.GifDir+path.Base(name)
 
     //Check to see if the large image already exists
     //If so, serve it directly
 	if _, err := os.Stat(bigPath); err == nil {
 		log.Println("Pre-existing BIG gif already found, serving it...")
-		http.ServeFile(w, r, "./big-imgs/"+path.Base(name))
+		http.ServeFile(w, r, cfg.GifDir+path.Base(name))
 	} else {
 		log.Println("BIG gif not found. Running gifsicle...")
 		file, err := os.Open(smallPath)
@@ -1997,15 +1992,15 @@ func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-	    http.ServeFile(w, r, "./big-imgs/"+name)
+	    http.ServeFile(w, r, cfg.GifDir+name)
 	}
 }
 
 //Separate function to resize GIFs in a goroutine
 func embiggenHandler(i string) {
     name := i
-    smallPath := "./up-imgs/"+path.Base(name)
-    bigPath := "./big-imgs/"+path.Base(name)
+    smallPath := cfg.ImgDir+path.Base(name)
+    bigPath := cfg.GifDir+path.Base(name)
 
     //Check to see if the large image already exists
     //If so, serve it directly
@@ -2056,7 +2051,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		fpath := "./up-files/" + fname
+		fpath := cfg.FileDir + fname
 		http.Redirect(w, r, "/list", 302)
 		log.Println(fpath + " has been deleted")
 		err = os.Remove(fpath)
@@ -2075,7 +2070,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		fpath := "./up-imgs/" + fname
+		fpath := cfg.ImgDir + fname
 		http.Redirect(w, r, "/list", 302)
 		log.Println(fpath + " has been deleted")
 		err = os.Remove(fpath)
@@ -2278,7 +2273,7 @@ func remoteImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     log.Println("Path:")
     log.Println(path)
     */
-    dlpath := "./up-imgs/"
+    dlpath := cfg.ImgDir
     if r.FormValue("remote-image-name") != "" {
     	log.Println("custom remote image name: "+sanitize.Name(r.FormValue("remote-image-name")))
     	fileName = sanitize.Name(r.FormValue("remote-image-name"))
@@ -2334,7 +2329,7 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     var f io.WriteCloser
     var err error
     var filename string
-    path := "./up-imgs/"
+    path := cfg.ImgDir
     contentType := r.Header.Get("Content-Type") 
     if contentType == "" {
         log.Println("Content-type blank, so this should be a CLI upload...")
@@ -2861,25 +2856,24 @@ func main() {
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
 	decoder := json.NewDecoder(conf)
-	c := Configuration{}
-	err := decoder.Decode(&c)
+	err := decoder.Decode(&cfg)
 	if err != nil {
 		fmt.Println("error decoding config:", err)
 	}
-	log.Println(c.Username)
+	//log.Println(cfg.Username)
 
 	//Check for essential directory existence
-   _, err = os.Stat(c.ImgDir)
+   _, err = os.Stat(cfg.ImgDir)
    if err != nil {
-      os.Mkdir(c.ImgDir, 0755)
+      os.Mkdir(cfg.ImgDir, 0755)
    }
-   _, err = os.Stat(c.FileDir)
+   _, err = os.Stat(cfg.FileDir)
    if err != nil {
-      os.Mkdir(c.FileDir, 0755)
+      os.Mkdir(cfg.FileDir, 0755)
    }
-   _, err = os.Stat(c.GifDir)
+   _, err = os.Stat(cfg.GifDir)
    if err != nil {
-      os.Mkdir(c.GifDir, 0755)
+      os.Mkdir(cfg.GifDir, 0755)
    }
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
@@ -2945,7 +2939,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = c.Port
+		port = cfg.Port
 	}
 
 	//httpauth
@@ -2978,12 +2972,12 @@ func main() {
 		panic(err)
 	}
 	//THIS SHOULD BE IN FORM OF: []byte("userpass")
-	//hash, err := bcrypt.GenerateFromPassword([]byte("***REMOVED******REMOVED***"), 8)
-	hash, err := bcrypt.GenerateFromPassword([]byte(myUn + myPw), 8)
+	//hash, err := bcrypt.GenerateFromPassword([]byte("unPW"), 8)
+	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.Username + cfg.Password), 8)
 	if err != nil {
 		panic(err)
 	}
-	defaultUser := httpauth.UserData{Username: myUn, Email: myEmail, Hash: hash, Role:"admin"}
+	defaultUser := httpauth.UserData{Username: cfg.Username, Email: cfg.Email, Hash: hash, Role:"admin"}
 	err = backend.SaveUser(defaultUser)
 	if err != nil {
 		panic(err)
@@ -3220,9 +3214,9 @@ func main() {
 		http.Handle("go.dev/metrics", prometheus.UninstrumentedHandler())	
 		http.Handle("go.dev/", prometheus.InstrumentHandler("general",g))
 	} else {
-		log.Println("Listening on "+c.MainTLD+" domain")
-		http.Handle(c.MainTLD+"/metrics", prometheus.UninstrumentedHandler())	
-		http.Handle(c.MainTLD+"/", prometheus.InstrumentHandler("general",g))
+		log.Println("Listening on "+cfg.MainTLD+" domain")
+		http.Handle(cfg.MainTLD+"/metrics", prometheus.UninstrumentedHandler())	
+		http.Handle(cfg.MainTLD+"/", prometheus.InstrumentHandler("general",g))
 	}
 	//Should be the catchall, sends to shortURL for the time being
 	//Unsure how to combine Gorilla Mux's wildcard subdomain matching and Goji yet :(
@@ -3246,7 +3240,7 @@ func main() {
 	i.Get("/big/:name", imageBigHandler)		
 	//Download images
 	i.Get("/:name", downloadImageHandler)
-	http.Handle(c.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
+	http.Handle(cfg.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
 
 	//Dedicated BIG image subdomain for easy linking
 	big := web.New()
@@ -3260,7 +3254,7 @@ func main() {
 	big.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))    	
 	//Huge images
 	big.Get("/:name", imageBigHandler)	
-	http.Handle(c.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
+	http.Handle(cfg.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
 
 	//My Goji Mux
 	mygoji := web.New()
