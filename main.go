@@ -3256,7 +3256,7 @@ func main() {
 	big.Get("/:name", imageBigHandler)	
 	http.Handle(cfg.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
 
-	//My Goji Mux
+	//Default Goji mux which picks up all requests leftover and directs them to shortURLHandler
 	mygoji := web.New()
 	mygoji.Use(middleware.RequestID)
     mygoji.Use(LoggerMiddleware)
