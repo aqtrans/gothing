@@ -21,7 +21,7 @@ import (
 	"github.com/oxtoacart/bpool"
 	//"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
-	"github.com/kennygrant/sanitize"
+	"github.com/***REMOVED***/sanitize"
 	"github.com/apexskier/httpauth"
 	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
@@ -49,6 +49,20 @@ import (
 
 //const timestamp = "2006-01-02_at_03:04:05PM"
 const timestamp = "2006-01-02 at 03:04:05PM"
+
+type Configuration struct {
+	Port     string
+	Username string
+	Password string
+	Email    string 
+	ImgDir   string 
+	FileDir  string 
+	GifDir   string 
+	MainTLD  string 
+	ShortTLD string 
+	ImageTLD string 
+	GifTLD   string
+}
 
 var (
     backend httpauth.GobFileAuthBackend
@@ -372,6 +386,16 @@ func getUsername(c web.C, w http.ResponseWriter, r *http.Request) (username stri
 	//log.Println("getusername: "+username)
 
 	return username
+}
+
+//Hack to allow me to make full URLs due to absence of http:// from URL.Scheme in certain situations
+//getScheme(r) should return http:// or https://
+func getScheme(r *http.Request) (scheme string) {
+	scheme = "http://"
+	if r.TLS != nil {
+		scheme = "https://"
+	}
+	return scheme
 }
 
 func addUser(w http.ResponseWriter, r *http.Request) {
@@ -1357,7 +1381,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     }
 
 	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, r.Header.Get("Scheme")+"://"+r.Host+"/d/%s\n", filename)
+	fmt.Fprintf(w, getScheme(r)+r.Host+"/d/%s\n", filename)
 }
 
 func (f *File) save() error {
@@ -1569,15 +1593,11 @@ func pasteUpHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Fprintln(w, r.Header.Get("Scheme")+"://"+r.Host+"/p/"+name)
-	//log.Println(r.Header.Get("Scheme"))
-	//log.Println("Paste written to ./paste/" + name)
+	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
 
 func pasteFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pasteFormHandler")
-	//vars := mux.Vars(r)
-	//var name = ""
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -1604,9 +1624,7 @@ func pasteFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	http.Redirect(w, r, r.Header.Get("Scheme")+"://"+r.Host+"/p/"+title, 302)
-	//log.Println("Paste written to ./paste/" + title)
-	//log.Println(r.Header.Get("Scheme")+"://"+r.Host+"/p/"+title)
+	http.Redirect(w, r, getScheme(r)+r.Host+"/p/"+title, 302)
 }
 
 func (p *Paste) save() error {
@@ -1624,8 +1642,6 @@ func (p *Paste) save() error {
 
 func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pasteHandler")
-	//vars := mux.Vars(r)
-	//title := vars["id"]
 	title := c.URLParams["id"]
 	paste := &Paste{}
 	err := Db.View(func(tx *bolt.Tx) error {
@@ -1640,10 +1656,10 @@ func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     		if err != nil {
     			log.Println(err)
     		}
-    		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
-    		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
-	   		//safe := bluemonday.UGCPolicy().Sanitize(paste.Content)
-	   		safe := template.HTMLEscapeString(paste.Content)
+    		//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
+    		//I need '<' and '>' in tact for scripts and such
+	   		//safe := template.HTMLEscapeString(paste.Content)
+	   		safe := sanitize.HTML(paste.Content)
 			fmt.Fprintf(w, "%s", safe)
     		return nil
 	})
@@ -2520,7 +2536,7 @@ func printStart(reqID string, r *http.Request) {
 	buf.WriteString("Started ")
 	cW(&buf, bMagenta, "%s ", r.Method)
 	cW(&buf, nBlue, "%q ", r.URL.String())
-	cW(&buf, nGreen, "|Host: %s |RawURL: %s |UserAgent: %s |Scheme: %s |IP: %s ", r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), r.Header.Get("Scheme"), r.Header.Get("X-Forwarded-For"))
+	cW(&buf, nGreen, "|Host: %s |RawURL: %s |UserAgent: %s |Scheme: %s |IP: %s ", r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), getScheme(r), r.Header.Get("X-Forwarded-For"))
 	buf.WriteString("from ")
 	buf.WriteString(r.RemoteAddr)
 
@@ -2837,18 +2853,29 @@ func main() {
 	//log.Println(tm)
 	//log.Println(tm.Format(timestamp))
 
+
+	//Load conf.json
+	conf, _ := os.Open("conf.json")
+	decoder := json.NewDecoder(conf)
+	c := Configuration{}
+	err := decoder.Decode(&c)
+	if err != nil {
+		fmt.Println("error decoding config:", err)
+	}
+	log.Println(c.Username)
+
 	//Check for essential directory existence
-   _, err := os.Stat("./up-imgs")
+   _, err = os.Stat(c.ImgDir)
    if err != nil {
-      os.Mkdir("./up-imgs", 0755)
+      os.Mkdir(c.ImgDir, 0755)
    }
-   _, err = os.Stat("./up-files")
+   _, err = os.Stat(c.FileDir)
    if err != nil {
-      os.Mkdir("./up-files", 0755)
+      os.Mkdir(c.FileDir, 0755)
    }
-   _, err = os.Stat("./big-imgs")
+   _, err = os.Stat(c.GifDir)
    if err != nil {
-      os.Mkdir("./big-imgs", 0755)
+      os.Mkdir(c.GifDir, 0755)
    }
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
@@ -2914,7 +2941,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = c.Port
 	}
 
 	//httpauth
@@ -2927,7 +2954,7 @@ func main() {
 
 	roles = make(map[string]httpauth.Role)
 	roles["user"] = 1
-	roles["gator"] = 2
+	roles["mod"] = 2
 	roles["admin"] = 10
 
 	/*
@@ -3189,9 +3216,9 @@ func main() {
 		http.Handle("go.dev/metrics", prometheus.UninstrumentedHandler())	
 		http.Handle("go.dev/", prometheus.InstrumentHandler("general",g))
 	} else {
-		log.Println("Listening on go.jba.io domain")
-		http.Handle("go.jba.io/metrics", prometheus.UninstrumentedHandler())	
-		http.Handle("go.jba.io/", prometheus.InstrumentHandler("general",g))
+		log.Println("Listening on "+c.MainTLD+" domain")
+		http.Handle(c.MainTLD+"/metrics", prometheus.UninstrumentedHandler())	
+		http.Handle(c.MainTLD+"/", prometheus.InstrumentHandler("general",g))
 	}
 	//Should be the catchall, sends to shortURL for the time being
 	//Unsure how to combine Gorilla Mux's wildcard subdomain matching and Goji yet :(
@@ -3215,7 +3242,7 @@ func main() {
 	i.Get("/big/:name", imageBigHandler)		
 	//Download images
 	i.Get("/:name", downloadImageHandler)
-	http.Handle("i.es.gy/", prometheus.InstrumentHandler("images",i))
+	http.Handle(c.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
 
 	//Dedicated BIG image subdomain for easy linking
 	big := web.New()
@@ -3229,7 +3256,7 @@ func main() {
 	big.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))    	
 	//Huge images
 	big.Get("/:name", imageBigHandler)	
-	http.Handle("big.es.gy/", prometheus.InstrumentHandler("big_gifs", big))
+	http.Handle(c.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
 
 	//My Goji Mux
 	mygoji := web.New()
