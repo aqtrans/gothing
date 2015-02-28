@@ -216,6 +216,7 @@ var Db, _ = bolt.Open("./bolt.db", 0600, nil)
 
 //Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
 type Page struct {
+	TheName string
     Title   string
     UN      string
 }
@@ -985,7 +986,7 @@ func privHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func loadPage(title, user string) (*Page, error) {
 	//timer.Step("loadpageFunc")
-	return &Page{Title: title, UN: user}, nil
+	return &Page{TheName: "GoBanana!", Title: title, UN: user}, nil
 }
 
 func loadMainPage(title, user string) (interface{}, error) {

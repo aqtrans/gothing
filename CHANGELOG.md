@@ -19,3 +19,7 @@
 - Foregone golang-assisted sanitizing or HTML escaping for pastes in favor of simple strings.replace() functions
     - Every sanitize feature I could find demanded escaping all '<', and '>', which makes the pastebin useless for simple bash scripts :(
     - This is very basic and likely easy to work around, as I am only turning '<script>' into '< script >' at the moment, just to stop javascript XSS attacks
+
+#20150228
+- Renamed from TKOT to GoBanana, to go along with the Go[whatever] naming convention, and I wasn't too fond of TKOT in the first place
+- Moved primary dev source from Github to my personal Gitlab install with infrequent mirroring to Github when I feel like it 
