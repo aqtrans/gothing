@@ -1,3 +1,4 @@
+.DS_Store
 bolt.db
 auth.gob
 bak/**
@@ -7,3 +8,4 @@ up-files/*
 up-imgs/*
 req.log
 conf.json
+
