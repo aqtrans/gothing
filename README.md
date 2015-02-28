@@ -1,4 +1,4 @@
-#About
+# About
 
 This is my first major programming project, and my first major experience with Golang, so please excuse the messiness and feel free to let me know if there are any major issues!
 I started out with the Golang.org Wiki guide, but after finishing that up quicker than I thought, I decided to see what other functionality I could build in...
@@ -6,7 +6,7 @@ I started out with the Golang.org Wiki guide, but after finishing that up quicke
 
 You can see it in action [here](http://go.jba.io).
 
-#Features
+# Features
 As of now, the doodad has the following features:
 - User authentication, using [httpauth](https://github.com/apexskier/httpauth) library, with 3 user levels
     - Currently I am only utilizing the 'admin' user and group, but may expand on this later to integrate various types of private things
@@ -22,7 +22,7 @@ As of now, the doodad has the following features:
 - 'Looking Glass' functionality, with the ability to ping, traceroute, and perform an MTR to a specified domain or IP
 
 
-#Configuration
+# Configuration
 
 The app expects a file named 'conf.json' in the same directory as the binary, containing the following structure.
 I have added comments here for clarity, so if copying and pasting, remove them: 
