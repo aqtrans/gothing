@@ -4,7 +4,13 @@
     {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}
-{{$user := .UN}}
+{{$user := .Page.UN}}
+{{ if .Page.Msg }}
+<div data-alert class="alert-box"> 
+{{ .Page.Msg | safeHTML }}
+<a href="#" class="close">&times;</a> 
+</div>
+{{ end }}
 <h1>List of things</h1>
 <hr />
 <h2>Pastes</h2>
@@ -86,6 +92,26 @@
 <td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
 {{if $user}}<td><a href=/api/delete/shorturl/{{.Short}} class="button tiny alert">Delete</a></td>{{ end }}
+</tr>
+{{ end }}
+</tbody>
+</table>
+<h2>Images</h2>
+<table>
+<thead>
+<tr>
+<th width="80">Filename</th>
+<th width="200">Date</th>
+<th width="20">Hits</th>
+</tr>
+</thead>
+<tbody>
+{{range .Images}}
+<tr>
+<td><a href=/i/{{.Filename}}>{{.Filename}}</a></td>
+<td>{{.Created | prettyDate}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
 {{ end }}
 </tbody>

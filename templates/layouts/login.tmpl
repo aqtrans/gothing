@@ -3,7 +3,13 @@
     {{ template "sidebar_nav" . }}
     {{ template "login_form" . }}
 {{ end }}
-{{ define "content" }}       
+{{ define "content" }} 
+{{ if .Page.Msg }}
+<div data-alert class="alert-box"> 
+{{ .Page.Msg | safeHTML }}
+<a href="#" class="close">&times;</a> 
+</div>
+{{ end }}      
 <h1>Login</h1>
 {{ if .Msg }}
 <p>{{ .Msg }}</p>

@@ -6,11 +6,17 @@
 {{ define "content" }}       
 <h1>GoBanana!</h1>
 <hr />
+{{ if .Page.Msg }}
+<div data-alert class="alert-box"> 
+{{ .Page.Msg }}
+<a href="#" class="close">&times;</a> 
+</div>
+{{ end }}
 <h2>Formerly TKOT, The King of Things.</h2>
-	<h3 class="subheader">Paste stuff from CLI</h3>
-  <div class="panel callout">
+<h3 class="subheader">Paste stuff from CLI</h3>
+<div class="panel callout">
 curl --data "STUFF" http://go.jba.io/p(/ID)
-  </div>
+</div>
 <h3 class="subheader">Upload file from CLI</h3>
 <div class="panel callout">	
 curl -T "file-to-upload" http://go.jba.io/up/

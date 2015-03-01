@@ -4,6 +4,12 @@
     {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}
+{{ if .Page.Msg }}
+<div data-alert class="alert-box"> 
+{{ .Page.Msg | safeHTML }}
+<a href="#" class="close">&times;</a> 
+</div>
+{{ end }}
 <ul class="accordion" data-accordion>
   <li class="accordion-navigation">
     <a href="#panel1a">Upload a local image</a>
