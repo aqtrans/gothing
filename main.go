@@ -9,6 +9,7 @@ import (
 	"flag"
 	"encoding/json"
 	"fmt"
+	"sort"
 	//"github.com/gorilla/mux"
 	//"github.com/codegangsta/negroni"
 	//"github.com/zenazn/goji"
@@ -269,6 +270,32 @@ type Shorturl struct {
 	Long 	string
 	Hits 	int64
 }
+
+//Sorting functions
+type ImageByDate []*Image
+func (a ImageByDate) Len() int           { return len(a) }
+func (a ImageByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ImageByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
+
+type PasteByDate []*Paste
+func (a PasteByDate) Len() int           { return len(a) }
+func (a PasteByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a PasteByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
+
+type SnipByDate []*Snip
+func (a SnipByDate) Len() int           { return len(a) }
+func (a SnipByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a SnipByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
+
+type FileByDate []*File
+func (a FileByDate) Len() int           { return len(a) }
+func (a FileByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a FileByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
+
+type ShortByDate []*Shorturl
+func (a ShortByDate) Len() int           { return len(a) }
+func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
 	//Goji DefaultMux overrides
@@ -664,6 +691,7 @@ func loadGalleryPage(user string, c web.C) (*GalleryPage, error) {
 	    })
 	    return nil
 	})
+	sort.Sort(ImageByDate(images))
 	return &GalleryPage{Page: page, Images: images}, nil
 }
 
@@ -1016,6 +1044,7 @@ func loadListPage(user string, c web.C) (*ListPage, error) {
 	    })
 	    return nil
 	})
+	sort.Sort(SnipByDate(snips))
 
 	var files []*File
 	//Lets try this with boltDB now!
@@ -1034,6 +1063,7 @@ func loadListPage(user string, c web.C) (*ListPage, error) {
 	    })
 	    return nil
 	})
+	sort.Sort(FileByDate(files))
 
 	/*
 	for _, p := range pfiles {
@@ -1063,6 +1093,7 @@ func loadListPage(user string, c web.C) (*ListPage, error) {
 	    })
 	    return nil
 	})
+	sort.Sort(PasteByDate(pastes))
 	//log.Println("Pastes: ")
 	//log.Println(pastes)
 	//log.Println("len:", len(pastes))
@@ -1084,6 +1115,7 @@ func loadListPage(user string, c web.C) (*ListPage, error) {
 	    })
 	    return nil
 	})
+	sort.Sort(ShortByDate(shorts))
 	/*
 	image := &Image{}
 	var images []Image
@@ -1138,6 +1170,7 @@ func loadListPage(user string, c web.C) (*ListPage, error) {
 	    })
 	    return nil
 	})
+	sort.Sort(ImageByDate(images))
 
 	return &ListPage{Page: page, Snips: snips, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
 }
@@ -2470,7 +2503,6 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
             return
         }
         defer file.Close()
-        fmt.Fprintf(w, "%v", handler.Header)
         f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
         if err != nil {
             fmt.Println(err)
