@@ -633,7 +633,7 @@ func indexHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "indexHandler")
 	username := getUsername(c, w, r)
 	title := "index"
-	c.Env["msg"] = "OMG LOL"
+	//c.Env["msg"] = "OMG LOL"
 	p, _ := loadMainPage(title, username, c)
 	err := renderTemplate(w, "index.tmpl", p)
 	if err != nil {
