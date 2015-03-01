@@ -680,7 +680,7 @@ func loadGalleryPage(user string, c web.C) (*GalleryPage, error) {
 	Db.View(func(tx *bolt.Tx) error {
 	    b := tx.Bucket([]byte("Images"))
 	    b.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
+	        fmt.Printf("key=%s, value=%s\n", k, v)
 	        var image *Image
 	        err := json.Unmarshal(v, &image)
     		if err != nil {
@@ -1726,6 +1726,11 @@ func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     err = Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Pastes"))
         v := b.Get([]byte(title))
+        //If there is no existing key, do not do a thing
+        if v == nil {
+        	http.NotFound(w, r)
+        	return nil
+        }
         err := json.Unmarshal(v, &paste)
         if err != nil {
             log.Println(err)
@@ -1748,9 +1753,6 @@ func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 //Snip handlers
 func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "editSnipHandler")
-	//title, err := getTitle(w, r)
-	//vars := mux.Vars(r)
-	//title := vars["page"]
 	title := c.URLParams["page"]
 	username := getUsername(c, w, r)
 	snip := &Snip{}
@@ -1972,6 +1974,11 @@ func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Files"))
         v := b.Get([]byte(name))
+        //If there is no existing key, do not do a thing
+        if v == nil {
+        	http.NotFound(w, r)
+        	return nil
+        }
         err := json.Unmarshal(v, &file)
         if err != nil {
             log.Println(err)
@@ -1998,6 +2005,11 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Images"))
         v := b.Get([]byte(name))
+        //If there is no existing key, do not do a thing
+        if v == nil {
+        	http.NotFound(w, r)
+        	return nil
+        }
         err := json.Unmarshal(v, &image)
         if err != nil {
             log.Println(err)
