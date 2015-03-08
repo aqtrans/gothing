@@ -417,12 +417,19 @@ func getUsername(c web.C, w http.ResponseWriter, r *http.Request) (username stri
 	return username
 }
 
-//Hack to allow me to make full URLs due to absence of http:// from URL.Scheme in certain situations
+//Hack to allow me to make full URLs due to absence of http:// from URL.Scheme in dev situations
+//When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
 func getScheme(r *http.Request) (scheme string) {
+	scheme = r.Header.Get("X-Forwarded-Proto")+"://"
+	/*
 	scheme = "http://"
 	if r.TLS != nil {
 		scheme = "https://"
+	}
+	*/
+	if scheme == "" {
+		scheme = "http://"
 	}
 	return scheme
 }
@@ -1312,7 +1319,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			}
 			contentLength = n
 		}
-		filename := sanitize.Path(filepath.Base(c.URLParams["filename"]))
+		filename := sanitize.Path(filepath.Base(c.URLParams["id"]))
 		if filename == "." {
 			//filename := sanitize.Path(filepath.Base(vars["filename"]))
 			log.Println("Filename is blank " + filename)
@@ -1339,7 +1346,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if _, err = io.Copy(f, reader); err != nil {
 			return
 		}		
-		contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["filename"]))
+		contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["id"]))
 	} else {
         log.Println("Content-type is "+contentType)
         err := r.ParseMultipartForm(_24K)
@@ -1420,9 +1427,6 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     if err != nil {
         log.Println(err)
     }
-
-	//w.Header().Set("Content-Type", "text/plain")
-	//fmt.Fprintf(w, getScheme(r)+r.Host+"/d/%s\n", filename)
 
 	c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
 	username := getUsername(c, w, r)
@@ -1616,9 +1620,7 @@ func (s *Shorturl) save() error {
 //Pastebin handlers
 func pasteUpHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pasteUpHandler")
-	//vars := mux.Vars(r)
 	log.Println("Paste request...")
-	//log.Println(r.Header.Get("Scheme"))
 	paste := r.Body
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(paste)
@@ -2341,7 +2343,7 @@ func LoggerMiddleware(h http.Handler) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		rawurl := r.Header.Get("X-Raw-URL")
 		ua := r.Header.Get("User-Agent")
-		scheme := r.Header.Get("Scheme")
+		scheme := r.Header.Get("X-Forwarded-Proto")
 		ip := r.Header.Get("X-Forwarded-For")
 		log.Println("Started "+r.Method+" "+r.URL.Path+"| Host: "+r.Host+" | Raw URL: "+rawurl+" | UserAgent: "+ua+" | HTTPS: "+scheme+" | IP: "+ip) 
 		h.ServeHTTP(w, r)
@@ -2575,10 +2577,6 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     if err != nil {
         log.Println(err)
     }
-
-    //w.Header().Set("Content-Type", "text/plain")
-    //fmt.Fprintf(w, r.Header.Get("Scheme")+"://"+r.Host+"/d/%s\n", filename)
-    //http.Redirect(w, r, "/i", 302)
 
 	c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/i/"+filename+"><i class='fa fa-link'></i>Link</a>"
 	username := getUsername(c, w, r)
@@ -3288,12 +3286,12 @@ func main() {
 	//View Snippet 
 	g.Get("/:page", snipHandler) 
 
-	//Pastebin upload
+	//File upload
 	g.Post("/up/:id", putHandler)
 	g.Put("/up/:id", putHandler)
 	g.Post("/up", putHandler)	
 	g.Put("/up", putHandler)
-	//File upload
+	//Pastebin upload
 	g.Post("/p/:id", pasteUpHandler)
 	g.Put("/p/:id", pasteUpHandler)
 	g.Post("/p", pasteUpHandler)	
