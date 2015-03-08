@@ -1428,26 +1428,35 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
         log.Println(err)
     }
 
-	c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
-	username := getUsername(c, w, r)
-	title := filename+" successfully uploaded!"
-	p, _ := loadMainPage(title, username, c)
-	err = renderTemplate(w, "up.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}
+    if contentType == "" {
+    	fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
+    } else {
+		c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
+		username := getUsername(c, w, r)
+		title := filename+" successfully uploaded!"
+		p, _ := loadMainPage(title, username, c)
+		err = renderTemplate(w, "up.tmpl", p)
+		if err != nil {
+			log.Println(err)
+		}    	
+    }
 }
 
 func (f *File) save() error {
-    Db.Update(func(tx *bolt.Tx) error {
+	log.Println(f)
+    err := Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Files"))
         encoded, err := json.Marshal(f)
-        log.Println(encoded)
         if err != nil {
+        	log.Println(err)
             return err
         }
         return b.Put([]byte(f.Filename), encoded)
     })
+    if err != nil {
+    	log.Println(err)
+    	return err
+    }
     log.Println("++++FILE SAVED")
     return nil
 }
@@ -1606,7 +1615,7 @@ func shortUrlFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Shorturl) save() error {
-	Db.Update(func(tx *bolt.Tx) error {
+	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 	    encoded, err := json.Marshal(s)
 	    if err != nil {
@@ -1614,6 +1623,9 @@ func (s *Shorturl) save() error {
 	    }
 	    return b.Put([]byte(s.Short), encoded)
 	})
+    if err != nil {
+    	return err
+    }	
 	log.Println("++++SHORTURL SAVED")
 	return nil
 }
@@ -1682,14 +1694,19 @@ func pasteFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Paste) save() error {
-	Db.Update(func(tx *bolt.Tx) error {
+	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 	    encoded, err := json.Marshal(p)
 	    if err != nil {
+	    	log.Println(err)
 	    	return err
 	    }
 	    return b.Put([]byte(p.Title), encoded)
 	})
+    if err != nil {
+    	log.Println(err)
+    	return err
+    }	
 	log.Println("++++PASTE SAVED")
 	return nil
 }
@@ -1963,6 +1980,7 @@ func (s *Snip) save() error {
 	})
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 	return nil
 }
@@ -2591,14 +2609,19 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *Image) save() error {
-    Db.Update(func(tx *bolt.Tx) error {
+    err := Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Images"))
         encoded, err := json.Marshal(i)
         if err != nil {
+        	log.Println(err)
             return err
         }
         return b.Put([]byte(i.Filename), encoded)
     })
+    if err != nil {
+    	log.Println(err)
+    	return err
+    }    
     //Detect what kind of image, so we can embiggen GIFs from the get-go
 
     contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
