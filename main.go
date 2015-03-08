@@ -2,6 +2,10 @@ package main
 
 // TODO
 // - Guard file/image upload pages from respective filetypes
+// - Add a screenshot sharing route, separate from image gallery
+// - Refactor all save() functions to do the actual file saving as well...
+// ...only saving if the BoltDB function doesn't error out
+
 
 import (
 	"crypto/rand"
@@ -1319,7 +1323,8 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			}
 			contentLength = n
 		}
-		filename := sanitize.Path(filepath.Base(c.URLParams["id"]))
+		filename = sanitize.Path(filepath.Base(c.URLParams["id"]))
+		log.Println(filename)
 		if filename == "." {
 			//filename := sanitize.Path(filepath.Base(vars["filename"]))
 			log.Println("Filename is blank " + filename)
