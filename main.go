@@ -1328,7 +1328,6 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		filename = sanitize.Path(filepath.Base(c.URLParams["id"]))
 		log.Println(filename)
 		if filename == "." {
-			//filename := sanitize.Path(filepath.Base(vars["filename"]))
 			log.Println("Filename is blank " + filename)
 			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 			var bytes = make([]byte, 4)
@@ -2497,9 +2496,8 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
             }
             contentLength = n
         }
-        filename := sanitize.Path(filepath.Base(c.URLParams["filename"]))
+        filename = sanitize.Path(filepath.Base(c.URLParams["filename"]))
         if filename == "." {
-            //filename := sanitize.Path(filepath.Base(vars["filename"]))
             log.Println("Filename is blank " + filename)
             dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
             var bytes = make([]byte, 4)
