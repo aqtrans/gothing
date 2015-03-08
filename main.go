@@ -1442,6 +1442,7 @@ func (f *File) save() error {
     Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Files"))
         encoded, err := json.Marshal(f)
+        log.Println(encoded)
         if err != nil {
             return err
         }
