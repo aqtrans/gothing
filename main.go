@@ -1285,9 +1285,11 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	var f io.WriteCloser
 	var err error
 	var filename string
+	var cli bool
 	path := cfg.FileDir
 	contentType := r.Header.Get("Content-Type")	
 	if contentType == "" {
+		cli = true
 		log.Println("Content-type blank, so this should be a CLI upload...")
 		//Then this should be an upload from the command line...
 		reader = r.Body
@@ -1353,6 +1355,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}		
 		contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["id"]))
 	} else {
+		cli = false
         log.Println("Content-type is "+contentType)
         err := r.ParseMultipartForm(_24K)
         if err != nil {
@@ -1433,7 +1436,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
         log.Println(err)
     }
 
-    if contentType == "" {
+    if cli {
     	fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
     } else {
 		c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
