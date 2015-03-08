@@ -1992,9 +1992,10 @@ func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
             Hits: count,
         }
         encoded, err := json.Marshal(fi)
+        http.ServeFile(w, r, fpath)
         return b.Put([]byte(name), encoded)
     })
-    http.ServeFile(w, r, fpath)
+    
 }
 
 func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
