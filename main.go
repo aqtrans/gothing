@@ -2060,7 +2060,7 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
-    fpath := cfg.ImgDir + strings.TrimSuffix(path.Base(name), ".png")
+    fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
 //    http.ServeFile(w, r, fpath)
 
     thumbPath := cfg.ThumbDir+path.Base(name)+".png"
@@ -2082,7 +2082,7 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		//convert -define "jpeg:size=300x300 -thumbnail 300x300 ./up-imgs/
 
 		resize := exec.Command("/usr/bin/convert", fpath, "-strip", "-thumbnail","x300", thumbPath)
-    	contentType := mime.TypeByExtension(filepath.Ext(path.Base(name)))
+    	contentType := mime.TypeByExtension(filepath.Ext(path.Base(strings.TrimSuffix(name, ".png"))))
     	if contentType == "image/gif" {
     		gpath := fpath+"[0]"
 			resize = exec.Command("/usr/bin/convert", gpath, "-strip", "-thumbnail","x300", thumbPath)
