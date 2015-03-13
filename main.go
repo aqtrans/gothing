@@ -62,6 +62,7 @@ type Configuration struct {
 	Email    string 
 	ImgDir   string 
 	FileDir  string 
+	ThumbDir string
 	GifDir   string 
 	MainTLD  string 
 	ShortTLD string 
@@ -2060,7 +2061,33 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
     fpath := cfg.ImgDir + path.Base(name)
-    http.ServeFile(w, r, fpath)
+//    http.ServeFile(w, r, fpath)
+
+    thumbPath := cfg.ThumbDir+path.Base(name)
+
+    //Check to see if the large image already exists
+    //If so, serve it directly
+	if _, err := os.Stat(thumbPath); err == nil {
+		log.Println("Pre-existing thumbnail already found, serving it...")
+		http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
+	} else {
+		log.Println("Thumbnail not found. Running imagemagick...")
+		file, err := os.Open(fpath)
+		if err != nil {
+		     log.Println(err)
+		     return
+		}
+		file.Close()
+		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
+		//convert -define "jpeg:size=300x300 -thumbnail 300x300 ./up-imgs/
+		resize := exec.Command("/usr/bin/convert", fpath, "-define", "jpeg:size=300x300", "-thumbnail","300x300", thumbPath)
+		err = resize.Run()
+		if err != nil {
+			log.Println(err)
+		}
+	    http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
+	}
+
 }
 
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
@@ -3017,6 +3044,10 @@ func main() {
    _, err = os.Stat(cfg.GifDir)
    if err != nil {
       os.Mkdir(cfg.GifDir, 0755)
+   }
+   _, err = os.Stat(cfg.ThumbDir)
+   if err != nil {
+      os.Mkdir(cfg.ThumbDir, 0755)
    }
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
