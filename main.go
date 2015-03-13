@@ -2063,7 +2063,7 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     fpath := cfg.ImgDir + path.Base(name)
 //    http.ServeFile(w, r, fpath)
 
-    thumbPath := cfg.ThumbDir+path.Base(name)
+    thumbPath := cfg.ThumbDir+path.Base(name)+".png"
 
     //Check to see if the large image already exists
     //If so, serve it directly
@@ -2081,11 +2081,11 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
 		//convert -define "jpeg:size=300x300 -thumbnail 300x300 ./up-imgs/
 
-		resize := exec.Command("/usr/bin/convert", fpath, "-define", "jpeg:size=x300", "-thumbnail","x300", thumbPath)
+		resize := exec.Command("/usr/bin/convert", fpath, "-strip", "-thumbnail","x300", thumbPath)
     	contentType := mime.TypeByExtension(filepath.Ext(path.Base(name)))
     	if contentType == "image/gif" {
     		gpath := fpath+"[0]"
-			resize = exec.Command("/usr/bin/convert", gpath, "-define", "jpeg:size=x300", "-thumbnail","x300", thumbPath)
+			resize = exec.Command("/usr/bin/convert", gpath, "-strip", "-thumbnail","x300", thumbPath)
 		}
 		//resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--resize-height", "300", fpath, "#0", "-o", thumbPath)
 		err = resize.Run()
@@ -2096,6 +2096,13 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+func imageDirectHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+    name := c.URLParams["name"]
+    fpath := cfg.ImgDir + path.Base(name)
+    http.ServeFile(w, r, fpath)
+}
+
 
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
@@ -3330,6 +3337,8 @@ func main() {
 	g.Get("/md/:page", viewMarkdownHandler)
 	//Thumbs
 	g.Get("/thumbs/:name", imageThumbHandler)
+	//No hit images
+	g.Get("/imagedirect/:name", imageDirectHandler)		
 	//Image Gallery
 	g.Get("/i", galleryHandler)
 	//Image Gallery
@@ -3417,6 +3426,8 @@ func main() {
 	i.Get("/", galleryEsgyHandler)	
 	//Thumbs
 	i.Get("/thumbs/:name", imageThumbHandler)
+	//No hit images
+	i.Get("/imagedirect/:name", imageDirectHandler)	
 	//Huge images
 	i.Get("/big/:name", imageBigHandler)		
 	//Download images
