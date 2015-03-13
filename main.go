@@ -2060,7 +2060,7 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
-    fpath := cfg.ImgDir + path.Base(name)
+    fpath := cfg.ImgDir + strings.TrimSuffix(path.Base(name), ".png")
 //    http.ServeFile(w, r, fpath)
 
     thumbPath := cfg.ThumbDir+path.Base(name)+".png"
