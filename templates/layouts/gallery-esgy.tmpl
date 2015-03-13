@@ -12,21 +12,21 @@
 	<li>
 	<div class="thumbspacer">
 	<a class="th" href="/{{.Filename}}">
-	<img class="imgs" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+	<img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
 	</a>
 	</div>
 	</li> 
 	{{ end }}
 	</ul>
 </div>
-Using <a href="http://freezeframe.chrisantonellis.com">FreezeFrame</a>
- by <a href="http://www.chrisantonellis.com">Chris Antonellis</a>
+<!--Using <a href="http://freezeframe.chrisantonellis.com">FreezeFrame</a>
+ by <a href="http://www.chrisantonellis.com">Chris Antonellis</a>-->
 {{ end }}
 {{ define "extra_scripts" }}
 <script src="/js/jquery.gifplayer.js" type="text/javascript"></script>
 <script type="text/javascript" charset="utf-8">
 $(function() {
-    $('.imgs').gifplayer();
+    $('.gifs').gifplayer();
 });
 </script>
 {{ end }}

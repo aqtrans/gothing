@@ -25,15 +25,15 @@
 
  		wrap: function(){
  			this.wrapper = this.previewElement.wrap("<div class='gifplayer-wrapper'></div>").parent();
- 			this.wrapper.css('width', this.previewElement.width());
- 			this.wrapper.css('height', this.previewElement.height());
+ 			this.wrapper.css('max-width', '300');
+ 			this.wrapper.css('max-height', '300');
  			this.previewElement.addClass('gifplayer');
  			this.previewElement.css('cursor','pointer');
  		},
 
  		getGifSrc: function(){
  			var size = "-" + this.previewElement.width() + 'x' + this.previewElement.height();
- 			var linkHref = 	this.previewElement.attr('src').replace(size, '').replace('.png','.gif');
+ 			var linkHref = 	this.previewElement.attr('src').replace('.png','').replace('thumbs','imagedirect');
  			return linkHref;
  		},
 
@@ -85,9 +85,6 @@
  				gp.gifLoaded=true;
  				gp.resetEvents();
  				$(this).css('cursor','pointer');
- 				$(this).css('position','absolute');
- 				$(this).css('top','0');
- 				$(this).css('left','0');
 				gp.previewElement.hide();
  				gp.wrapper.append(gp.gifElement);
  				gp.spinnerElement.hide();
