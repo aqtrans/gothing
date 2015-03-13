@@ -36,6 +36,11 @@ figure.freezeframe-container {
   max-height: 300px;
 }
 
+img.lazy {
+  width: 300px;
+  height: 300px;
+}
+
 figure {
     margin: 0;
 }
