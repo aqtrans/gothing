@@ -2083,8 +2083,9 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 		resize := exec.Command("/usr/bin/convert", fpath, "-define", "jpeg:size=x300", "-thumbnail","x300", thumbPath)
     	contentType := mime.TypeByExtension(filepath.Ext(path.Base(name)))
-    	if contentType == "image/gif" {		
-			resize = exec.Command("/usr/bin/convert", fpath, "#0", "-define", "jpeg:size=x300", "-thumbnail","x300", thumbPath)
+    	if contentType == "image/gif" {
+    		gpath := fpath+"[0]"
+			resize = exec.Command("/usr/bin/convert", gpath, "-define", "jpeg:size=x300", "-thumbnail","x300", thumbPath)
 		}
 		//resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--resize-height", "300", fpath, "#0", "-o", thumbPath)
 		err = resize.Run()
