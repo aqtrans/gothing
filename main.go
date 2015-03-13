@@ -334,7 +334,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-    funcMap := template.FuncMap {"prettyDate": PrettyDate, "safeHTML": SafeHTML}
+    funcMap := template.FuncMap {"prettyDate": PrettyDate, "safeHTML": SafeHTML, "imgClass": ImgClass}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
@@ -346,6 +346,13 @@ func init() {
 func PrettyDate(date int64) string {
 	t := time.Unix(date, 0)
 	return t.Format(timestamp)
+}
+
+func ImgClass(s string) string {
+	if strings.HasSuffix(s, ".gif") {
+		return "gifs"
+	}
+	return "imgs"
 }
 
 func SafeHTML(s string) template.HTML {
@@ -2061,9 +2068,12 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
     fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
+    log.Println("name:"+ name)
+    log.Println("fpath:"+ fpath)
 //    http.ServeFile(w, r, fpath)
 
-    thumbPath := cfg.ThumbDir+path.Base(name)+".png"
+    thumbPath := cfg.ThumbDir+path.Base(name)
+    log.Println("thumbpath:"+thumbPath)
 
     //Check to see if the large image already exists
     //If so, serve it directly
