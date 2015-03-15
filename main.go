@@ -1286,6 +1286,37 @@ func remoteDownloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 }
 
+func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
+	//length := r.ContentLength
+	//ticker := time.Tick(time.Millisecond)
+
+	if r.Form == nil {
+		err := r.ParseForm()
+		if err != nil {
+			return err
+		}
+	}
+	if r.MultipartForm != nil {
+		return nil
+	}
+
+	mr, err := r.MultipartReader()
+	if err != nil {
+		return err
+	}
+
+	f, err := mr.ReadForm(maxMemory)
+	if err != nil {
+		return err
+	}
+	for k, v := range f.Value {
+		r.Form[k] = append(r.Form[k], v...)
+	}
+	r.MultipartForm = f
+
+	return nil
+}
+
 func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//vars := mux.Vars(r)
 	contentLength := r.ContentLength
@@ -1364,24 +1395,107 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	} else {
 		cli = false
         log.Println("Content-type is "+contentType)
-        err := r.ParseMultipartForm(_24K)
+        ticker := time.Tick(time.Millisecond)
+
+        /*
+        err := ParseMultipartFormProg(r, _24K)
         if err != nil {
             log.Println("ParseMultiform reader error")
             log.Println(err)
             return        	
         }
         file, handler, err := r.FormFile("file")
-        filename = handler.Filename
+        filename = handler.Filename*/
+
+		mr, err := r.MultipartReader()
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		//f, err := mr.ReadForm(1000)
+		//if err != nil {
+		//	fmt.Println(err)
+		//}
+
+        //log.Println(f)
+        //filename = f.File["file"][0].Filename
+        //log.Println(f2.Filename)
+        //log.Println(f.Value)
+        //filename = "./test-file"
         if r.FormValue("local-file-name") != "" {
         	log.Println("CUSTOM FILENAME: ")
         	log.Println(r.FormValue("local-file-name"))
         	filename = r.FormValue("local-file-name")
         }
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        defer file.Close()
+        /*
+        filename = "tmpfile"
+		dst, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			log.Println(err)
+			return
+		}*/
+		//dst, err := os.OpenFile("tmp-zzz", os.O_WRONLY|os.O_CREATE, 0666)
+		dst, err := ioutil.TempFile(path, "tmp-")
+		if err != nil {
+			log.Println(err)
+			return
+		}		
+        buffer := make([]byte, 100000)
+		for {
+		    var read int64
+		    var p float32
+		    part, err := mr.NextPart()
+		    if err == io.EOF {
+		            log.Println("Done!")
+		            break
+		    }
+
+		     
+		    for {
+		    	//Because I can't figure out how to easily separate out the different parts of the form, use this to do that
+		    	if part.FormName() == "file" {
+					filename = part.FileName()
+			    	//log.Println("FILE "+part.FileName())
+			    	//log.Println("FORM "+part.FormName())
+			            cBytes, err := part.Read(buffer)
+			            if err == io.EOF {
+			                    fmt.Printf("\n")
+			                    break
+			            }
+			            read = read + int64(cBytes)
+
+			            //fmt.Printf("\r read: %v  length : %v \n", read, length)
+
+			            if read > 0 {
+			                    p = float32(read*100) / float32(contentLength)
+			                     //fmt.Printf("progress: %v \n", p)
+			                     <-ticker
+			                     fmt.Printf("\rUploading progress %v", p) // for console
+			                     dst.Write(buffer[0:cBytes])
+			             } else {
+			                     break
+			             }
+			    } else {
+			    	break
+			    } 		
+		    }
+		}
+		//log.Println(dst.Name())
+		err = os.Rename(dst.Name(), filepath.Join(path, filename))
+		if err != nil {
+			log.Println(err)
+			return
+		}		
+		/*
+		dst, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		io.Copy(dst, dsttmp)*/
+
+
+        /*defer file.Close()
         //fmt.Fprintf(w, "%v", handler.Header)
         f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
         if err != nil {
@@ -1389,7 +1503,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
             return
         }
         defer f.Close()
-        io.Copy(f, file)
+        io.Copy(f, file)*/
 
 		/*
 	    mr, err := r.MultipartReader()
