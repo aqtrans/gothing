@@ -1397,44 +1397,17 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
         log.Println("Content-type is "+contentType)
         ticker := time.Tick(time.Millisecond)
 
-        /*
-        err := ParseMultipartFormProg(r, _24K)
-        if err != nil {
-            log.Println("ParseMultiform reader error")
-            log.Println(err)
-            return        	
-        }
-        file, handler, err := r.FormFile("file")
-        filename = handler.Filename*/
-
 		mr, err := r.MultipartReader()
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		//f, err := mr.ReadForm(1000)
-		//if err != nil {
-		//	fmt.Println(err)
-		//}
-
-        //log.Println(f)
-        //filename = f.File["file"][0].Filename
-        //log.Println(f2.Filename)
-        //log.Println(f.Value)
-        //filename = "./test-file"
         if r.FormValue("local-file-name") != "" {
         	log.Println("CUSTOM FILENAME: ")
         	log.Println(r.FormValue("local-file-name"))
         	filename = r.FormValue("local-file-name")
         }
-        /*
-        filename = "tmpfile"
-		dst, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			log.Println(err)
-			return
-		}*/
-		//dst, err := os.OpenFile("tmp-zzz", os.O_WRONLY|os.O_CREATE, 0666)
+
 		dst, err := ioutil.TempFile(path, "tmp-")
 		if err != nil {
 			log.Println(err)
@@ -1449,7 +1422,6 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		            log.Println("Done!")
 		            break
 		    }
-
 		     
 		    for {
 		    	//Because I can't figure out how to easily separate out the different parts of the form, use this to do that
@@ -1467,14 +1439,14 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			            //fmt.Printf("\r read: %v  length : %v \n", read, length)
 
 			            if read > 0 {
-			                    p = float32(read*100) / float32(contentLength)
-			                     //fmt.Printf("progress: %v \n", p)
-			                     <-ticker
-			                     fmt.Printf("\rUploading progress %v", p) // for console
-			                     dst.Write(buffer[0:cBytes])
-			             } else {
-			                     break
-			             }
+			                   p = float32(read*100) / float32(contentLength)
+			                    //fmt.Printf("progress: %v \n", p)
+			                    <-ticker
+			                    fmt.Printf("\rUploading progress %v", p) // for console
+			                    dst.Write(buffer[0:cBytes])
+			            } else {
+			                    break
+			            }
 			    } else {
 			    	break
 			    } 		
@@ -1485,67 +1457,8 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 			return
-		}		
-		/*
-		dst, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		io.Copy(dst, dsttmp)*/
-
-
-        /*defer file.Close()
-        //fmt.Fprintf(w, "%v", handler.Header)
-        f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        defer f.Close()
-        io.Copy(f, file)*/
-
-		/*
-	    mr, err := r.MultipartReader()
-	    if err != nil {
-	    	log.Println("Multipart reader error")
-	    	log.Println(err)
-	        return
-	    }
-	    //filename := mr.currentPart.FileHeader.Filename
-
-	    for {
-
-	        part, err := mr.NextPart()
-	        if err == io.EOF {
-	            break
-	        }
-			//if part.FileName() is empty, skip this iteration.
-			if part.FileName() != "" {
-				filename = part.FileName()
-			} 	        
-	        var read int64
-	        var p float32
-	        dst, err := os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-	        if err != nil {
-	            return
-	        }
-	        for {
-	            buffer := make([]byte, 100000)
-	            cBytes, err := part.Read(buffer)
-	            if err == io.EOF {
-	                break
-	            }
-	            read = read + int64(cBytes)
-	            //fmt.Printf("read: %v \n",read )
-	            p = float32(read) / float32(contentLength) *100
-	            fmt.Fprintf(w, "progress: %v \n",p )
-	            dst.Write(buffer[0:cBytes])
-	        }
-	    }*/		
-	}
-
-	// w.Statuscode = 200
+		}	
+	}	
 
 	//BoltDB stuff
     fi := &File{
@@ -1572,7 +1485,6 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *File) save() error {
-	log.Println(f)
     err := Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Files"))
         encoded, err := json.Marshal(f)
@@ -1586,6 +1498,7 @@ func (f *File) save() error {
     	log.Println(err)
     	return err
     }
+	//log.Println(f)    
     log.Println("++++FILE SAVED")
     return nil
 }
