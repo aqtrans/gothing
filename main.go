@@ -1326,11 +1326,85 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	var f io.WriteCloser
 	var err error
 	var filename string
-	var cli bool
+	//var cli bool
+	//var remote bool
+	var uptype string
+	fi := &File{}
 	path := cfg.FileDir
-	contentType := r.Header.Get("Content-Type")	
-	if contentType == "" {
-		cli = true
+	contentType := r.Header.Get("Content-Type")
+
+	//Determine how the file is being uploaded
+	if r.FormValue("remote") != "" {
+		uptype = "remote"
+	} else if contentType == "" {
+		uptype = "cli"
+	} else {
+		uptype = "form"
+	}
+	log.Println(uptype)
+
+	//Remote File Uploads
+	if uptype == "remote" {
+		remoteURL := r.FormValue("remote")
+		finURL := remoteURL
+		if !strings.HasPrefix(remoteURL,"http") {
+			log.Println("remoteURL does not contain a URL prefix, so adding http")
+			finURL = "http://"+remoteURL
+		}
+		fileURL, err := url.Parse(finURL)
+		if err != nil {
+			panic(err)
+		}	
+		//path := fileURL.Path
+		segments := strings.Split(fileURL.Path, "/")
+		filename = segments[len(segments)-1]
+		/*
+		log.Println("Filename:")
+		log.Println(fileName)
+		log.Println("Path:")
+		log.Println(path)
+		*/
+		//dlpath := cfg.FileDir
+	    if r.FormValue("remote-file-name") != "" {
+	    	log.Println("custom remote file name: "+sanitize.Name(r.FormValue("remote-file-name")))
+	    	filename = sanitize.Name(r.FormValue("remote-file-name"))
+	    }
+		file, err := os.Create(filepath.Join(path, filename))
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		defer file.Close()
+		check := http.Client{
+				CheckRedirect: func(r *http.Request, via [] *http.Request) error {
+				r.URL.Opaque = r.URL.Path
+				return nil
+				},
+		}
+		resp, err := check.Get(finURL)
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		defer resp.Body.Close()
+		fmt.Println(resp.Status)
+
+		size, err := io.Copy(file, resp.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		//BoltDB stuff
+	    fi = &File{
+	        Created: time.Now().Unix(),
+	        Filename: filename,
+	        RemoteURL: finURL,
+	    }
+
+		//fmt.Printf("%s with %v bytes downloaded", fileName, size)
+		//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
+		fmt.Printf("%s with %v bytes downloaded from %s", filename, size, finURL)
+	} else if uptype == "cli" {
 		log.Println("Content-type blank, so this should be a CLI upload...")
 		//Then this should be an upload from the command line...
 		reader = r.Body
@@ -1394,8 +1468,12 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 			return
 		}		
 		contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["id"]))
-	} else {
-		cli = false
+		//BoltDB stuff
+	    fi = &File{
+	        Created: time.Now().Unix(),
+	        Filename: filename,
+	    }			
+	} else if uptype == "form" {
         log.Println("Content-type is "+contentType)
         ticker := time.Tick(time.Millisecond)
 
@@ -1460,27 +1538,25 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}	
+		//BoltDB stuff
+	    fi = &File{
+	        Created: time.Now().Unix(),
+	        Filename: filename,
+	    }		
 	}	
 
-	//BoltDB stuff
-    fi := &File{
-        Created: time.Now().Unix(),
-        Filename: filename,
-    }
     err = fi.save()
     if err != nil {
         log.Println(err)
     }
 
-    if cli {
+    if uptype == "cli" {
     	fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
     } else {
 		c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
 		username := getUsername(c, w, r)
 		title := filename+" successfully uploaded!"
 		p, _ := loadMainPage(title, username, c)
-		w.Header().Set("Location", "http://go.jba.io/up")
-		w.WriteHeader(303)
 		err = renderTemplate(w, "up.tmpl", p)
 		if err != nil {
 			log.Println(err)
@@ -2362,7 +2438,6 @@ func handleAdmin(c web.C, w http.ResponseWriter, r *http.Request) {
 func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := getUsername(c, w, r)
 	url := r.PostFormValue("url")
-
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -2387,8 +2462,6 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			username,
 			outs,
 		}
-		w.Header().Set("Location", "http://go.jba.io/lg")
-		w.WriteHeader(303)
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2413,8 +2486,6 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			username,
 			outs,
 		}
-		w.Header().Set("Location", "http://go.jba.io/lg")
-		w.WriteHeader(303)
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2439,8 +2510,6 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			username,
 			outs,
 		}
-		w.Header().Set("Location", "http://go.jba.io/lg")
-		w.WriteHeader(303)
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -3435,6 +3504,8 @@ func main() {
 	g.Put("/p/:id", APInewPaste)
 	g.Post("/p", APInewPaste)	
 	g.Post("/p/", APInewPaste)
+	//Looking Glass
+	g.Post("/lg", APIlgAction)
 	//API Stuff	
 	api := web.New()
 	g.Handle("/api/*", api)
