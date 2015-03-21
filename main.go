@@ -1280,6 +1280,7 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	title := fileName+" successfully uploaded!"
 	p, _ := loadMainPage(title, username, c)
 	w.Header().Set("Location", "http://go.jba.io/up")
+	w.WriteHeader(303)
 	err = renderTemplate(w, "up.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -1479,6 +1480,7 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 		title := filename+" successfully uploaded!"
 		p, _ := loadMainPage(title, username, c)
 		w.Header().Set("Location", "http://go.jba.io/up")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "up.tmpl", p)
 		if err != nil {
 			log.Println(err)
@@ -1652,6 +1654,7 @@ func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 	title := "New ShortURL available"
 	p, _ := loadMainPage(title, username, c)
 	w.Header().Set("Location", "http://go.jba.io/s")
+	w.WriteHeader(303)
 	err = renderTemplate(w, "shorten.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -2226,6 +2229,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		w.Header().Set("Location", "http://go.jba.io/list")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2253,6 +2257,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		w.Header().Set("Location", "http://go.jba.io/list")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2280,6 +2285,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		w.Header().Set("Location", "http://go.jba.io/list")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2300,6 +2306,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		w.Header().Set("Location", "http://go.jba.io/list")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2320,6 +2327,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		w.Header().Set("Location", "http://go.jba.io/list")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2380,6 +2388,7 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			outs,
 		}
 		w.Header().Set("Location", "http://go.jba.io/lg")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2405,6 +2414,7 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			outs,
 		}
 		w.Header().Set("Location", "http://go.jba.io/lg")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2430,6 +2440,7 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			outs,
 		}
 		w.Header().Set("Location", "http://go.jba.io/lg")
+		w.WriteHeader(303)
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2698,6 +2709,7 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
 	title := filename+" successfully uploaded!"
 	p, _ := loadMainPage(title, username, c)
 	w.Header().Set("Location", "http://go.jba.io/iup")
+	w.WriteHeader(303)
 	err = renderTemplate(w, "upimg.tmpl", p)
 	if err != nil {
 		log.Println(err)
