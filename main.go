@@ -446,8 +446,8 @@ func getScheme(r *http.Request) (scheme string) {
 	return scheme
 }
 
-func addUser(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "addUser")
+func APIaddUser(w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APIaddUser")
 	var user httpauth.UserData
 	user.Username = template.HTMLEscapeString(r.PostFormValue("username"))
 	user.Email = template.HTMLEscapeString(r.PostFormValue("email"))
@@ -1208,7 +1208,7 @@ func listHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func remoteDownloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
 	if !strings.HasPrefix(remoteURL,"http") {
@@ -1279,6 +1279,7 @@ func remoteDownloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := getUsername(c, w, r)
 	title := fileName+" successfully uploaded!"
 	p, _ := loadMainPage(title, username, c)
+	w.Header().Set("Location", "http://go.jba.io/up")
 	err = renderTemplate(w, "up.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -1317,7 +1318,7 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	return nil
 }
 
-func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	//vars := mux.Vars(r)
 	contentLength := r.ContentLength
 	var reader io.Reader
@@ -1477,6 +1478,7 @@ func putHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		username := getUsername(c, w, r)
 		title := filename+" successfully uploaded!"
 		p, _ := loadMainPage(title, username, c)
+		w.Header().Set("Location", "http://go.jba.io/up")
 		err = renderTemplate(w, "up.tmpl", p)
 		if err != nil {
 			log.Println(err)
@@ -1603,8 +1605,8 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func shortUrlFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "shortUrlFormHandler")
+func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APInewShortUrlForm")
 	//vars := mux.Vars(r)
 	//var name = ""
 	err := r.ParseForm()
@@ -1649,7 +1651,8 @@ func shortUrlFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := getUsername(c, w, r)
 	title := "New ShortURL available"
 	p, _ := loadMainPage(title, username, c)
-	err = renderTemplate(w, "up.tmpl", p)
+	w.Header().Set("Location", "http://go.jba.io/s")
+	err = renderTemplate(w, "shorten.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
@@ -1673,8 +1676,8 @@ func (s *Shorturl) save() error {
 }
 
 //Pastebin handlers
-func pasteUpHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "pasteUpHandler")
+func APInewPaste(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APInewPaste")
 	log.Println("Paste request...")
 	paste := r.Body
 	buf := new(bytes.Buffer)
@@ -1704,8 +1707,8 @@ func pasteUpHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
 
-func pasteFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "pasteFormHandler")
+func APInewPasteForm(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -1954,8 +1957,8 @@ func snipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 }
 
-func saveSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "saveSnipHandler")
+func APIsaveSnip(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APIsaveSnip")
 	title := c.URLParams["page"]
 	body := r.FormValue("body")
 	fmattercats := r.FormValue("fmatter-cats")
@@ -1976,8 +1979,8 @@ func saveSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	log.Println(title + " page saved!")
 }
 
-func appendSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "appendSnipHandler")
+func APIappendSnip(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APIappendSnip")
 	title := c.URLParams["page"]
 	body := r.FormValue("append")
 	snip := &Snip{}
@@ -2202,7 +2205,7 @@ func embiggenHandler(i string) {
 
 //Delete stuff
 //TODO: Add images to this
-func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//Requests should come in on /api/delete/{type}/{name}
 	ftype := c.URLParams["type"]
 	fname := c.URLParams["name"]
@@ -2222,6 +2225,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
+		w.Header().Set("Location", "http://go.jba.io/list")
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2248,6 +2252,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
+		w.Header().Set("Location", "http://go.jba.io/list")
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2274,6 +2279,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
+		w.Header().Set("Location", "http://go.jba.io/list")
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2293,6 +2299,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
+		w.Header().Set("Location", "http://go.jba.io/list")
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2312,6 +2319,7 @@ func deleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
+		w.Header().Set("Location", "http://go.jba.io/list")
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
@@ -2343,7 +2351,7 @@ func handleAdmin(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func lgAction(c web.C, w http.ResponseWriter, r *http.Request) {
+func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := getUsername(c, w, r)
 	url := r.PostFormValue("url")
 
@@ -2371,6 +2379,7 @@ func lgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			username,
 			outs,
 		}
+		w.Header().Set("Location", "http://go.jba.io/lg")
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2395,6 +2404,7 @@ func lgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			username,
 			outs,
 		}
+		w.Header().Set("Location", "http://go.jba.io/lg")
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2419,6 +2429,7 @@ func lgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 			username,
 			outs,
 		}
+		w.Header().Set("Location", "http://go.jba.io/lg")
 		err = renderTemplate(w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
@@ -2431,8 +2442,8 @@ func lgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 
-func newSnipFormHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "newSnipFormHandler")
+func APInewSnipForm(c web.C, w http.ResponseWriter, r *http.Request) {
+	defer timeTrack(time.Now(), "APInewSnipForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -2459,7 +2470,7 @@ func LoggerMiddleware(h http.Handler) http.Handler {
 
 
 
-func remoteImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     remoteURL := r.FormValue("remote-image")
     finURL := remoteURL
     if !strings.HasPrefix(remoteURL,"http") {
@@ -2529,7 +2540,7 @@ func remoteImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     http.Redirect(w, r, "/i", 302)
 }
 
-func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
     //vars := mux.Vars(r)
     contentLength := r.ContentLength
     var reader io.Reader
@@ -2686,6 +2697,7 @@ func putImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := getUsername(c, w, r)
 	title := filename+" successfully uploaded!"
 	p, _ := loadMainPage(title, username, c)
+	w.Header().Set("Location", "http://go.jba.io/iup")
 	err = renderTemplate(w, "upimg.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -3402,35 +3414,35 @@ func main() {
 	g.Get("/:page", snipHandler) 
 
 	//File upload
-	g.Post("/up/:id", putHandler)
-	g.Put("/up/:id", putHandler)
-	g.Post("/up", putHandler)	
-	g.Put("/up", putHandler)
+	g.Post("/up/:id", APInewFile)
+	g.Put("/up/:id", APInewFile)
+	g.Post("/up", APInewFile)	
+	g.Put("/up", APInewFile)
 	//Pastebin upload
-	g.Post("/p/:id", pasteUpHandler)
-	g.Put("/p/:id", pasteUpHandler)
-	g.Post("/p", pasteUpHandler)	
-	g.Post("/p/", pasteUpHandler)
+	g.Post("/p/:id", APInewPaste)
+	g.Put("/p/:id", APInewPaste)
+	g.Post("/p", APInewPaste)	
+	g.Post("/p/", APInewPaste)
 	//API Stuff	
 	api := web.New()
 	g.Handle("/api/*", api)
 	api.Use(middleware.SubRouter)
 	api.Use(AuthMiddleware)
-	api.Post("/user/new", addUser)
-	api.Get("/delete/:type/:name", deleteHandler)
+	api.Post("/user/new", APIaddUser)
+	api.Get("/delete/:type/:name", APIdeleteHandler)
 	api.Abandon(AuthMiddleware)
-	api.Put("/wiki/new", newSnipFormHandler)
-	api.Post("/wiki/new", newSnipFormHandler)
-	api.Put("/wiki/new/:page", saveSnipHandler)
-	api.Post("/wiki/new/:page", saveSnipHandler)	
-	api.Post("/wiki/append/:page", appendSnipHandler)
-	api.Post("/paste/new", pasteFormHandler)
-	api.Post("/file/new", putHandler)
-	api.Post("/file/remote", remoteDownloadHandler)
-	api.Post("/shorten/new", shortUrlFormHandler)
-	api.Post("/lg", lgAction)
-	api.Post("/image/new", putImageHandler)
-	api.Post("/image/remote", remoteImageHandler)
+	api.Put("/wiki/new", APInewSnipForm)
+	api.Post("/wiki/new", APInewSnipForm)
+	api.Put("/wiki/new/:page", APIsaveSnip)
+	api.Post("/wiki/new/:page", APIsaveSnip)	
+	api.Post("/wiki/append/:page", APIappendSnip)
+	api.Post("/paste/new", APInewPasteForm)
+	api.Post("/file/new", APInewFile)
+	api.Post("/file/remote", APInewRemoteFile)
+	api.Post("/shorten/new", APInewShortUrlForm)
+	api.Post("/lg", APIlgAction)
+	api.Post("/image/new", APInewImage)
+	api.Post("/image/remote", APInewRemoteImage)
 
 	//g.Get("/metrics", prometheus.Handler())
 
@@ -3510,112 +3522,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	graceful.Wait()    
-
-
-	//Old Gorilla routes:
-	/*
-	r := mux.NewRouter()
-	gen := r.Host("go.jba.io").Subrouter()
-	if fLocal {
-		//gen = r.Host("go.dev").Subrouter()
-		gen = r.Host("go.dev").Subrouter()		
-		log.Println("Listening on .dev domains due to -l flag...")
-	}
-	//w := r.PathPrefix("/+").Subrouter()
-	gen.HandleFunc(`/+edit/{page}`, GuardPath(editSnipHandler)).Methods("GET")
-	gen.HandleFunc(`/+raw/{page}`, rawSnipHandler).Methods("GET")
-
-	//Short URL router
-	//short := r.Host("s.es.gy").Subrouter()
-	s := r.Host("{short}.es.gy").Subrouter()
-
-	if fLocal {
-		//short = r.Host("short.dev").Subrouter()
-		s = r.Host("{short}.dev").Subrouter()
-	}
-	//short.HandleFunc("/", shortenPageHandler)
-	gen.HandleFunc("/s", shortenPageHandler)
-	//Short URL wildcard subdomain router
-
-	// Only matches if domain is "www.domain.com".
-	//s.Host("s.es.gy").HandleFunc("/{short}", shortUrlHandler).Methods("GET")
-	// Matches a dynamic subdomain.
-	//s.HandleFunc("/robots.txt", http.NotFound)
-	s.HandleFunc("/", shortUrlHandler).Methods("GET", "HEAD")
-
-
-
-	//API Functions
-	api := gen.PathPrefix("/api").Subrouter()
-	api.HandleFunc(`/delete/{type}/{name}`, GuardPath(deleteHandler)).Methods("GET")
-	//Wiki API calls
-	api.HandleFunc("/wiki/new", GuardPath(newSnipFormHandler)).Methods("POST", "PUT")
-	api.HandleFunc(`/wiki/new/{page:[0-9a-zA-Z\_\-]+($|\/[0-9a-zA-Z\_\-]+)}`, GuardPath(saveSnipHandler)).Methods("POST", "PUT")
-	api.HandleFunc(`/wiki/append/{page:[0-9a-zA-Z\_\-]+($|\/[0-9a-zA-Z\_\-]+)}`, GuardPath(appendSnipHandler)).Methods("POST")
-	//Paste API calls
-	api.HandleFunc("/paste/new", pasteFormHandler).Methods("POST")
-	//File API calls
-	api.HandleFunc("/file/new", putHandler).Methods("POST")
-	api.HandleFunc("/file/remote", remoteDownloadHandler).Methods("POST")
-	//User API calls
-	api.HandleFunc("/user/new", GuardPath(addUser)).Methods("POST")
-	//Short URL calls
-	api.HandleFunc("/shorten/new", shortUrlFormHandler).Methods("POST")
-	//Looking glass calls
-	api.HandleFunc("/lg", lgAction).Methods("POST")
-
-	//Looking Glass
-	gen.HandleFunc("/lg", lgHandler).Methods("GET")
-
-	//Auth
-	gen.HandleFunc("/login", loginHandler).Methods("POST")
-	gen.HandleFunc("/login", loginPageHandler).Methods("GET")
-	gen.HandleFunc("/logout", logoutHandler).Methods("POST", "GET")
-
-	//Pastebin functions
-	gen.HandleFunc("/p", pastePageHandler).Methods("GET")
-	gen.HandleFunc("/p/{id}", pasteHandler).Methods("GET")
-
-	//Pastebin API, kept on the same route for accessibility from CLI
-	gen.HandleFunc("/p/{id}", pasteUpHandler).Methods("PUT", "POST")
-	gen.HandleFunc("/p", pasteUpHandler).Methods("POST")
-	gen.HandleFunc("/p/", pasteUpHandler).Methods("POST")
-
-	//Upload functions
-	gen.HandleFunc("/up", putHandler).Methods("POST", "PUT")
-	gen.HandleFunc("/up/{id}", putHandler).Methods("PUT", "POST")
-	gen.HandleFunc("/up", uploadPageHandler).Methods("GET")
-	gen.HandleFunc("/up/", uploadPageHandler).Methods("GET")
-
-	//r.HandleFunc("/priv", privHandler)
-	gen.HandleFunc("/admin", GuardAdminPath(handleAdmin))
-	gen.HandleFunc("/search/{term}", searchHandler)
-	gen.HandleFunc("/short", shortenPageHandler)
-
-	//List pages and stuff
-	//r.HandleFunc("/list/{page}", listHandler).Methods("GET")
-	gen.HandleFunc("/list", listHandler).Methods("GET")
-
-	//Download files
-	gen.HandleFunc("/d/{name}", downloadHandler).Methods("GET")
-
-	gen.HandleFunc("/s/{short}", shortUrlHandler).Methods("GET", "HEAD")
-
-	gen.HandleFunc("/{page}.md", viewMarkdownHandler)
-
-	//Wiki functions
-	gen.HandleFunc(`/{page}`, snipHandler).Methods("GET")
-	//r.HandleFunc(`/{page}/`, snipHandler).Methods("GET")
-
-	//Index
-	gen.HandleFunc("/", indexHandler).Methods("GET")
-
-	//n := negroni.Classic()
-	n := negroni.New(negroni.NewRecovery(), NewMyLogger(), negroni.NewStatic(http.Dir("public")))
-	n.UseHandler(r)
-	//n.UseHandler(s)
-	n.Run(":" + port)
-	*/
+	graceful.Wait()
 
 }
