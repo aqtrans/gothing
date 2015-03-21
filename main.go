@@ -1329,7 +1329,8 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	//var cli bool
 	//var remote bool
 	var uptype string
-	fi := &File{}
+	var fi *File
+	//fi := &File{}
 	path := cfg.FileDir
 	contentType := r.Header.Get("Content-Type")
 
