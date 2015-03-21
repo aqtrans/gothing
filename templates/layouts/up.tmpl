@@ -16,7 +16,7 @@
     <div id="panel1a" class="content active">
       <h1>Upload a file</h1>
       <hr />
-      <form action="/api/file/new" method="post" enctype="multipart/form-data" class="dropzone">
+      <form action="/up" method="post" enctype="multipart/form-data" class="dropzone">
       <div class="row collapse">
         <div class="small-6 columns">
           <input type="text" name="local-file-name" placeholder="Optional filename">
@@ -37,7 +37,7 @@
     <div id="panel2a" class="content">
       <h1>Upload a file from a remote URL</h1>
       <hr />
-      <form method="post" action="/api/file/remote" id="rup">
+      <form method="post" action="/up" id="rup">
       <div class="row collapse">
       <div class="small-6 columns">
         <input type="text" name="remote" placeholder="Enter your URL...">
