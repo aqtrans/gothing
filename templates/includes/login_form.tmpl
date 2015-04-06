@@ -1,13 +1,13 @@
 {{ define "login_form" }}
 {{ if .Page.UN }}
 	<hr />	
-	<p>HELLO: {{ .Page.UN }}	<p>
+	<p>HELLO: {{ .Page.UN }}<p>
     <ul class="side-nav">
       <li><a href="/logout"><span>Logout</span></a></li>
       <li><a href="/admin"><span>Admin</span></a></li>    
     </ul>
 <div id="newsnip">
-<form method="post" action="/api/wiki/new" id="newsnip">
+<form method="post" action="/n/+new" id="newsnip">
 <input type="text" id="newsnip" name="newsnip" class="form-control" placeholder="New Snippet Name" size="8">
 <button class="btn btn-default" type="submit">New</button>
 </form>
