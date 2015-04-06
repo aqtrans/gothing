@@ -1342,7 +1342,7 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	} else {
 		uptype = "form"
 	}
-	log.Println(uptype)
+	//log.Println(uptype)
 
 	//Remote File Uploads
 	if uptype == "remote" {
@@ -1475,70 +1475,33 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	        Filename: filename,
 	    }			
 	} else if uptype == "form" {
-        log.Println("Content-type is "+contentType)
-        ticker := time.Tick(time.Millisecond)
-
-		mr, err := r.MultipartReader()
+        //log.Println("Content-type is "+contentType)
+        err := r.ParseMultipartForm(_24K)
+        if err != nil {
+            log.Println("ParseMultiform reader error")
+            log.Println(err)
+            return        	
+        }
+        file, handler, err := r.FormFile("file")
+		filename = handler.Filename
+		defer file.Close()
 		if err != nil {
 			fmt.Println(err)
 		}
-
         if r.FormValue("local-file-name") != "" {
         	log.Println("CUSTOM FILENAME: ")
         	log.Println(r.FormValue("local-file-name"))
         	filename = r.FormValue("local-file-name")
         }
 
-		dst, err := ioutil.TempFile(path, "tmp-")
-		if err != nil {
-			log.Println(err)
-			return
-		}		
-        buffer := make([]byte, 100000)
-		for {
-		    var read int64
-		    var p float32
-		    part, err := mr.NextPart()
-		    if err == io.EOF {
-		            log.Println("Done!")
-		            break
-		    }
-		     
-		    for {
-		    	//Because I can't figure out how to easily separate out the different parts of the form, use this to do that
-		    	if part.FormName() == "file" {
-					filename = part.FileName()
-			    	//log.Println("FILE "+part.FileName())
-			    	//log.Println("FORM "+part.FormName())
-			            cBytes, err := part.Read(buffer)
-			            if err == io.EOF {
-			                    fmt.Printf("\n")
-			                    break
-			            }
-			            read = read + int64(cBytes)
+        f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+        defer f.Close()
+        io.Copy(f, file)
 
-			            //fmt.Printf("\r read: %v  length : %v \n", read, length)
-
-			            if read > 0 {
-			                   p = float32(read*100) / float32(contentLength)
-			                    //fmt.Printf("progress: %v \n", p)
-			                    <-ticker
-			                    fmt.Printf("\rUploading progress %v", p) // for console
-			                    dst.Write(buffer[0:cBytes])
-			            } else {
-			                    break
-			            }
-			    } else {
-			    	break
-			    } 		
-		    }
-		}
-		//log.Println(dst.Name())
-		err = os.Rename(dst.Name(), filepath.Join(path, filename))
-		if err != nil {
-			log.Println(err)
-			return
-		}	
 		//BoltDB stuff
 	    fi = &File{
 	        Created: time.Now().Unix(),
@@ -2300,17 +2263,17 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		c.Env["msg"] = "Snip " + fname + " has been deleted"
+		/*
 		username := getUsername(c, w, r)
 		l, err := loadListPage(username, c)
 		if err != nil {
 			log.Println(err)
 		}
-		w.Header().Set("Location", "http://go.jba.io/list")
-		w.WriteHeader(303)
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
-		}
+		}*/
+		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "file" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -2328,6 +2291,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		c.Env["msg"] = "File " + fname + " has been deleted"
+		/*
 		username := getUsername(c, w, r)
 		l, err := loadListPage(username, c)
 		if err != nil {
@@ -2338,7 +2302,8 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
-		}
+		}*/
+		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "image" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -2356,6 +2321,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		c.Env["msg"] = "Image " + fname + " has been deleted"
+		/*
 		username := getUsername(c, w, r)
 		l, err := loadListPage(username, c)
 		if err != nil {
@@ -2366,7 +2332,8 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
-		}		
+		}*/
+		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "paste" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -2377,6 +2344,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		c.Env["msg"] = "Paste " + fname + " has been deleted"
+		/*
 		username := getUsername(c, w, r)
 		l, err := loadListPage(username, c)
 		if err != nil {
@@ -2387,7 +2355,8 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
-		}	
+		}*/
+		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "shorturl" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -2398,6 +2367,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 
 		c.Env["msg"] = "ShortURL " + fname + " has been deleted"
+		/*
 		username := getUsername(c, w, r)
 		l, err := loadListPage(username, c)
 		if err != nil {
@@ -2408,7 +2378,8 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		err = renderTemplate(w, "list.tmpl", l)
 		if err != nil {
 			log.Println(err)
-		}
+		}*/
+		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else {
 		fmt.Fprintf(w, "Whatcha trying to do...")
 	}
@@ -3436,13 +3407,13 @@ func main() {
 
 	//g.Use(AuthMiddleware)
 	//Edit Snippet
-	g.Get("/+edit/:page", editSnipHandler)
+	g.Get("/n/+edit/:page", editSnipHandler)
 	//g.Abandon(AuthMiddleware)
 
 	//List of everything
 	g.Get("/list", listHandler)
 	//Raw snippet page
-	g.Get("/+raw/:page", rawSnipHandler)
+	g.Get("/n/+raw/:page", rawSnipHandler)
 	//New short URL page
 	g.Get("/s", shortenPageHandler)
 	g.Get("/short", shortenPageHandler)	
@@ -3493,7 +3464,7 @@ func main() {
 	})
 
 	//View Snippet 
-	g.Get("/:page", snipHandler) 
+	g.Get("/n/:page", snipHandler) 
 
 	//File upload
 	g.Post("/up/:id", APInewFile)
@@ -3507,6 +3478,12 @@ func main() {
 	g.Post("/p/", APInewPaste)
 	//Looking Glass
 	g.Post("/lg", APIlgAction)
+	//Snippet/Note functions
+	g.Put("/n/+new", APInewSnipForm)
+	g.Post("/n/+new", APInewSnipForm)
+	g.Put("/n/+new/:page", APIsaveSnip)
+	g.Post("/n/+new/:page", APIsaveSnip)	
+	g.Post("/n/+append/:page", APIappendSnip)	
 	//API Stuff	
 	api := web.New()
 	g.Handle("/api/*", api)
@@ -3515,10 +3492,10 @@ func main() {
 	api.Post("/user/new", APIaddUser)
 	api.Get("/delete/:type/:name", APIdeleteHandler)
 	api.Abandon(AuthMiddleware)
-	api.Put("/wiki/new", APInewSnipForm)
-	api.Post("/wiki/new", APInewSnipForm)
-	api.Put("/wiki/new/:page", APIsaveSnip)
-	api.Post("/wiki/new/:page", APIsaveSnip)	
+	//api.Put("/wiki/new", APInewSnipForm)
+	//api.Post("/wiki/new", APInewSnipForm)
+	//api.Put("/wiki/new/:page", APIsaveSnip)
+	//api.Post("/wiki/new/:page", APIsaveSnip)	
 	api.Post("/wiki/append/:page", APIappendSnip)
 	api.Post("/paste/new", APInewPasteForm)
 	api.Post("/file/new", APInewFile)

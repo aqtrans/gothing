@@ -8,14 +8,14 @@
 {{ if .Page.UN }}
 <div>
 <ul class="tabs">
-  <li class="tab-title "><a href="/{{$title}}">View</a></li>
+  <li class="tab-title "><a href="/n/{{$title}}">View</a></li>
   <li class="tab-title active"><a href="#">Edit</a></li>
-  <li class="tab-title"><a href="/+raw/{{$title}}">Raw</a></li>
+  <li class="tab-title"><a href="/n/+raw/{{$title}}">Raw</a></li>
 </ul>
 </div>
 {{ end }}
 <hr />
-<form action="/api/wiki/new/{{.Page.Title}}" method="POST">
+<form action="/n/+new/{{.Page.Title}}" method="POST">
   <div class="row">
     <div class="small-4 columns">
     <label>Title:

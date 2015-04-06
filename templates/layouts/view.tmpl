@@ -16,15 +16,15 @@
 <div>
 <ul class="tabs">
   <li class="tab-title active"><a href="#">View</a></li>
-  <li class="tab-title"><a href="/+edit/{{$title}}">Edit</a></li>
-  <li class="tab-title"><a href="/+raw/{{$title}}">Raw</a></li>
+  <li class="tab-title"><a href="/n/+edit/{{$title}}">Edit</a></li>
+  <li class="tab-title"><a href="/n/+raw/{{$title}}">Raw</a></li>
 </ul>
 </div>
 {{ end }}
 <hr />
 <div>
 {{ if .Page.UN }}
-<form action="/api/wiki/append/{{$title}}" method="POST">
+<form action="/n/+append/{{$title}}" method="POST">
 Quick Add:<textarea name="append" style="height: 3em; width: 50%; font-family: monospace; font-size: 93%;" placeholder="#TITLE"></textarea>
 <input type="submit" class="button success" value="Append to Page">
 </form>

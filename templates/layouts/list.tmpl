@@ -29,7 +29,7 @@
     <td><a href=/p/{{.Title}}>{{.Title}}</a></td>
     <td>{{.Created | prettyDate}}</td>
     <td>{{.Hits}}</td>
-    {{if $user}}<td><a href=/api/delete/paste/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
+    {{if $user}}<td><a href=/list/+delete/paste/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
     </tr>
 {{ end }}
 </tbody>
@@ -49,7 +49,7 @@
 <td><a href=/{{.Title}}>{{.Title}}</a></td>
 <td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
-{{if $user}}<td><a href=/api/delete/snip/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
+{{if $user}}<td><a href=/list/+delete/snip/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
 {{ end }}
 </tbody>
@@ -69,7 +69,7 @@
 <td><a href=/d/{{.Filename}}>{{.Filename}}</a></td>
 <td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
-{{if $user}}<td><a href=/api/delete/file/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
+{{if $user}}<td><a href=/list/+delete/file/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
 {{ end }}
 </tbody>
@@ -91,7 +91,7 @@
 <td><a href={{.Long}}>{{.Long}}</a></td>
 <td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
-{{if $user}}<td><a href=/api/delete/shorturl/{{.Short}} class="button tiny alert">Delete</a></td>{{ end }}
+{{if $user}}<td><a href=/list/+delete/shorturl/{{.Short}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
 {{ end }}
 </tbody>
@@ -111,7 +111,7 @@
 <td><a href=/i/{{.Filename}}>{{.Filename}}</a></td>
 <td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>
-{{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
+{{if $user}}<td><a href=/list/+delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 </tr>
 {{ end }}
 </tbody>
