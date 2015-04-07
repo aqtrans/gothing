@@ -79,30 +79,8 @@ var (
     templates map[string]*template.Template
     _24K int64 = (1 << 20) * 24
 	fLocal bool
-	isTTY bool
 	Db, _ = bolt.Open("./bolt.db", 0600, nil)
 	cfg = Configuration{}
-
-	// Normal colors
-	nBlack   = []byte{'\033', '[', '3', '0', 'm'}
-	nRed     = []byte{'\033', '[', '3', '1', 'm'}
-	nGreen   = []byte{'\033', '[', '3', '2', 'm'}
-	nYellow  = []byte{'\033', '[', '3', '3', 'm'}
-	nBlue    = []byte{'\033', '[', '3', '4', 'm'}
-	nMagenta = []byte{'\033', '[', '3', '5', 'm'}
-	nCyan    = []byte{'\033', '[', '3', '6', 'm'}
-	nWhite   = []byte{'\033', '[', '3', '7', 'm'}
-	// Bright colors
-	bBlack   = []byte{'\033', '[', '3', '0', ';', '1', 'm'}
-	bRed     = []byte{'\033', '[', '3', '1', ';', '1', 'm'}
-	bGreen   = []byte{'\033', '[', '3', '2', ';', '1', 'm'}
-	bYellow  = []byte{'\033', '[', '3', '3', ';', '1', 'm'}
-	bBlue    = []byte{'\033', '[', '3', '4', ';', '1', 'm'}
-	bMagenta = []byte{'\033', '[', '3', '5', ';', '1', 'm'}
-	bCyan    = []byte{'\033', '[', '3', '6', ';', '1', 'm'}
-	bWhite   = []byte{'\033', '[', '3', '7', ';', '1', 'm'}
-
-	reset = []byte{'\033', '[', '0', 'm'}
 
 	//Prometheus stuff
     tx_num = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -310,13 +288,6 @@ func init() {
 	}
 	graceful.DoubleKickWindow(2 * time.Second)
 
-	//TTY detection for Gojis terminal color output
-	fil, err := os.Stdout.Stat()
-	if err == nil {
-		m := os.ModeDevice | os.ModeCharDevice
-		isTTY = fil.Mode()&m == m
-	}
-
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 
@@ -357,17 +328,6 @@ func ImgClass(s string) string {
 
 func SafeHTML(s string) template.HTML {
      return template.HTML(s)
-}
-
-// colorWrite
-func cW(buf *bytes.Buffer, color []byte, s string, args ...interface{}) {
-	if isTTY {
-		buf.Write(color)
-	}
-	fmt.Fprintf(buf, s, args...)
-	if isTTY {
-		buf.Write(reset)
-	}
 }
 
 func timeTrack(start time.Time, name string) {
@@ -440,7 +400,7 @@ func getScheme(r *http.Request) (scheme string) {
 		scheme = "https://"
 	}
 	*/
-	if scheme == "" {
+	if scheme == "://" {
 		scheme = "http://"
 	}
 	return scheme
@@ -2787,8 +2747,29 @@ func (i *Image) save() error {
 //Goji Custom Logging Middleware
 func LoggerMiddleware(c *web.C, h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		var buf bytes.Buffer
 		reqID := middleware.GetReqID(*c)
-		printStart(reqID, r)
+		//printStart(reqID, r)
+		if reqID != "" {
+			fmt.Fprintf(&buf, "[%s] ", reqID)
+		}
+		buf.WriteString("Started ")
+		fmt.Fprintf(&buf, "%s ", r.Method)
+		fmt.Fprintf(&buf, "%q ", r.URL.String())
+		fmt.Fprintf(&buf, "|Host: %s |RawURL: %s |UserAgent: %s |Scheme: %s |IP: %s ", r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), getScheme(r), r.Header.Get("X-Forwarded-For"))
+		buf.WriteString("from ")
+		buf.WriteString(r.RemoteAddr)
+
+		//Log to file
+		f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+		if err != nil {
+		    log.Fatalf("error opening file: %v", err)
+		}
+		defer f.Close()
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
+		log.Print(buf.String())
+		//Reset buffer to be reused by the end stuff
+		buf.Reset()	
 
 		lw := mutil.WrapWriter(w)
 
@@ -2800,77 +2781,24 @@ func LoggerMiddleware(c *web.C, h http.Handler) http.Handler {
 		}
 		t2 := time.Now()
 
-		printEnd(reqID, lw, t2.Sub(t1))
+		//printEnd(reqID, lw, t2.Sub(t1))
+		dt := t2.Sub(t1)
+		buf.WriteString("Returning ")
+		status := lw.Status()
+		fmt.Fprintf(&buf, "%v", status)
+		buf.WriteString(" in ")
+		if dt < 500*time.Millisecond {
+			fmt.Fprintf(&buf, "%s", dt)
+		} else if dt < 5*time.Second {
+			fmt.Fprintf(&buf, "%s", dt)
+		} else {
+			fmt.Fprintf(&buf, "%s", dt)
+		}
+		//log.SetOutput(io.MultiWriter(os.Stdout, f))
+		log.Print(buf.String())
 	}
-
 	return http.HandlerFunc(fn)
 }
-
-func printStart(reqID string, r *http.Request) {
-	var buf bytes.Buffer
-
-	if reqID != "" {
-		cW(&buf, bWhite, "[%s] ", reqID)
-	}
-	buf.WriteString("Started ")
-	cW(&buf, bMagenta, "%s ", r.Method)
-	cW(&buf, nBlue, "%q ", r.URL.String())
-	cW(&buf, nGreen, "|Host: %s |RawURL: %s |UserAgent: %s |Scheme: %s |IP: %s ", r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), getScheme(r), r.Header.Get("X-Forwarded-For"))
-	buf.WriteString("from ")
-	buf.WriteString(r.RemoteAddr)
-
-	//Log to file
-	f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-	    log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-
-	log.SetOutput(io.MultiWriter(os.Stdout, f))
-
-	log.Print(buf.String())
-}
-
-func printEnd(reqID string, w mutil.WriterProxy, dt time.Duration) {
-	var buf bytes.Buffer
-
-	if reqID != "" {
-		cW(&buf, bWhite, "[%s] ", reqID)
-	}
-	buf.WriteString("Returning ")
-	status := w.Status()
-	if status < 200 {
-		cW(&buf, bBlue, "%03d", status)
-	} else if status < 300 {
-		cW(&buf, bGreen, "%03d", status)
-	} else if status < 400 {
-		cW(&buf, bCyan, "%03d", status)
-	} else if status < 500 {
-		cW(&buf, bYellow, "%03d", status)
-	} else {
-		cW(&buf, bRed, "%03d", status)
-	}
-	buf.WriteString(" in ")
-	if dt < 500*time.Millisecond {
-		cW(&buf, nGreen, "%s", dt)
-	} else if dt < 5*time.Second {
-		cW(&buf, nYellow, "%s", dt)
-	} else {
-		cW(&buf, nRed, "%s", dt)
-	}
-
-	//Log to file
-	f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-	    log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-
-	log.SetOutput(io.MultiWriter(os.Stdout, f))
-
-	log.Print(buf.String())
-}
-
 
 func viewMarkdownHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//vars := mux.Vars(r)
