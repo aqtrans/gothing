@@ -14,10 +14,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	//"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
-	//"github.com/codegangsta/negroni"
-	//"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
 	"github.com/zenazn/goji/web/middleware"
 	"github.com/zenazn/goji/web/mutil"
@@ -25,15 +21,10 @@ import (
     "github.com/zenazn/goji/graceful"
 	"github.com/hypebeast/gojistatic"
 	"github.com/oxtoacart/bpool"
-	//"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
 	"github.com/kennygrant/sanitize"
-	"github.com/apexskier/httpauth"
-	"golang.org/x/crypto/bcrypt"
 	"github.com/boltdb/bolt"
 	"github.com/prometheus/client_golang/prometheus"
-	//"github.com/disintegration/imaging"
-	//"github.com/nfnt/resize"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -72,15 +63,6 @@ type Configuration struct {
 }
 
 var (
-	//httpauth stuff, due to be yanked out
-    backend httpauth.GobFileAuthBackend
-    aaa httpauth.Authorizer
-    roles map[string]httpauth.Role
-    backendfile = "./auth.gob"
-    //my own auth stuff
-    cookieHandler = securecookie.New(
-    	securecookie.GenerateRandomKey(64),
-    	securecookie.GenerateRandomKey(32))
 
     bufpool *bpool.BufferPool
     templates map[string]*template.Template
@@ -361,41 +343,6 @@ func markdownRender(content []byte) []byte {
 
 }
 
-func getUsername(c web.C, w http.ResponseWriter, r *http.Request) (username string) {
-	//defer timeTrack(time.Now(), "getUsername")
-	username = ""
-	//var username string
-	user, err := aaa.CurrentUser(w, r)
-	if err == nil {
-        username = user.Username
-        //log.Println(username)
-        c.Env["user"] = username
-        if un, ok := c.Env["user"]; ok {
-        	log.Println("c.env user is not nil: "+un.(string))
-        } else {
-        	log.Println("c.env user is nil")
-        	//log.Println(c.Env)
-        	c.Env["user"] = map[string]string{
-        		"user": user.Username,
-        	}        	
-        }
-	}
-	if err != nil {
-		log.Println("Error retrieving current user:")
-		log.Println(err)
-	}
-	/*
-	if user, ok := c.Env["user"].(string); ok {
-		username = user
-	} else {
-		username = ""
-	}
-	*/
-	//log.Println("getusername: "+username)
-
-	return username
-}
-
 //Hack to allow me to make full URLs due to absence of http:// from URL.Scheme in dev situations
 //When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
@@ -413,139 +360,6 @@ func getScheme(r *http.Request) (scheme string) {
 	return scheme
 }
 
-func APIaddUser(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APIaddUser")
-	var user httpauth.UserData
-	user.Username = template.HTMLEscapeString(r.PostFormValue("username"))
-	user.Email = template.HTMLEscapeString(r.PostFormValue("email"))
-	password := template.HTMLEscapeString(r.PostFormValue("password"))
-	user.Role = template.HTMLEscapeString(r.PostFormValue("role"))
-	if err := aaa.Register(w, r, user, password); err != nil {
-		log.Println(err)
-	}
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
-}
-
-func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "loginHandler")
-	username := template.HTMLEscapeString(r.FormValue("username"))
-	password := template.HTMLEscapeString(r.FormValue("password"))
-	err := aaa.Login(w, r, username, password, r.Referer())
-	if err == nil {
-		log.Println(username + " successfully logged in.")
-		messages := aaa.Messages(w, r)
-		c.Env["msg"] = messages[0]
-		p, err := loadPage("Successfully Logged In", username, c)
-		user, err := aaa.CurrentUser(w, r)
-		if err == nil {
-	        username = user.Username
-	        if c.Env["user"] == nil {
-	        	c.Env["user"] = map[string]string{
-	        		"User": user.Username,
-	        	}
-        	}
-		}
-		data := struct {
-    		Page *Page
-		    Title string
-		    UN string
-		    Msg []string
-		} {
-    		p,
-    		"Successfully Logged In",
-    		username,
-    		messages,
-		}
-		err = renderTemplate(w, "login.tmpl", data)
-		if err != nil {
-		    log.Println(err)
-		    return
-		}
-	} else if err != nil && err.Error() == "httpauth: already authenticated" {
-		log.Println(username + " already logged in.")
-		messages := aaa.Messages(w, r)
-		c.Env["msg"] = messages[0]
-		p, err := loadPage("Already Logged In", username, c)
-		user, err := aaa.CurrentUser(w, r)
-		if err == nil {
-	        username = user.Username
-	        if c.Env["user"] == nil {
-	        	c.Env["user"] = map[string]string{
-	        		"user": user.Username,
-	        	}
-        	}	        
-		}		
-		data := struct {
-    		Page *Page
-		    Title string
-		    UN string
-		    Msg []string
-		} {
-    		p,
-    		"Already Logged In",
-    		username,
-    		messages,
-		}
-		err = renderTemplate(w, "login.tmpl", data)
-		if err != nil {
-		    log.Println(err)
-		    return
-		}
-	} else {
-		log.Println("LOGINHANDLER ERROR:")
-		log.Println(err)
-		messages := aaa.Messages(w, r)
-		c.Env["msg"] = messages[0]
-		p, err := loadPage("Login Error", "", c)
-		data := struct {
-    		Page *Page
-		    Title string
-		    UN string
-		    Msg []string
-		} {
-    		p,
-    		"Login Error",
-    		"",
-    		messages,
-		}
-		err = renderTemplate(w, "login.tmpl", data)
-		if err != nil {
-		    log.Println(err)
-		    return
-		}
-
-	}
-}
-
-func logoutHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "logoutHandler")
-	username := getUsername(c, w, r)
-	err := aaa.Logout(w, r)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	log.Println("Logout")
-	messages := aaa.Messages(w, r)
-	c.Env["msg"] = messages[0]
-	p, err := loadPage("Logged out", username, c)
-	data := struct {
-		Page *Page
-	    Title string
-	    UN string
-	    Msg []string
-	} {
-		p,
-		"Logged out",
-		username,
-		messages,
-	}
-	err = renderTemplate(w, "login.tmpl", data)
-	if err != nil {
-	    log.Println(err)
-	    return
-	}
-}
 /*
 func GuardPath(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -644,19 +458,18 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 
 func indexHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "indexHandler")
-	username := getUsername(c, w, r)
 	title := "index"
 	//c.Env["msg"] = "OMG LOL"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	err := renderTemplate(w, "index.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func loadGalleryPage(user string, c web.C) (*GalleryPage, error) {
+func loadGalleryPage(r *http.Request, c web.C) (*GalleryPage, error) {
 	defer timeTrack(time.Now(), "loadGalleryPage")
-    page, perr := loadPage("Gallery", user, c)
+    page, perr := loadPage("Gallery", r, c)
     if perr != nil {
         log.Println(perr)
     }
@@ -683,8 +496,7 @@ func loadGalleryPage(user string, c web.C) (*GalleryPage, error) {
 
 func galleryHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "galleryHandler")
-	username := getUsername(c, w, r)
-	l, err := loadGalleryPage(username, c)
+	l, err := loadGalleryPage(r, c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -697,8 +509,7 @@ func galleryHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func galleryEsgyHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "galleryEsgyHandler")
-	username := getUsername(c, w, r)
-	l, err := loadGalleryPage(username, c)
+	l, err := loadGalleryPage(r, c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -711,8 +522,7 @@ func galleryEsgyHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func galleryListHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "galleryListHandler")
-	username := getUsername(c, w, r)
-	l, err := loadGalleryPage(username, c)
+	l, err := loadGalleryPage(r, c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -725,18 +535,15 @@ func galleryListHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func lgHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "lgHandler")
-	username := getUsername(c, w, r)
 	title := "lg"
-	p, err := loadPage(title, username, c)
+	p, err := loadPage(title, r, c)
 	data := struct {
 		Page *Page
 	    Title string
-	    UN string
 	    Message string
 	} {
 		p,
 		title,
-		username,
 		"",
 	}
 	err = renderTemplate(w, "lg.tmpl", data)
@@ -809,9 +616,8 @@ func searchHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func uploadPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "uploadPageHandler")
-	username := getUsername(c, w, r)
 	title := "up"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	err := renderTemplate(w, "up.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -820,9 +626,8 @@ func uploadPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func uploadImagePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "uploadImagePageHandler")
-	username := getUsername(c, w, r)
 	title := "upimg"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	err := renderTemplate(w, "upimg.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -831,9 +636,8 @@ func uploadImagePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func pastePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "pastePageHandler")
-	username := getUsername(c, w, r)
 	title := "paste"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	err := renderTemplate(w, "paste.tmpl", p)
 	r.ParseForm()
 	//log.Println(r.Form)
@@ -844,9 +648,8 @@ func pastePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func shortenPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "shortenPageHandler")
-	username := getUsername(c, w, r)
 	title := "shorten"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	err := renderTemplate(w, "shorten.tmpl", p)
 	r.ParseForm()
 	//log.Println(r.Form)
@@ -857,21 +660,14 @@ func shortenPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func loginPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "loginPageHandler")
-	username := getUsername(c, w, r)
 	title := "login"
-	//p, _ := loadPage(title, username)
-	messages := aaa.Messages(w, r)
-	p, err := loadPage(title, username, c)
+	p, err := loadPage(title, r, c)
 	data := struct {
 		Page *Page
 	    Title string
-	    UN string
-	    Msg []string
 	} {
 		p,
 		title,
-		username,
-		messages,
 	}
 	err = renderTemplate(w, "login.tmpl", data)
 	if err != nil {
@@ -892,11 +688,9 @@ func ParseBool(value string) bool {
 func rawSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "rawSnipHandler")
 	//vars := mux.Vars(r)
-	//username := getUsername(w, r)
 	//title := vars["page"]
 	title := c.URLParams["page"]
 	snip := &Snip{}
-	//p, err := loadPage(title, username)
 	err := Db.View(func(tx *bolt.Tx) error {
     	v := tx.Bucket([]byte("Snips")).Get([]byte(title))
     	//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
@@ -941,61 +735,19 @@ func rawSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func privHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	err := aaa.Authorize(w, r, true)
-	if err != nil {
-		fmt.Println(err)
-		//http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-	user, err := aaa.CurrentUser(w, r)
-	username := getUsername(c, w, r)
-	if err == nil {
-		p, err := loadPage("Please Login", username, c)
-		data := struct {
-    		Page *Page
-		    User httpauth.UserData
-		} {
-    		p,
-    		user,
-		}
-		t, err := template.New("priv").Parse(`
-            <html>
-            <head><title>Secret page</title></head>
-            <body>
-                <h1>Httpauth example<h1>
-                {{ with .User }}
-                    <h2>Hello {{ .Username }}</h2>
-                    <p>Your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>
-                    <p>{{ if .Role | eq "admin" }}<a href="/admin">Admin page</a> {{ end }}<a href="/logout">Logout</a></p>
-                {{ end }}
-                <form action="/change" method="post" id="change">
-                    <h3>Change email</h3>
-                    <p><input type="email" name="new_email" placeholder="new email"></p>
-                    <button type="submit">Submit</button>
-                </form>
-            </body>
-            `)
-        if err != nil {
-        	panic(err)
-        }
-        t.Execute(w, data)
-	}
-}
-
-func loadPage(title, user string, c web.C) (*Page, error) {
+func loadPage(title string, r *http.Request, c web.C) (*Page, error) {
 	//timer.Step("loadpageFunc")
 	m := ""
 	if c.Env["msg"] != nil {
 		m = c.Env["msg"].(string)	
 	}
+	user := GetUsername(r, c)
 	return &Page{TheName: "GoBanana!", Title: title, UN: user, Msg: m}, nil
 }
 
-func loadMainPage(title, user string, c web.C) (interface{}, error) {
+func loadMainPage(title string, r *http.Request, c web.C) (interface{}, error) {
 	//timer.Step("loadpageFunc")
-	//p := &Page{Title: title, UN: user}
-	p, err := loadPage(title, user, c)
+	p, err := loadPage(title, r, c)
 	if err != nil {
 		return nil, err
 	}
@@ -1007,8 +759,8 @@ func loadMainPage(title, user string, c web.C) (interface{}, error) {
 	return data, nil
 }
 
-func loadListPage(user string, c web.C) (*ListPage, error) {
-    page, perr := loadPage("List", user, c)
+func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
+    page, perr := loadPage("List", r, c)
     if perr != nil {
         log.Println(perr)
     }
@@ -1164,8 +916,7 @@ func loadListPage(user string, c web.C) (*ListPage, error) {
 
 func listHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "listHandler")
-	username := getUsername(c, w, r)
-	l, err := loadListPage(username, c)
+	l, err := loadListPage(r, c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -1243,9 +994,8 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	//log.Println(fileName)
 
 	c.Env["msg"] = fileName+" successfully uploaded! | <a style='color:#fff' href=/d/"+fileName+"><i class='fa fa-link'></i>Link</a>"
-	username := getUsername(c, w, r)
 	title := fileName+" successfully uploaded!"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	w.Header().Set("Location", "http://go.jba.io/up")
 	w.WriteHeader(303)
 	err = renderTemplate(w, "up.tmpl", p)
@@ -1485,9 +1235,8 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
     	fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
     } else {
 		c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
-		username := getUsername(c, w, r)
 		title := filename+" successfully uploaded!"
-		p, _ := loadMainPage(title, username, c)
+		p, _ := loadMainPage(title, r, c)
 		err = renderTemplate(w, "up.tmpl", p)
 		if err != nil {
 			log.Println(err)
@@ -1657,9 +1406,8 @@ func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 	log.Println("Long: " + s.Long)
 
 	c.Env["msg"] = "Your short URL is available at: <a style='color:#fff' href='http://"+s.Short+".es.gy/'><i class='fa fa-link'></i>"+s.Short+"</a>"
-	username := getUsername(c, w, r)
 	title := "New ShortURL available"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	w.Header().Set("Location", "http://go.jba.io/s")
 	w.WriteHeader(303)
 	err = renderTemplate(w, "shorten.tmpl", p)
@@ -1829,9 +1577,8 @@ func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "editSnipHandler")
 	title := c.URLParams["page"]
-	username := getUsername(c, w, r)
 	snip := &Snip{}
-	p, err := loadPage(title, username, c)
+	p, err := loadPage(title, r, c)
 	if err != nil {
 		log.Println(err)
 	}
@@ -1840,7 +1587,7 @@ func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     	//Because BoldDB's View() doesn't return an error if there's no key found, just render an empty page to edit
     	//After JSON Unmarshal, Content should be in paste.Content field
     	if v == nil {
-			p = &Page{Title: title, UN: username, Msg: ""}
+			p = &Page{Title: title}
 			s := &Snip{Created: time.Now().Unix(), Title: title,}
 			data := struct {
 				Page *Page
@@ -1892,12 +1639,10 @@ func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func snipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "snipHandler")
-	//vars := mux.Vars(r)
-	username := getUsername(c, w, r)
 	//title := vars["page"]
 	title := c.URLParams["page"]
 	snip := &Snip{}
-	p, err := loadPage(title, username, c)
+	p, err := loadPage(title, r, c)
 //	err = Db.View(func(tx *bolt.Tx) error {
 	err = Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Snips"))
@@ -2228,18 +1973,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-
 		c.Env["msg"] = "Snip " + fname + " has been deleted"
-		/*
-		username := getUsername(c, w, r)
-		l, err := loadListPage(username, c)
-		if err != nil {
-			log.Println(err)
-		}
-		err = renderTemplate(w, "list.tmpl", l)
-		if err != nil {
-			log.Println(err)
-		}*/
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "file" {
 		err := Db.Update(func(tx *bolt.Tx) error {
@@ -2256,20 +1990,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-
 		c.Env["msg"] = "File " + fname + " has been deleted"
-		/*
-		username := getUsername(c, w, r)
-		l, err := loadListPage(username, c)
-		if err != nil {
-			log.Println(err)
-		}
-		w.Header().Set("Location", "http://go.jba.io/list")
-		w.WriteHeader(303)
-		err = renderTemplate(w, "list.tmpl", l)
-		if err != nil {
-			log.Println(err)
-		}*/
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "image" {
 		err := Db.Update(func(tx *bolt.Tx) error {
@@ -2286,20 +2007,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-
 		c.Env["msg"] = "Image " + fname + " has been deleted"
-		/*
-		username := getUsername(c, w, r)
-		l, err := loadListPage(username, c)
-		if err != nil {
-			log.Println(err)
-		}
-		w.Header().Set("Location", "http://go.jba.io/list")
-		w.WriteHeader(303)
-		err = renderTemplate(w, "list.tmpl", l)
-		if err != nil {
-			log.Println(err)
-		}*/
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "paste" {
 		err := Db.Update(func(tx *bolt.Tx) error {
@@ -2309,20 +2017,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-
 		c.Env["msg"] = "Paste " + fname + " has been deleted"
-		/*
-		username := getUsername(c, w, r)
-		l, err := loadListPage(username, c)
-		if err != nil {
-			log.Println(err)
-		}
-		w.Header().Set("Location", "http://go.jba.io/list")
-		w.WriteHeader(303)
-		err = renderTemplate(w, "list.tmpl", l)
-		if err != nil {
-			log.Println(err)
-		}*/
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "shorturl" {
 		err := Db.Update(func(tx *bolt.Tx) error {
@@ -2332,26 +2027,14 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-
 		c.Env["msg"] = "ShortURL " + fname + " has been deleted"
-		/*
-		username := getUsername(c, w, r)
-		l, err := loadListPage(username, c)
-		if err != nil {
-			log.Println(err)
-		}
-		w.Header().Set("Location", "http://go.jba.io/list")
-		w.WriteHeader(303)
-		err = renderTemplate(w, "list.tmpl", l)
-		if err != nil {
-			log.Println(err)
-		}*/
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else {
 		fmt.Fprintf(w, "Whatcha trying to do...")
 	}
 }
 
+/*
 func handleAdmin(c web.C, w http.ResponseWriter, r *http.Request) {
     if user, err := aaa.CurrentUser(w, r); err == nil {
         type data struct {
@@ -2373,9 +2056,9 @@ func handleAdmin(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+*/
 
 func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
-	username := getUsername(c, w, r)
 	url := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
@@ -2389,16 +2072,14 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "Pinging " + url
-		p, err := loadPage(title, username, c)
+		p, err := loadPage(title, r, c)
 		data := struct {
 			Page *Page
 		    Title string
-		    UN string
 		    Message string
 		} {
 			p,
 			title,
-			username,
 			outs,
 		}
 		err = renderTemplate(w, "lg.tmpl", data)
@@ -2413,16 +2094,14 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "MTR to " + url
-		p, err := loadPage(title, username, c)
+		p, err := loadPage(title, r, c)
 		data := struct {
 			Page *Page
 		    Title string
-		    UN string
 		    Message string
 		} {
 			p,
 			title,
-			username,
 			outs,
 		}
 		err = renderTemplate(w, "lg.tmpl", data)
@@ -2437,16 +2116,14 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "Traceroute to " + url
-		p, err := loadPage(title, username, c)
+		p, err := loadPage(title, r, c)
 		data := struct {
 			Page *Page
 		    Title string
-		    UN string
 		    Message string
 		} {
 			p,
 			title,
-			username,
 			outs,
 		}
 		err = renderTemplate(w, "lg.tmpl", data)
@@ -2713,9 +2390,8 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
     }
 
 	c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/i/"+filename+"><i class='fa fa-link'></i>Link</a>"
-	username := getUsername(c, w, r)
 	title := filename+" successfully uploaded!"
-	p, _ := loadMainPage(title, username, c)
+	p, _ := loadMainPage(title, r, c)
 	w.Header().Set("Location", "http://go.jba.io/iup")
 	w.WriteHeader(303)
 	err = renderTemplate(w, "upimg.tmpl", p)
@@ -2811,8 +2487,7 @@ func viewMarkdownHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//vars := mux.Vars(r)
     //name := vars["page"]
     name := c.URLParams["page"]
-	username := getUsername(c, w, r)
-	p, err := loadPage(name, username, c)
+	p, err := loadPage(name, r, c)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -2832,12 +2507,10 @@ func viewMarkdownHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Page *Page
 	    Title string
-	    UN string
 	    MD template.HTML
 	} {
 		p,
 		name,
-		username,
 		mdhtml,
 	}
 	err = renderTemplate(w, "md.tmpl", data)	
@@ -2849,8 +2522,7 @@ func viewMarkdownHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func Readme(c web.C, w http.ResponseWriter, r *http.Request) {
     name := "README"
-	username := getUsername(c, w, r)
-	p, err := loadPage(name, username, c)
+	p, err := loadPage(name, r, c)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -2867,12 +2539,10 @@ func Readme(c web.C, w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Page *Page
 	    Title string
-	    UN string
 	    MD template.HTML
 	} {
 		p,
 		name,
-		username,
 		mdhtml,
 	}
 	err = renderTemplate(w, "md.tmpl", data)	
@@ -2884,8 +2554,7 @@ func Readme(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func Changelog(c web.C, w http.ResponseWriter, r *http.Request) {
     name := "CHANGELOG"
-	username := getUsername(c, w, r)
-	p, err := loadPage(name, username, c)
+	p, err := loadPage(name, r, c)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -2902,12 +2571,10 @@ func Changelog(c web.C, w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Page *Page
 	    Title string
-	    UN string
 	    MD template.HTML
 	} {
 		p,
 		name,
-		username,
 		mdhtml,
 	}
 	err = renderTemplate(w, "md.tmpl", data)	
@@ -2915,50 +2582,6 @@ func Changelog(c web.C, w http.ResponseWriter, r *http.Request) {
     	log.Println(err)
     }
 	log.Println(name + " Page rendered!")
-}
-
-//Auth Handler for Goji
-func AuthMiddleware(c *web.C, h http.Handler) http.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		err := aaa.Authorize(w, r, true)
-		if err != nil {
-			log.Println("AuthMiddleware mitigating: "+ r.Host + r.URL.String())
-			messages := aaa.Messages(w, r)
-			c.Env["msg"] = messages[0]
-			p := &Page{
-				TheName: "GoBanana!", 
-				Title: "Please log in", 
-				UN: "", 
-				Msg: c.Env["msg"].(string),
-			}
-			data := struct {
-	    		Page *Page
-			    Title string
-			    UN string
-			    Msg []string
-			} {
-	    		p,
-	    		"Please log in",
-	    		"",
-	    		messages,
-			}
-			err = renderTemplate(w, "login.tmpl", data)
-			if err != nil {
-			    log.Println(err)
-			    return
-			}			
-			return
-		}
-		user, err := aaa.CurrentUser(w, r)
-		if err == nil {
-	        if err != nil {
-	        	panic(err)
-	        }
-	        log.Println(user.Username + " is visiting " + r.Referer())
-	        h.ServeHTTP(w, r)
-		}
-	}
-	return http.HandlerFunc(handler)
 }
 
 //Generate a random key of specific length
@@ -3167,19 +2790,6 @@ func main() {
 		port = cfg.Port
 	}
 
-	//httpauth
-	os.Create(backendfile)
-	//defer os.Remove(backendfile)
-	backend, err := httpauth.NewGobFileAuthBackend(backendfile)
-	if err != nil {
-		panic(err)
-	}
-
-	roles = make(map[string]httpauth.Role)
-	roles["user"] = 1
-	roles["mod"] = 2
-	roles["admin"] = 10
-
 	/*
 	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	rb := make([]byte, 32)
@@ -3192,30 +2802,6 @@ func main() {
 	new_sess := RandKey(32)
 	log.Println("Session ID: " + new_sess)
 
-	aaa, err = httpauth.NewAuthorizer(backend, []byte("ieP2Aengoovu4AhZeimoo"), "user", roles)
-	if err != nil {
-		panic(err)
-	}
-	//THIS SHOULD BE IN FORM OF: []byte("userpass")
-	//hash, err := bcrypt.GenerateFromPassword([]byte("unPW"), 8)
-	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.Username + cfg.Password), 8)
-	if err != nil {
-		panic(err)
-	}
-	defaultUser := httpauth.UserData{Username: cfg.Username, Email: cfg.Email, Hash: hash, Role:"admin"}
-	err = backend.SaveUser(defaultUser)
-	if err != nil {
-		panic(err)
-	}
-
-	/*
-	users, err := backend.Users()
-	if err != nil {
-		panic(err)
-	}
-	log.Println("USERS:")
-	log.Println(users)
-	*/
 
 	memStats := &runtime.MemStats{}
 
@@ -3327,6 +2913,11 @@ func main() {
 	//Static handler
 	g.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
 	g.Get("/", indexHandler)
+
+	g.Use(AuthMiddleware)
+	g.Get("/priv", Readme)
+	g.Abandon(AuthMiddleware)
+
 	g.Get("/readme", Readme)
 	g.Get("/changelog", Changelog)
 	//Runtime stats
@@ -3383,7 +2974,7 @@ func main() {
 
 	//Test Goji Context
 	g.Get("/c-test",  func(c web.C, w http.ResponseWriter, r *http.Request) {
-		username := getUsername(c, w, r)
+		username := GetUsername(r, c)
 		c.Env["user"] = username
 		log.Println("c-Env:")
 		log.Println(c.Env)
@@ -3424,7 +3015,6 @@ func main() {
 	g.Handle("/api/*", api)
 	api.Use(middleware.SubRouter)
 	api.Use(AuthMiddleware)
-	api.Post("/user/new", APIaddUser)
 	api.Get("/delete/:type/:name", APIdeleteHandler)
 	api.Abandon(AuthMiddleware)
 	//api.Put("/wiki/new", APInewSnipForm)
