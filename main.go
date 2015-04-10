@@ -114,12 +114,6 @@ var (
         Name:      "count",
         Help:      "Total number of Files.",
     })    
-    snips_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "snips",
-        Name:      "count",
-        Help:      "Total number of Snips.",
-    })
     shorturl_count = prometheus.NewGauge(prometheus.GaugeOpts{
         Namespace: "tkot",
         Subsystem: "shorturl",
@@ -194,7 +188,6 @@ type Page struct {
 
 type ListPage struct {
     *Page
-    Snips   []*Snip
     Pastes  []*Paste
     Files   []*File
     Shorturls []*Shorturl
@@ -211,14 +204,6 @@ type Paste struct {
 	Created int64
 	Title string
 	Content string
-	Hits	int64
-}
-
-type Snip struct {
-	Created int64
-	Title string
-	Cats string
-	Content []string
 	Hits	int64
 }
 
@@ -253,11 +238,6 @@ type PasteByDate []*Paste
 func (a PasteByDate) Len() int           { return len(a) }
 func (a PasteByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a PasteByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
-
-type SnipByDate []*Snip
-func (a SnipByDate) Len() int           { return len(a) }
-func (a SnipByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a SnipByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type FileByDate []*File
 func (a FileByDate) Len() int           { return len(a) }
@@ -359,80 +339,6 @@ func getScheme(r *http.Request) (scheme string) {
 	}
 	return scheme
 }
-
-/*
-func GuardPath(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := aaa.Authorize(w, r, true)
-		if err != nil {
-			fmt.Println(err)
-			messages := aaa.Messages(w, r)
-			c.Env["msg"] = aaa.Messages(w, r)
-			p, err := loadPage("Please log in", "", c)
-			data := struct {
-	    		Page *Page
-			    Title string
-			    UN string
-			    Msg []string
-			} {
-	    		p,
-	    		"Please log in",
-	    		"",
-	    		messages,
-			}
-			err = renderTemplate(w, "login.tmpl", data)
-			if err != nil {
-			    log.Println(err)
-			    return
-			}
-		}
-		user, err := aaa.CurrentUser(w, r)
-		if err == nil {
-	        if err != nil {
-	        	panic(err)
-	        }
-	        log.Println(user.Username + " is visiting " + r.Referer())
-	        next.ServeHTTP(w, r)
-		}
-	})
-}
-
-func GuardAdminPath(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := aaa.AuthorizeRole(w, r, "admin", true)
-		if err != nil {
-			fmt.Println(err)
-			messages := aaa.Messages(w, r)
-			c.Env["msg"] = aaa.Messages(w, r)
-			p, err := loadPage("Please log in", "", c)
-			data := struct {
-	    		Page *Page
-			    Title string
-			    UN string
-			    Msg []string
-			} {
-	    		p,
-	    		"Please log in",
-	    		"",
-	    		messages,
-			}
-			err = renderTemplate(w, "login.tmpl", data)
-			if err != nil {
-			    log.Println(err)
-			    return
-			}
-
-		}
-		_, err = aaa.CurrentUser(w, r)
-		if err == nil {
-	        if err != nil {
-	        	panic(err)
-	        }
-	        next.ServeHTTP(w, r)
-		}
-	})
-}
-*/
 
 //func renderTemplate(w http.ResponseWriter, name string, p *Page) error {
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
@@ -559,29 +465,9 @@ func searchHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	file := &File{}
 	paste := &Paste{}
-	snip := &Snip{}
 
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Snips"))
-	    b.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        err := json.Unmarshal(v, &snip)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		slink := snip.Title
-    		//sfull := snip.Title + snip.Content
-    		if sterm.MatchString(slink) {
-    			fmt.Fprintln(w, slink)
-    		}
-    		for _, scontent := range snip.Content {
-	    		if sterm.MatchString(scontent) {
-	    			fmt.Fprintln(w, slink)
-	    		}
-    		}
-	        return nil
-	    })
 	    c := tx.Bucket([]byte("Pastes"))
 	    c.ForEach(func(k, v []byte) error {
 	        //fmt.Printf("key=%s, value=%s\n", k, v)
@@ -685,56 +571,6 @@ func ParseBool(value string) bool {
     return boolValue
 }
 
-func rawSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "rawSnipHandler")
-	//vars := mux.Vars(r)
-	//title := vars["page"]
-	title := c.URLParams["page"]
-	snip := &Snip{}
-	err := Db.View(func(tx *bolt.Tx) error {
-    	v := tx.Bucket([]byte("Snips")).Get([]byte(title))
-    	//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-    	//After JSON Unmarshal, Content should be in paste.Content field
-    	if v == nil {
-			http.Redirect(w, r, "/+edit/"+title, http.StatusFound)
-			log.Println("Redirecting to edit page")
-			return nil
-    	}
-    		err := json.Unmarshal(v, &snip)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		//var whole string
-    		//for _, val := range snip.Content {
-    		//	whole += string(val)
-    		//}
-    		/*
-    		data := struct {
-    			Page *Page
-    			Snip *Snip
-    		} {
-    			p,
-    			snip,
-    		} */
-    		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
-    		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
-	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
-	   		for s := range snip.Content {
-	   			fmt.Fprintln(w, template.HTMLEscapeString(snip.Content[s]))
-	   		}
-			//fmt.Fprintf(w, "%s", strings.Trim(fmt.Sprint(snip.Content), "[]"))
-
-			//err = renderTemplate(w, "view.tmpl", data)
-			//if err != nil {
-			//	log.Println(err)
-			//}
-    	return nil
-	})
-	if err != nil {
-		log.Println(err)
-	}
-}
-
 func loadPage(title string, r *http.Request, c web.C) (*Page, error) {
 	//timer.Step("loadpageFunc")
 	m := ""
@@ -765,25 +601,6 @@ func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
         log.Println(perr)
     }
 
-	var snips []*Snip
-	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Snips"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("SNIPS: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var snip *Snip
-	        err := json.Unmarshal(v, &snip)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		snips = append(snips, snip)
-	        return nil
-	    })
-	    return nil
-	})
-	sort.Sort(SnipByDate(snips))
-
 	var files []*File
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
@@ -803,15 +620,6 @@ func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
 	})
 	sort.Sort(FileByDate(files))
 
-	/*
-	for _, p := range pfiles {
-		plink := string(p.Name())
-		ptime := p.ModTime().String()
-		psize := strconv.FormatInt(p.Size(), 8)
-		pl = append(pl, plink)
-		pi = append(pi, ptime, psize)
-	}
-	*/
 	var pastes []*Paste
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
@@ -832,9 +640,6 @@ func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
 	    return nil
 	})
 	sort.Sort(PasteByDate(pastes))
-	//log.Println("Pastes: ")
-	//log.Println(pastes)
-	//log.Println("len:", len(pastes))
 
 	var shorts []*Shorturl
 	//Lets try this with boltDB now!
@@ -854,43 +659,6 @@ func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
 	    return nil
 	})
 	sort.Sort(ShortByDate(shorts))
-	/*
-	image := &Image{}
-	var images []Image
-	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Images"))
-	    b.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        err := json.Unmarshal(v, &image)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		ilink := image.Filename
-    		//ptime := paste.Created.Format(timestamp)
-    		ihits := image.Hits
-    		//pl = append(pl, plink)
-    		//pi = append(pi, ptime, string(phits))
-    		images = []Image{
-    			Image{
-    			Created: image.Created,
-    			Filename: ilink,
-    			Hits: ihits,
-    			},
-    		}
-	        img, err := imaging.Open("./up-imgs/"+image.Filename)
-	        if err != nil {
-	            panic(err)
-	        }
-	        thumb := imaging.Thumbnail(img, 100, 100, imaging.CatmullRom) 
-		    err = imaging.Save(thumb, "./public/thumbs/thumb-"+image.Filename+".jpg")
-		    if err != nil {
-		        panic(err)
-		    }	           		
-	        return nil
-	    })
-	    return nil
-	})*/
 
 	var images []*Image
 	//Lets try this with boltDB now!
@@ -910,7 +678,7 @@ func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
 	})
 	sort.Sort(ImageByDate(images))
 
-	return &ListPage{Page: page, Snips: snips, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
+	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
 }
 
 
@@ -1337,22 +1105,6 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	            Hits: count,
 	        }
 	        encoded, err := json.Marshal(s)
-	        /*
-    		data := struct {
-    			Page *Page
-    			Snip *Snip
-    		} {
-    			p,
-    			s,
-    		}
-    		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
-    		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
-	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
-			//fmt.Fprintf(w, "%s", data)
-			err = renderTemplate(w, "view.tmpl", data)
-			if err != nil {
-				log.Println(err)
-			}*/
 
 		//return nil
     	return b.Put([]byte(title), encoded)
@@ -1573,218 +1325,6 @@ func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     }
 }
 
-//Snip handlers
-func editSnipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "editSnipHandler")
-	title := c.URLParams["page"]
-	snip := &Snip{}
-	p, err := loadPage(title, r, c)
-	if err != nil {
-		log.Println(err)
-	}
-	err = Db.View(func(tx *bolt.Tx) error {
-    	v := tx.Bucket([]byte("Snips")).Get([]byte(title))
-    	//Because BoldDB's View() doesn't return an error if there's no key found, just render an empty page to edit
-    	//After JSON Unmarshal, Content should be in paste.Content field
-    	if v == nil {
-			p = &Page{Title: title}
-			s := &Snip{Created: time.Now().Unix(), Title: title,}
-			data := struct {
-				Page *Page
-				Snip *Snip
-			} {
-				p,
-				s,
-			}
-			err = renderTemplate(w, "edit.tmpl", data)
-			if err != nil {
-				log.Println(err)
-			}
-			return nil
-			//log.Println(err)
-    	}
-    		err := json.Unmarshal(v, &snip)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		var whole string
-    		for _, val := range snip.Content {
-    			whole += string(val)
-    		}
-    		data := struct {
-    			Page *Page
-    			Snip *Snip
-    			Content string
-    		} {
-    			p,
-    			snip,
-    			whole,
-    		}
-    		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
-    		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
-	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
-			//fmt.Fprintf(w, "%s", snip.Content)
-			err = renderTemplate(w, "edit.tmpl", data)
-			if err != nil {
-				log.Println(err)
-			}
-    		return nil
-	})
-	if err != nil {
-		log.Println(err)
-	}
-
-
-}
-
-func snipHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "snipHandler")
-	//title := vars["page"]
-	title := c.URLParams["page"]
-	snip := &Snip{}
-	p, err := loadPage(title, r, c)
-//	err = Db.View(func(tx *bolt.Tx) error {
-	err = Db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Snips"))
-    	v := b.Get([]byte(title))
-    	//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-    	//After JSON Unmarshal, Content should be in paste.Content field
-    	if v == nil {
-			http.Redirect(w, r, "/+edit/"+title, http.StatusFound)
-			return nil
-    	}
-    		err := json.Unmarshal(v, &snip)
-    		if err != nil {
-    			log.Println(err)
-    		}
-	        count := (snip.Hits + 1)
-	        s := &Snip{
-	            Created: snip.Created,
-	            Title: snip.Title,
-	            Content: snip.Content,
-	            Hits: count,
-	        }
-	        encoded, err := json.Marshal(s)
-
-    		data := struct {
-    			Page *Page
-    			Snip *Snip
-    		} {
-    			p,
-    			s,
-    		}
-    		//Still using Bluemonday for XSS protection, so some HTML elements can be rendered
-    		//Can use template.HTMLEscapeString() if I wanted, which would simply escape stuff
-	   		//safe := bluemonday.UGCPolicy().Sanitize(snip.Content)
-			//fmt.Fprintf(w, "%s", data)
-			err = renderTemplate(w, "view.tmpl", data)
-			if err != nil {
-				log.Println(err)
-			}
-		//return nil
-    	return b.Put([]byte(title), encoded)
-	})
-	if err != nil {
-		log.Println(err)
-	}
-	/*
-    //Attempt to increment paste hit counter...
-    err = Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Snips"))
-        v := b.Get([]byte("snip-"+title))
-        err := json.Unmarshal(v, &snip)
-        if err != nil {
-            log.Println(err)
-        }
-        count := (snip.Hits + 1)
-        s := &Snip{
-            Created: snip.Created,
-            Title: snip.Title,
-            Content: snip.Content,
-            Hits: count,
-        }
-        encoded, err := json.Marshal(s)
-        return b.Put([]byte("snip-"+title), encoded)
-    })
-    if err != nil{
-    	log.Println(err)
-    } */
-
-}
-
-func APIsaveSnip(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APIsaveSnip")
-	title := c.URLParams["page"]
-	body := r.FormValue("body")
-	fmattercats := r.FormValue("fmatter-cats")
-	//newbody := strings.Replace(body, "\r", "", -1)
-	bodslice := []string{}
-	bodslice = append(bodslice, body)
-	s := &Snip{
-	    Created: time.Now().Unix(),
-	    Title: title,
-	    Cats: fmattercats,
-	    Content: bodslice,
-	}
-	err := s.save()
-	if err != nil {
-		log.Println(err)
-	}
-	http.Redirect(w, r, "/"+title, http.StatusFound)
-	log.Println(title + " page saved!")
-}
-
-func APIappendSnip(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APIappendSnip")
-	title := c.URLParams["page"]
-	body := r.FormValue("append")
-	snip := &Snip{}
-	err := Db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Snips"))
-		v := b.Get([]byte(title))
-		err := json.Unmarshal(v, &snip)
-		if err != nil {
-			log.Println(err)
-		}
-		newslice := snip.Content
-		newslice = append(newslice, body)
-		s := &Snip {
-			Title: title,
-			Content: newslice,
-		}
-	    encoded, err := json.Marshal(s)
-	    if err != nil {
-	    	return err
-	    }
-		log.Println("++++SNIP APPENDED")
-	    return b.Put([]byte(title), encoded)
-	})
-	if err != nil {
-		log.Println(err)
-	}
-	http.Redirect(w, r, "/"+title, http.StatusFound)
-	log.Println(title + " page saved!")
-}
-
-func (s *Snip) save() error {
-	err := Db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Snips"))
-	    encoded, err := json.Marshal(s)
-	    if err != nil {
-	    	log.Println(err)
-	    	return err
-	    }
-		log.Println("++++SNIP SAVED")
-		log.Println(string(encoded))
-	    return b.Put([]byte(s.Title), encoded)
-	})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
-}
-
 func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "downloadHandler")
     name := c.URLParams["name"]
@@ -1964,18 +1504,7 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//Requests should come in on /api/delete/{type}/{name}
 	ftype := c.URLParams["type"]
 	fname := c.URLParams["name"]
-	if ftype == "snip" {
-		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")		
-		    return tx.Bucket([]byte("Snips")).Delete([]byte(fname))
-		})
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		c.Env["msg"] = "Snip " + fname + " has been deleted"
-		http.Redirect(w, r, "/list", http.StatusSeeOther)
-	} else if ftype == "file" {
+	if ftype == "file" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
 		    return tx.Bucket([]byte("Files")).Delete([]byte(fname))
@@ -2135,18 +1664,6 @@ func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return	    		
 	}
-}
-
-
-func APInewSnipForm(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewSnipForm")
-	err := r.ParseForm()
-	if err != nil {
-		log.Println(err)
-	}
-	title := r.PostFormValue("newsnip")
-	http.Redirect(w, r, "/+edit/"+title, http.StatusFound)
-	log.Println("New Snip at "+title+" created from search box")
 }
 
 //Goji Logger middleware
@@ -2626,8 +2143,6 @@ func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		ps := p.Stats()		
     	f := tx.Bucket([]byte("Files"))
     	fs := f.Stats()
-    	s := tx.Bucket([]byte("Snips"))
-    	ss := s.Stats()
     	sh := tx.Bucket([]byte("Shorturls"))
     	shs := sh.Stats()
     	i := tx.Bucket([]byte("Images"))
@@ -2635,14 +2150,12 @@ func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 
 		paste_count.Set(float64(ps.KeyN))
 		file_count.Set(float64(fs.KeyN))
-		snips_count.Set(float64(ss.KeyN))
 		shorturl_count.Set(float64(shs.KeyN))
 		images_count.Set(float64(is.KeyN))
 
     	
 		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
 		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
-		fmt.Fprintf(w, "tkot_snips_total %v\n", ss.KeyN)
 		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
 		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
 		
@@ -2736,10 +2249,6 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
-		_, err = tx.CreateBucketIfNotExists([]byte("Snips"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
 		_, err = tx.CreateBucketIfNotExists([]byte("Shorturls"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
@@ -2761,12 +2270,6 @@ func main() {
     	c := tx.Bucket([]byte("Files"))
     	log.Println("-------BOLTDB Files: ")
     	c.ForEach(func(k, v []byte) error {
-        	fmt.Printf("key=%s, value=%s\n", k, v)
-        	return nil
-    	})
-    	d := tx.Bucket([]byte("Snips"))
-    	log.Println("-------BOLTDB Snips: ")
-    	d.ForEach(func(k, v []byte) error {
         	fmt.Printf("key=%s, value=%s\n", k, v)
         	return nil
     	})
@@ -2828,8 +2331,6 @@ func main() {
 		ps := p.Stats()		
     	f := tx.Bucket([]byte("Files"))
     	fs := f.Stats()
-    	s := tx.Bucket([]byte("Snips"))
-    	ss := s.Stats()
     	sh := tx.Bucket([]byte("Shorturls"))
     	shs := sh.Stats()
     	i := tx.Bucket([]byte("Images"))
@@ -2837,14 +2338,12 @@ func main() {
 
 		paste_count.Set(float64(ps.KeyN))
 		file_count.Set(float64(fs.KeyN))
-		snips_count.Set(float64(ss.KeyN))
 		shorturl_count.Set(float64(shs.KeyN))
 		images_count.Set(float64(is.KeyN))
 
     	/*
 		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
 		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
-		fmt.Fprintf(w, "tkot_snips_total %v\n", ss.KeyN)
 		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
 		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
 		*/
@@ -2885,7 +2384,6 @@ func main() {
 	prometheus.MustRegister(tx_cursor_count)
 	prometheus.MustRegister(tx_write_count)
 	prometheus.MustRegister(paste_count)
-	prometheus.MustRegister(snips_count)
 	prometheus.MustRegister(file_count)
 	prometheus.MustRegister(shorturl_count)
 	prometheus.MustRegister(images_count)
@@ -2929,17 +2427,8 @@ func main() {
 	g.Get("/logout", logoutHandler)
 	g.Post("/logout", logoutHandler)
 
-	//Protected Functions:
-
-	//g.Use(AuthMiddleware)
-	//Edit Snippet
-	g.Get("/n/+edit/:page", editSnipHandler)
-	//g.Abandon(AuthMiddleware)
-
 	//List of everything
 	g.Get("/list", listHandler)
-	//Raw snippet page
-	g.Get("/n/+raw/:page", rawSnipHandler)
 	//New short URL page
 	g.Get("/s", shortenPageHandler)
 	g.Get("/short", shortenPageHandler)	
@@ -2988,10 +2477,6 @@ func main() {
 			log.Println(c.Env["user"].(string))
 		}
 	})
-
-	//View Snippet 
-	g.Get("/n/:page", snipHandler) 
-
 	//File upload
 	g.Post("/up/:id", APInewFile)
 	g.Put("/up/:id", APInewFile)
@@ -3004,12 +2489,7 @@ func main() {
 	g.Post("/p/", APInewPaste)
 	//Looking Glass
 	g.Post("/lg", APIlgAction)
-	//Snippet/Note functions
-	g.Put("/n/+new", APInewSnipForm)
-	g.Post("/n/+new", APInewSnipForm)
-	g.Put("/n/+new/:page", APIsaveSnip)
-	g.Post("/n/+new/:page", APIsaveSnip)	
-	g.Post("/n/+append/:page", APIappendSnip)	
+
 	//API Stuff	
 	api := web.New()
 	g.Handle("/api/*", api)
@@ -3017,11 +2497,6 @@ func main() {
 	api.Use(AuthMiddleware)
 	api.Get("/delete/:type/:name", APIdeleteHandler)
 	api.Abandon(AuthMiddleware)
-	//api.Put("/wiki/new", APInewSnipForm)
-	//api.Post("/wiki/new", APInewSnipForm)
-	//api.Put("/wiki/new/:page", APIsaveSnip)
-	//api.Post("/wiki/new/:page", APIsaveSnip)	
-	api.Post("/wiki/append/:page", APIappendSnip)
 	api.Post("/paste/new", APInewPasteForm)
 	api.Post("/file/new", APInewFile)
 	api.Post("/file/remote", APInewRemoteFile)

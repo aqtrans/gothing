@@ -34,26 +34,6 @@
 {{ end }}
 </tbody>
 </table>
-<h2>Snippet pages</h2>
-<table>
-<thead>
-<tr>
-<th width="80">Link</th>
-<th width="200">Date</th>
-<th width="20">Hits</th>
-</tr>
-</thead>
-<tbody>
-{{range .Snips}}
-<tr>
-<td><a href=/{{.Title}}>{{.Title}}</a></td>
-<td>{{.Created | prettyDate}}</td>
-<td>{{.Hits}}</td>
-{{if $user}}<td><a href=/list/+delete/snip/{{.Title}} class="button tiny alert">Delete</a></td>{{ end }}
-</tr>
-{{ end }}
-</tbody>
-</table>
 <h2>Files</h2>
 <table>
 <thead>
