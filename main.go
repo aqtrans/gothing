@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"sort"
 	//"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
 	//"github.com/codegangsta/negroni"
 	//"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
@@ -71,10 +72,16 @@ type Configuration struct {
 }
 
 var (
+	//httpauth stuff, due to be yanked out
     backend httpauth.GobFileAuthBackend
     aaa httpauth.Authorizer
     roles map[string]httpauth.Role
     backendfile = "./auth.gob"
+    //my own auth stuff
+    cookieHandler = securecookie.New(
+    	securecookie.GenerateRandomKey(64),
+    	securecookie.GenerateRandomKey(32))
+
     bufpool *bpool.BufferPool
     templates map[string]*template.Template
     _24K int64 = (1 << 20) * 24
