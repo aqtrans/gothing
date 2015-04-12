@@ -1385,7 +1385,16 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
         encoded, err := json.Marshal(imi)
         return b.Put([]byte(name), encoded)
     })
-    http.ServeFile(w, r, fpath)
+    //If this is a webm file, serve it so it acts like a GIF
+    if filepath.Ext(name) == ".webm" {
+		//w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<!doctype html><html><head><title>`+name+`</title></head>
+					    <body><video src=/imagedirect/`+name+` autoplay loop muted></video></body>
+					    </html>`))
+    } else {
+	    http.ServeFile(w, r, fpath)    	
+    }
 }
 
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
