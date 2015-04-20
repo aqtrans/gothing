@@ -1397,9 +1397,11 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 				if ext == ".webm" {
 					w.Header().Set("Content-Type", "text/html; charset=utf-8")
 					w.Write([]byte(`<!doctype html><html><head><title>`+name+`</title></head><body><video src=/imagedirect/`+fname+` autoplay loop muted></video></body></html>`))
+					break
 				} else {
 					extpath := fpath + ext
 					http.ServeFile(w, r, extpath)
+					break
 				}
 			}
 		}
