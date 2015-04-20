@@ -1362,6 +1362,19 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
     name := c.URLParams["name"]
     fpath := cfg.ImgDir + path.Base(name)
 
+    extensions := []string{".webm",".gif",".jpg",".jpeg",".png"}
+	//If this is extensionless, search for the proper file with the extension
+	if filepath.Ext(name) == "" {
+		log.Println("NO EXTENSION FOUND OMG")
+		for _, ext := range extensions {
+			if _, err := os.Stat(fpath + ext); err == nil {
+				name = name + ext
+				fpath = cfg.ImgDir + path.Base(name)
+				break
+			}
+		}
+	}
+
     //Attempt to increment file hit counter...
     image := &Image{}
     Db.Update(func(tx *bolt.Tx) error {
@@ -1386,27 +1399,9 @@ func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
         return b.Put([]byte(name), encoded)
     })
     
-	extensions := []string{".webm",".gif",".jpg",".jpeg",".png"}
-	//If this is extensionless, search for the proper file with the extension
-	if filepath.Ext(name) == "" {
-		log.Println("NO EXTENSION FOUND OMG")
-		for _, ext := range extensions {
-			if _, err := os.Stat(fpath + ext); err == nil {
-				fname := name + ext
-				//If a webm file is found, serve it like a gif
-				if ext == ".webm" {
-					w.Header().Set("Content-Type", "text/html; charset=utf-8")
-					w.Write([]byte(`<!doctype html><html><head><title>`+name+`</title></head><body><video src=/imagedirect/`+fname+` autoplay loop muted></video></body></html>`))
-					break
-				} else {
-					extpath := fpath + ext
-					http.ServeFile(w, r, extpath)
-					break
-				}
-			}
-		}
+	
 	//If this is a webm file, serve it so it acts like a GIF	
-	} else if filepath.Ext(name) == ".webm" {
+	if filepath.Ext(name) == ".webm" {
 		//w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(`<!doctype html><html><head><title>`+name+`</title></head>
