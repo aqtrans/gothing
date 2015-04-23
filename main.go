@@ -578,7 +578,7 @@ func loadPage(title string, r *http.Request, c web.C) (*Page, error) {
 		m = c.Env["msg"].(string)	
 	}
 	user := GetUsername(r, c)
-	return &Page{TheName: "GoBanana!", Title: title, UN: user, Msg: m}, nil
+	return &Page{TheName: "Smithers", Title: title, UN: user, Msg: m}, nil
 }
 
 func loadMainPage(title string, r *http.Request, c web.C) (interface{}, error) {
