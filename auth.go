@@ -173,7 +173,7 @@ func AuthMiddleware(c *web.C, h http.Handler) http.Handler {
 			log.Println("AuthMiddleware mitigating: "+ r.Host + r.URL.String())
 			c.Env["msg"] = "Please Login"
 			p := &Page{
-				TheName: "GoBanana!", 
+				TheName: "Smithers", 
 				Title: "Please log in", 
 				UN: "", 
 				Msg: c.Env["msg"].(string),
