@@ -1731,6 +1731,7 @@ func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     if err != nil {
         fmt.Println(err)
         panic(err)
+        w.Write([]byte("fail"))
     }
     defer file.Close()
     check := http.Client{
@@ -1743,6 +1744,7 @@ func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     if err != nil {
         fmt.Println(err)
         panic(err)
+        w.Write([]byte("fail"))
     }
     defer resp.Body.Close()
     fmt.Println(resp.Status)
@@ -1750,6 +1752,7 @@ func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     _, err = io.Copy(file, resp.Body)
     if err != nil {
         panic(err)
+        w.Write([]byte("fail"))
     }
 
     //BoltDB stuff
@@ -1761,6 +1764,7 @@ func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     err = imi.save()
     if err != nil {
         log.Println(err)
+        w.Write([]byte("fail"))
     }
 
     //fmt.Printf("%s with %v bytes downloaded", fileName, size)
@@ -1768,7 +1772,9 @@ func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     //fmt.Printf("%s image with %v bytes downloaded from %s", fileName, size, finURL)
     //log.Println("Filename:")
     //log.Println(fileName)
-    http.Redirect(w, r, "/i", 302)
+    //http.Redirect(w, r, "/i", 302)
+
+    w.Write([]byte("success|"+fileName))
 }
 
 func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -1926,7 +1932,7 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
         w.Write([]byte("fail"))
     }
 
-	c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/i/"+filename+"><i class='fa fa-link'></i>Link</a>"
+	//c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/i/"+filename+"><i class='fa fa-link'></i>Link</a>"
 	
 	/*
 	title := filename+" successfully uploaded!"

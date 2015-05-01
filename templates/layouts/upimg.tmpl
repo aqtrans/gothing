@@ -49,28 +49,48 @@
 </ul>
 <script type="text/javascript">
 $(document).ready(function(){
-$("#iup").submit(function(event){
-  event.preventDefault();
-$.ajax( {
-  url: '/api/image/new',
-  type: 'POST',
-  data: new FormData( this ),
-  processData: false,
-  contentType: false,
-  success: function(data){
-    var splitdata = data.split("|")
-    if(splitdata[0]=='success'){
-      $(".alerts").append("<div class=\"alert-box success\" data-alert><a style='color:#fff' href=/i/"+splitdata[1]+"><i class='fa fa-link'></i>Link</a><a class=\"close\">&times;</a></div>");
-      $("#login-form").remove();
-    $(document).foundation('alert','reflow');
-    } else if(splitdata[0]=='fail'){
-      $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
-    $(document).foundation('alert','reflow');
-    }
-  }
-} );
-
-});
+  $("#iup").submit(function(event){
+    event.preventDefault();
+    $.ajax( {
+      url: '/api/image/new',
+      type: 'POST',
+      data: new FormData( this ),
+      processData: false,
+      contentType: false,
+      success: function(data){
+        var splitdata = data.split("|")
+        if(splitdata[0]=='success'){
+          $(".alerts").append("<div class=\"alert-box success\" data-alert><a style='color:#fff' href=/i/"+splitdata[1]+"><i class='fa fa-link'></i>Link</a><a class=\"close\">&times;</a></div>");
+          $("#login-form").remove();
+        $(document).foundation('alert','reflow');
+        } else if(splitdata[0]=='fail'){
+          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
+        $(document).foundation('alert','reflow');
+        }
+      }
+    });
+  });
+  $("#rup").submit(function(event){
+    event.preventDefault();
+    $.ajax( {
+      url: '/api/image/remote',
+      type: 'POST',
+      data: new FormData( this ),
+      processData: false,
+      contentType: false,
+      success: function(data){
+        var splitdata = data.split("|")
+        if(splitdata[0]=='success'){
+          $(".alerts").append("<div class=\"alert-box success\" data-alert><a style='color:#fff' href=/i/"+splitdata[1]+"><i class='fa fa-link'></i>Link</a><a class=\"close\">&times;</a></div>");
+          $("#login-form").remove();
+        $(document).foundation('alert','reflow');
+        } else if(splitdata[0]=='fail'){
+          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
+        $(document).foundation('alert','reflow');
+        }
+      }
+    });
+  });  
 });
 </script>
 {{ end }}
