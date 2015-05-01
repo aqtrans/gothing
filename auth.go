@@ -185,7 +185,6 @@ func AuthMiddleware(c *web.C, h http.Handler) http.Handler {
 				TheName: "Smithers", 
 				Title: "Please log in", 
 				UN: "", 
-				Msg: c.Env["msg"].(string),
 			}
 			data := struct {
 	    		Page *Page
