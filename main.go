@@ -183,7 +183,6 @@ type Page struct {
 	TheName string
     Title   string
     UN      string
-    Msg 	string
 }
 
 type ListPage struct {
@@ -365,7 +364,6 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 func indexHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "indexHandler")
 	title := "index"
-	//c.Env["msg"] = "OMG LOL"
 	p, _ := loadMainPage(title, r, c)
 	err := renderTemplate(w, "index.tmpl", p)
 	if err != nil {
@@ -573,12 +571,8 @@ func ParseBool(value string) bool {
 
 func loadPage(title string, r *http.Request, c web.C) (*Page, error) {
 	//timer.Step("loadpageFunc")
-	m := ""
-	if c.Env["msg"] != nil {
-		m = c.Env["msg"].(string)	
-	}
 	user := GetUsername(r, c)
-	return &Page{TheName: "Smithers", Title: title, UN: user, Msg: m}, nil
+	return &Page{TheName: "Smithers", Title: title, UN: user}, nil
 }
 
 func loadMainPage(title string, r *http.Request, c web.C) (interface{}, error) {
@@ -1785,6 +1779,7 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
     var err error
     var filename string
     path := cfg.ImgDir
+    log.Println(r)
     contentType := r.Header.Get("Content-Type") 
     if contentType == "" {
         log.Println("Content-type blank, so this should be a CLI upload...")
@@ -1928,9 +1923,12 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
     err = imi.save()
     if err != nil {
         log.Println(err)
+        w.Write([]byte("fail"))
     }
 
 	c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/i/"+filename+"><i class='fa fa-link'></i>Link</a>"
+	
+	/*
 	title := filename+" successfully uploaded!"
 	p, _ := loadMainPage(title, r, c)
 	w.Header().Set("Location", "http://go.jba.io/iup")
@@ -1939,6 +1937,8 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	*/
+	w.Write([]byte("success|"+filename))
 }
 
 func (i *Image) save() error {

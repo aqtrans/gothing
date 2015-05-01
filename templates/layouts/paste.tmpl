@@ -3,13 +3,7 @@
     {{ template "sidebar_nav" . }}
     {{ template "login_form" . }}
 {{ end }}
-{{ define "content" }}  
-{{ if .Page.Msg }}
-<div data-alert class="alert-box"> 
-{{ .Page.Msg | safeHTML }}
-<a href="#" class="close">&times;</a> 
-</div>
-{{ end }}     
+{{ define "content" }}   
 <h1>New paste</h1>
 <hr />
 <form action="/api/paste/new" method="POST">
