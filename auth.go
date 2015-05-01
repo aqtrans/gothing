@@ -65,7 +65,8 @@ func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := template.HTMLEscapeString(r.FormValue("username"))
 	password := template.HTMLEscapeString(r.FormValue("password"))
 	log.Println("Referrer: "+ r.Referer())
-	//log.Println(r)
+	//log.Println(r.FormValue("username"))
+	//log.Println(r.FormValue("password"))
 	if username == cfg.Username && password == cfg.Password {
 		SetSession(username, w, c)
 		log.Println(username + " successfully logged in.")

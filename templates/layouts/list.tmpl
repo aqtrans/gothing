@@ -5,12 +5,6 @@
 {{ end }}
 {{ define "content" }}
 {{$user := .Page.UN}}
-{{ if .Page.Msg }}
-<div data-alert class="alert-box"> 
-{{ .Page.Msg | safeHTML }}
-<a href="#" class="close">&times;</a> 
-</div>
-{{ end }}
 <h1>List of things</h1>
 <hr />
 <h2>Pastes</h2>

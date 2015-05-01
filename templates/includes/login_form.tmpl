@@ -18,14 +18,9 @@
 <script type="text/javascript">
 $(document).ready(function(){
 $("#login").submit(function(event){
-  event.preventDefault();	
-	var formData = {
-	    'name'              : $('input[name=username]').val(),
-	    'pw'             : $('input[name=password]').val()
-	};  
-	// console.log( formData.name );
-	// console.log( formData.pw );
-  $.post( "login", { username: formData.name, password: formData.pw }, function(data){
+  event.preventDefault();	 
+	console.log( $( this ).serialize() );	
+  $.post( "login", $( this ).serialize(), function(data){
   	if(data=='success'){
   		$(".alerts").append("<div class=\"alert-box success\" data-alert>Successful login<a class=\"close\">&times;</a></div>");
   		$("#login-form").remove();

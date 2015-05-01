@@ -4,19 +4,13 @@
     {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}
-{{ if .Page.Msg }}
-<div data-alert class="alert-box"> 
-{{ .Page.Msg | safeHTML }}
-<a href="#" class="close">&times;</a> 
-</div>
-{{ end }}
 <ul class="accordion" data-accordion>
   <li class="accordion-navigation">
     <a href="#panel1a">Upload a local image</a>
     <div id="panel1a" class="content active">
         <h1>Upload an image</h1>
         <hr />
-        <form action="/api/image/new" method="post" enctype="multipart/form-data" class="dropzone">
+        <form action="/api/image/new" method="post" enctype="multipart/form-data" class="dropzone" id="iup">
         <div class="row collapse">
           <div class="small-6 columns">
             <input type="text" name="local-image-name" placeholder="Optional filename">
@@ -53,5 +47,30 @@
     </div>
   </li>
 </ul>
+<script type="text/javascript">
+$(document).ready(function(){
+$("#iup").submit(function(event){
+  event.preventDefault();
+$.ajax( {
+  url: '/api/image/new',
+  type: 'POST',
+  data: new FormData( this ),
+  processData: false,
+  contentType: false,
+  success: function(data){
+    var splitdata = data.split("|")
+    if(splitdata[0]=='success'){
+      $(".alerts").append("<div class=\"alert-box success\" data-alert><a style='color:#fff' href=/i/"+splitdata[1]+"><i class='fa fa-link'></i>Link</a><a class=\"close\">&times;</a></div>");
+      $("#login-form").remove();
+    $(document).foundation('alert','reflow');
+    } else if(splitdata[0]=='fail'){
+      $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
+    $(document).foundation('alert','reflow');
+    }
+  }
+} );
 
+});
+});
+</script>
 {{ end }}

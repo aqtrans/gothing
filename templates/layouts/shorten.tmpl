@@ -4,12 +4,6 @@
     {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}  
-{{ if .Page.Msg }}
-<div data-alert class="alert-box"> 
-{{ .Page.Msg | safeHTML }}
-<a href="#" class="close">&times;</a> 
-</div>
-{{ end }}     
 <h1>New Short URL</h1>
 <hr />
 <form action="/api/shorten/new" method="POST">
