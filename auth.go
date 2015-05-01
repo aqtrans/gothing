@@ -65,11 +65,14 @@ func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	username := template.HTMLEscapeString(r.FormValue("username"))
 	password := template.HTMLEscapeString(r.FormValue("password"))
 	log.Println("Referrer: "+ r.Referer())
+	//log.Println(r)
 	if username == cfg.Username && password == cfg.Password {
 		SetSession(username, w, c)
 		log.Println(username + " successfully logged in.")
 		//log.Println(c.Env["user"])
 		c.Env["msg"] = "Successfully Logged In"
+
+		/*
 		p, err := loadPage("Successfully Logged In", r, c)
 		data := struct {
     		Page *Page
@@ -83,9 +86,12 @@ func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		    log.Println(err)
 		    return
 		}
+		*/
+		w.Write([]byte("success"))
 	} else {
 		log.Println("LOGINHANDLER ERROR:")
 		c.Env["msg"] = "Login Error"
+		/*
 		p, err := loadPage("Login Error", r, c)
 		data := struct {
     		Page *Page
@@ -99,6 +105,8 @@ func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		    log.Println(err)
 		    return
 		}
+		*/
+		w.Write([]byte("fail"))
 	}
 }
 
