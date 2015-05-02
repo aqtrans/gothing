@@ -77,7 +77,6 @@ $(document).ready(function(){
       type: 'POST',
       data: new FormData( this ),
       processData: false,
-      contentType: false,
       success: function(data){
         var splitdata = data.split("|")
         if(splitdata[0]=='success'){
