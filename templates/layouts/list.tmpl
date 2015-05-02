@@ -23,7 +23,7 @@
     <td><a href=/p/{{.Title}}>{{.Title}}</a></td>
     <td>{{.Created | prettyDate}}</td>
     <td>{{.Hits}}</td>
-    {{if $user}}<td><a href=/list/delete/paste/{{.Title}} class="button tiny alert delete">Delete</a></td>{{ end }}
+    {{if $user}}<td><a href=/api/delete/paste/{{.Title}} class="button tiny alert delete">Delete</a></td>{{ end }}
     </tr>
 {{ end }}
 </tbody>
