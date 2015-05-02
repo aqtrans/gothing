@@ -4,9 +4,8 @@
     {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}       
-<h1>Smithers</h1>
+<h1>{{.Page.TheName}}</h1>
 <hr />
-<h2>Formerly GoBanana!</h2>
 <h3 class="subheader">Paste stuff from CLI</h3>
 <div class="panel callout">
 curl --data "STUFF" http://go.jba.io/p(/ID)

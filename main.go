@@ -25,6 +25,7 @@ import (
 	"github.com/kennygrant/sanitize"
 	"github.com/boltdb/bolt"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/disintegration/imaging"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -572,7 +573,7 @@ func ParseBool(value string) bool {
 func loadPage(title string, r *http.Request, c web.C) (*Page, error) {
 	//timer.Step("loadpageFunc")
 	user := GetUsername(r, c)
-	return &Page{TheName: "Smithers", Title: title, UN: user}, nil
+	return &Page{TheName: "GoThing", Title: title, UN: user}, nil
 }
 
 func loadMainPage(title string, r *http.Request, c web.C) (interface{}, error) {
@@ -1111,8 +1112,6 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "APInewShortUrlForm")
-	//vars := mux.Vars(r)
-	//var name = ""
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -1148,22 +1147,9 @@ func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		w.Write([]byte("fail"))
 	}
-	//http.Redirect(w, r, myURL + "/p/" + title, 302)
-    //fmt.Fprintln(w, "Your Short URL is available at: %s", s.Short)
-	log.Println("Short: " + s.Short)
-	log.Println("Long: " + s.Long)
+	//log.Println("Short: " + s.Short)
+	//log.Println("Long: " + s.Long)
 
-	/*
-	c.Env["msg"] = "Your short URL is available at: <a style='color:#fff' href='http://"+s.Short+".es.gy/'><i class='fa fa-link'></i>"+s.Short+"</a>"
-	title := "New ShortURL available"
-	p, _ := loadMainPage(title, r, c)
-	w.Header().Set("Location", "http://go.jba.io/s")
-	w.WriteHeader(303)
-	err = renderTemplate(w, "shorten.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}
-	*/
 	w.Write([]byte("success|"+s.Short))
 
 }
@@ -1429,16 +1415,13 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		log.Println("Pre-existing thumbnail already found, serving it...")
 		http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
 	} else {
-		log.Println("Thumbnail not found. Running imagemagick...")
-		file, err := os.Open(fpath)
-		if err != nil {
-		     log.Println(err)
-		     return
-		}
-		file.Close()
+		log.Println("Thumbnail not found. Running thumbnail function...")
+		makeThumb(fpath, thumbPath)
+
 		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
 		//convert -define "jpeg:size=300x300 -thumbnail 300x300 ./up-imgs/
 
+		/*
 		resize := exec.Command("/usr/bin/convert", fpath, "-strip", "-thumbnail","x300", thumbPath)
     	contentType := mime.TypeByExtension(filepath.Ext(path.Base(strings.TrimSuffix(name, ".png"))))
     	if contentType == "image/gif" {
@@ -1450,9 +1433,40 @@ func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
+		*/
+		//Trying with imaging library now
+
+
 	    http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
 	}
 
+}
+
+func makeThumb(fpath, thumbpath string) {
+	contentType := mime.TypeByExtension(filepath.Ext(path.Base(fpath)))
+	if contentType == "video/webm" {
+		log.Println("WEBM FILE DETECTED")
+		//ffmpeg -i doit.webm -vframes 1 -filter:v scale="-1:300" doit.thumb.png
+		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v","scale='-1:300'", thumbpath)
+		err := resize.Run()
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	img, err := imaging.Open(fpath)
+	if err != nil {
+	  log.Println(err)
+	  return
+	}
+	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)	
+	err = imaging.Save(thumb, thumbpath)
+	if err != nil {
+	  log.Println(err)
+	  return
+	}
+	return
 }
 
 func imageDirectHandler(c web.C, w http.ResponseWriter, r *http.Request) {
