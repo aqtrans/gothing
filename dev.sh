@@ -1,2 +1,2 @@
-#!/bin/bash
-go run ./main.go
+#!/bin/sh
+go run main.go auth.go -l
