@@ -19,11 +19,11 @@ $(document).ready(function(){
 	  $.post( "/api/shorten/new", $( this ).serialize(), function(data){
         var splitdata = data.split("|")
         if(splitdata[0]=='success'){
-          $(".alerts").append("<div class=\"alert-box success\" data-alert><a style='color:#fff' href="+splitdata[1]+"><i class='fa fa-link'></i>Link</a><a class=\"close\">&times;</a></div>");
-          $( this ).reset();
+          $(".alerts").append("<div class=\"alert-box success\" data-alert>Link successfully shortened! <a style='color:#fff' href="+splitdata[1]+"><i class='fa fa-external-link'></i>[Short URL]</a><a class=\"close\">&times;</a></div>");
+          $("#shorturl")[0].reset();
         $(document).foundation('alert','reflow');
         } else if(splitdata[0]=='fail'){
-          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
+          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to shorten URL<a class=\"close\">&times;</a></div>");
         $(document).foundation('alert','reflow');
         }
       });
