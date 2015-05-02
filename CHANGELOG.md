@@ -23,3 +23,9 @@
 #20150228
 - Renamed from TKOT to GoBanana, to go along with the Go[whatever] naming convention, and I wasn't too fond of TKOT in the first place
 - Moved primary dev source from Github to my personal Gitlab install with infrequent mirroring to Github when I feel like it 
+
+#20150502
+- Renamed to GoThing
+- Major revamp of most API calls
+    - Now properly taking advantage of javascript (jquery) to run the calls and pipe the results to a nice alert banner at the top of pages
+    

@@ -718,6 +718,7 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
+		w.Write([]byte("fail"))
 	}
 	defer file.Close()
 	check := http.Client{
@@ -730,6 +731,7 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
+		w.Write([]byte("fail"))
 	}
 	defer resp.Body.Close()
 	fmt.Println(resp.Status)
@@ -737,6 +739,7 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
 		panic(err)
+		w.Write([]byte("fail"))
 	}
 
 	//BoltDB stuff
@@ -748,6 +751,7 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
     err = fi.save()
     if err != nil {
         log.Println(err)
+		w.Write([]byte("fail"))
     }
 
 	//fmt.Printf("%s with %v bytes downloaded", fileName, size)
@@ -756,6 +760,7 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	//log.Println("Filename:")
 	//log.Println(fileName)
 
+	/*
 	c.Env["msg"] = fileName+" successfully uploaded! | <a style='color:#fff' href=/d/"+fileName+"><i class='fa fa-link'></i>Link</a>"
 	title := fileName+" successfully uploaded!"
 	p, _ := loadMainPage(title, r, c)
@@ -764,8 +769,9 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	err = renderTemplate(w, "up.tmpl", p)
 	if err != nil {
 		log.Println(err)
-	}
-
+	}*/
+	
+	w.Write([]byte("success|"+fileName))
 }
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
@@ -849,7 +855,6 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	    if r.FormValue("remote-file-name") != "" {
 	    	filename = sanitize.Name(r.FormValue("remote-file-name"))
 	    	log.Println("custom remote file name: "+filename)
-	    	
 	    }
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
@@ -997,13 +1002,8 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
     if uptype == "cli" {
     	fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
     } else {
-		c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-link'></i>Link</a>"
-		title := filename+" successfully uploaded!"
-		p, _ := loadMainPage(title, r, c)
-		err = renderTemplate(w, "up.tmpl", p)
-		if err != nil {
-			log.Println(err)
-		}    	
+
+		w.Write([]byte("success|"+filename))  	
     }
 }
 
@@ -1536,7 +1536,6 @@ func embiggenHandler(i string) {
 }
 
 //Delete stuff
-//TODO: Add images to this
 func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//Requests should come in on /api/delete/{type}/{name}
 	ftype := c.URLParams["type"]
@@ -1556,8 +1555,9 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		c.Env["msg"] = "File " + fname + " has been deleted"
-		http.Redirect(w, r, "/list", http.StatusSeeOther)
+		//c.Env["msg"] = "File " + fname + " has been deleted"
+		//http.Redirect(w, r, "/list", http.StatusSeeOther)
+		w.Write([]byte("success|"+fname))
 	} else if ftype == "image" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -1573,8 +1573,9 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		c.Env["msg"] = "Image " + fname + " has been deleted"
-		http.Redirect(w, r, "/list", http.StatusSeeOther)
+		//c.Env["msg"] = "Image " + fname + " has been deleted"
+		//http.Redirect(w, r, "/list", http.StatusSeeOther)
+		w.Write([]byte("success|"+fname))
 	} else if ftype == "paste" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -1583,8 +1584,9 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		c.Env["msg"] = "Paste " + fname + " has been deleted"
-		http.Redirect(w, r, "/list", http.StatusSeeOther)
+		//c.Env["msg"] = "Paste " + fname + " has been deleted"
+		//http.Redirect(w, r, "/list", http.StatusSeeOther)
+		w.Write([]byte("success|"+fname))
 	} else if ftype == "shorturl" {
 		err := Db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -1593,10 +1595,11 @@ func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		c.Env["msg"] = "ShortURL " + fname + " has been deleted"
-		http.Redirect(w, r, "/list", http.StatusSeeOther)
+		//c.Env["msg"] = "ShortURL " + fname + " has been deleted"
+		//http.Redirect(w, r, "/list", http.StatusSeeOther)
+		w.Write([]byte("success|"+fname))
 	} else {
-		fmt.Fprintf(w, "Whatcha trying to do...")
+		w.Write([]byte("fail|"))
 	}
 }
 
@@ -1950,18 +1953,6 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
         w.Write([]byte("fail"))
     }
 
-	//c.Env["msg"] = filename+" successfully uploaded! | <a style='color:#fff' href=/i/"+filename+"><i class='fa fa-link'></i>Link</a>"
-	
-	/*
-	title := filename+" successfully uploaded!"
-	p, _ := loadMainPage(title, r, c)
-	w.Header().Set("Location", "http://go.jba.io/iup")
-	w.WriteHeader(303)
-	err = renderTemplate(w, "upimg.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}
-	*/
 	w.Write([]byte("success|"+filename))
 }
 
