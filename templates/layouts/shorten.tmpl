@@ -6,9 +6,28 @@
 {{ define "content" }}  
 <h1>New Short URL</h1>
 <hr />
-<form action="/api/shorten/new" method="POST">
+<form action="/api/shorten/new" method="POST" id="shorturl">
 Short URL:<input type="text" name="short"><br>
 Long URL:<input type="text" name="long"><br>
 <input type="submit" class="button success" value="Submit">
 </form>
+<script type="text/javascript">
+$(document).ready(function(){ 
+	$("#shorturl").submit(function(event){
+	  event.preventDefault();	 
+		console.log( $( this ).serialize() );	
+	  $.post( "/api/shorten/new", $( this ).serialize(), function(data){
+        var splitdata = data.split("|")
+        if(splitdata[0]=='success'){
+          $(".alerts").append("<div class=\"alert-box success\" data-alert><a style='color:#fff' href="+splitdata[1]+"><i class='fa fa-link'></i>Link</a><a class=\"close\">&times;</a></div>");
+          $( this ).reset();
+        $(document).foundation('alert','reflow');
+        } else if(splitdata[0]=='fail'){
+          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
+        $(document).foundation('alert','reflow');
+        }
+      });
+	});  
+});
+</script>
 {{ end }}

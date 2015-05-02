@@ -1116,6 +1116,7 @@ func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
+		w.Write([]byte("fail"))
 	}
 	short := r.PostFormValue("short")
 	if short != "" {
@@ -1145,12 +1146,14 @@ func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 	err = s.save()
 	if err != nil {
 		log.Println(err)
+		w.Write([]byte("fail"))
 	}
 	//http.Redirect(w, r, myURL + "/p/" + title, 302)
     //fmt.Fprintln(w, "Your Short URL is available at: %s", s.Short)
 	log.Println("Short: " + s.Short)
 	log.Println("Long: " + s.Long)
 
+	/*
 	c.Env["msg"] = "Your short URL is available at: <a style='color:#fff' href='http://"+s.Short+".es.gy/'><i class='fa fa-link'></i>"+s.Short+"</a>"
 	title := "New ShortURL available"
 	p, _ := loadMainPage(title, r, c)
@@ -1160,6 +1163,8 @@ func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	*/
+	w.Write([]byte("success|"+s.Short))
 
 }
 

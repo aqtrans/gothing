@@ -17,20 +17,20 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function(){
-$("#login").submit(function(event){
-  event.preventDefault();	 
-	console.log( $( this ).serialize() );	
-  $.post( "login", $( this ).serialize(), function(data){
-  	if(data=='success'){
-  		$(".alerts").append("<div class=\"alert-box success\" data-alert>Successful login<a class=\"close\">&times;</a></div>");
-  		$("#login-form").remove();
-		$(document).foundation('alert','reflow');
-  	} else if(data=='fail'){
-  		$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed login<a class=\"close\">&times;</a></div>");
-		$(document).foundation('alert','reflow');
-  	}
-  });
-});
+	$("#login").submit(function(event){
+	  event.preventDefault();	 
+		console.log( $( this ).serialize() );	
+	  $.post( "login", $( this ).serialize(), function(data){
+	  	if(data=='success'){
+	  		$(".alerts").append("<div class=\"alert-box success\" data-alert>Successful login<a class=\"close\">&times;</a></div>");
+	  		$("#login-form").remove();
+			$(document).foundation('alert','reflow');
+	  	} else if(data=='fail'){
+	  		$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed login<a class=\"close\">&times;</a></div>");
+			$(document).foundation('alert','reflow');
+	  	}
+	  });
+	});
 });
 </script>
 {{ end }} 
