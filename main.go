@@ -711,8 +711,8 @@ func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
 	*/
 	dlpath := cfg.FileDir
     if r.FormValue("remote-file-name") != "" {
-    	log.Println("custom remote file name: "+sanitize.Name(r.FormValue("remote-file-name")))
     	fileName = sanitize.Name(r.FormValue("remote-file-name"))
+    	log.Println("custom remote file name: "+fileName)
     }	
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
@@ -847,8 +847,9 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 		*/
 		//dlpath := cfg.FileDir
 	    if r.FormValue("remote-file-name") != "" {
-	    	log.Println("custom remote file name: "+sanitize.Name(r.FormValue("remote-file-name")))
 	    	filename = sanitize.Name(r.FormValue("remote-file-name"))
+	    	log.Println("custom remote file name: "+filename)
+	    	
 	    }
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
@@ -934,8 +935,8 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 			filename = string(bytes)
 		}
 	    if r.FormValue("local-file-name") != "" {
-	    	log.Println("custom local file name: "+sanitize.Name(r.FormValue("local-file-name")))
 	    	filename = sanitize.Name(r.FormValue("local-file-name"))
+	    	log.Println("custom local file name: "+filename)
 	    }		
 		log.Printf("Uploading %s %d %s", filename, contentLength, contentType)
 		
@@ -968,11 +969,10 @@ func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println(err)
 		}
-        if r.FormValue("local-file-name") != "" {
-        	log.Println("CUSTOM FILENAME: ")
-        	log.Println(r.FormValue("local-file-name"))
-        	filename = r.FormValue("local-file-name")
-        }
+	    if r.FormValue("local-file-name") != "" {
+	    	filename = sanitize.Name(r.FormValue("local-file-name"))
+	    	log.Println("custom local file name: "+filename)
+	    }
 
         f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
         if err != nil {
@@ -1743,8 +1743,8 @@ func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
     */
     dlpath := cfg.ImgDir
     if r.FormValue("remote-image-name") != "" {
-    	log.Println("custom remote image name: "+sanitize.Name(r.FormValue("remote-image-name")))
     	fileName = sanitize.Name(r.FormValue("remote-image-name"))
+    	log.Println("custom remote image name: "+fileName)    	
     }
     file, err := os.Create(filepath.Join(dlpath, fileName))
     if err != nil {
@@ -1854,8 +1854,8 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
             filename = string(bytes)
         }
 	    if r.FormValue("local-image-name") != "" {
-	    	log.Println("custom local image name: "+sanitize.Name(r.FormValue("local-image-name")))
 	    	filename = sanitize.Name(r.FormValue("local-image-name"))
+	    	log.Println("custom local image name: "+filename)
 	    }
         log.Printf("Uploading image %s %d %s", filename, contentLength, contentType)
         
@@ -1879,11 +1879,10 @@ func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
         }
         file, handler, err := r.FormFile("file")
         filename = handler.Filename
-        if r.FormValue("local-image-name") != "" {
-        	log.Println("CUSTOM FILENAME: ")
-        	log.Println(r.FormValue("local-image-name"))
-        	filename = r.FormValue("local-image-name")
-        }
+	    if r.FormValue("local-image-name") != "" {
+	    	filename = sanitize.Name(r.FormValue("local-image-name"))
+	    	log.Println("custom local image name: "+filename)
+	    }		        
         if err != nil {
             fmt.Println(err)
             return
