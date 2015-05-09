@@ -534,8 +534,6 @@ func (s *Shorturl) save() error {
 	return nil
 }
 
-
-
 func (p *Paste) save() error {
 	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
@@ -772,6 +770,17 @@ func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
 }
 */
 
+func WriteJSON(w http.ResponseWriter, data interface{}) error {
+	jsonData, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	w.Write(jsonData)
+	return nil
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -978,6 +987,17 @@ func main() {
 	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	d.HandleFunc("/i", galleryHandler).Methods("GET")
 	d.HandleFunc("/il", galleryListHandler).Methods("GET")
+	d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
+	    //j := map[string]bool{"apple": false, "lettuce": true}
+		j := struct {
+		    Filename string `json:"filename"`
+			Success  bool   `json:"success"`
+	    } {
+	    	"omg",
+			true,
+	    }
+		WriteJSON(w, j)
+	}).Methods("GET")
 
 	//CLI API Functions
 	d.HandleFunc("/up/{name}", APInewFile).Methods("POST","PUT")
