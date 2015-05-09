@@ -48,7 +48,7 @@ func loadGalleryPage(r *http.Request) (*GalleryPage, error) {
 	Db.View(func(tx *bolt.Tx) error {
 	    b := tx.Bucket([]byte("Images"))
 	    b.ForEach(func(k, v []byte) error {
-	        fmt.Printf("key=%s, value=%s\n", k, v)
+	        //fmt.Printf("key=%s, value=%s\n", k, v)
 	        var image *Image
 	        err := json.Unmarshal(v, &image)
     		if err != nil {
