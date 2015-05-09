@@ -29,3 +29,8 @@
 - Major revamp of most API calls
     - Now properly taking advantage of javascript (jquery) to run the calls and pipe the results to a nice alert banner at the top of pages
     
+#20150509
+- Replaced Goji with Gorilla/Mux...back to where we began!
+    - Due to it's superb matching capabilities, allowing me to properly capture my *.es.gy wildcard short URLs
+    - I was also not using Goji's context feature whatsoever once I switched to my homebrewed cookie-based auth, negating it's original draw for me
+     

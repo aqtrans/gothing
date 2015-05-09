@@ -4,7 +4,7 @@ package main
 
 import (
 	"github.com/gorilla/securecookie"
-	"github.com/zenazn/goji/web"
+	//"github.com/gorilla/mux"
 	"net/http"
 	"log"
 	"html/template"
@@ -14,7 +14,7 @@ var cookieHandler = securecookie.New(
     securecookie.GenerateRandomKey(64),
     securecookie.GenerateRandomKey(32))
 
-func SetSession(username string, w http.ResponseWriter, c web.C) {
+func SetSession(username string, w http.ResponseWriter) {
 	defer timeTrack(time.Now(), "SetSession")
     value := map[string]string{
         "user": username,
@@ -28,10 +28,9 @@ func SetSession(username string, w http.ResponseWriter, c web.C) {
         }
         http.SetCookie(w, cookie)
     }
-    c.Env["user"] = username
 }
 
-func ClearSession(w http.ResponseWriter, c web.C) {
+func ClearSession(w http.ResponseWriter, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:   "session",
 		Value:  "",
@@ -40,14 +39,11 @@ func ClearSession(w http.ResponseWriter, c web.C) {
 		HttpOnly: true,
 	}
 	http.SetCookie(w, cookie)
-    c.Env["user"] = nil
 }
 
-func GetUsername(r *http.Request, c web.C) (username string) {
+func GetUsername(r *http.Request) (username string) {
 	defer timeTrack(time.Now(), "GetUsername")
-	if user, ok := c.Env["user"].(string); ok {
-		username = user
-	} else if cookie, err := r.Cookie("session"); err == nil {
+	if cookie, err := r.Cookie("session"); err == nil {
 		cookieValue := make(map[string]string)
 		if err = cookieHandler.Decode("session", cookie.Value, &cookieValue); err == nil {
 			username = cookieValue["user"]
@@ -56,66 +52,30 @@ func GetUsername(r *http.Request, c web.C) (username string) {
 	} else {
 		username = ""
 	}
-	log.Println("GetUsername: "+username)
-	//log.Println(c.Env["user"])
+	//log.Println("GetUsername: "+username)
 	return username
 }
 
-func loginHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func loginHandler(w http.ResponseWriter, r *http.Request) {
 	username := template.HTMLEscapeString(r.FormValue("username"))
 	password := template.HTMLEscapeString(r.FormValue("password"))
 	log.Println("Referrer: "+ r.Referer())
 	//log.Println(r.FormValue("username"))
 	//log.Println(r.FormValue("password"))
 	if username == cfg.Username && password == cfg.Password {
-		SetSession(username, w, c)
+		SetSession(username, w)
 		log.Println(username + " successfully logged in.")
-		//log.Println(c.Env["user"])
-		c.Env["msg"] = "Successfully Logged In"
-
-		/*
-		p, err := loadPage("Successfully Logged In", r, c)
-		data := struct {
-    		Page *Page
-		    Title string
-		} {
-    		p,
-    		"Successfully Logged In",
-		}
-		err = renderTemplate(w, "login.tmpl", data)
-		if err != nil {
-		    log.Println(err)
-		    return
-		}
-		*/
 		w.Write([]byte("success"))
 	} else {
 		log.Println("LOGINHANDLER ERROR:")
-		c.Env["msg"] = "Login Error"
-		/*
-		p, err := loadPage("Login Error", r, c)
-		data := struct {
-    		Page *Page
-		    Title string
-		} {
-    		p,
-    		"Login Error",
-		}
-		err = renderTemplate(w, "login.tmpl", data)
-		if err != nil {
-		    log.Println(err)
-		    return
-		}
-		*/
 		w.Write([]byte("fail"))
 	}
 }
 
-func logoutHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	ClearSession(w, c)
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	ClearSession(w, r)
 	log.Println("Logout")
-	c.Env["msg"] = "Logged Out"
-	p, err := loadPage("Logged out", r, c)
+	p, err := loadPage("Logged out", r)
 	data := struct {
 		Page *Page
 	    Title string
@@ -130,79 +90,18 @@ func logoutHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-/*
-func privHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	err := aaa.Authorize(w, r, true)
-	if err != nil {
-		fmt.Println(err)
-		//http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-	user, err := aaa.CurrentUser(w, r)
-	username := getUsername(c, w, r)
-	if err == nil {
-		p, err := loadPage("Please Login", username, c)
-		data := struct {
-    		Page *Page
-		    User httpauth.UserData
-		} {
-    		p,
-    		user,
-		}
-		t, err := template.New("priv").Parse(`
-            <html>
-            <head><title>Secret page</title></head>
-            <body>
-                <h1>Httpauth example<h1>
-                {{ with .User }}
-                    <h2>Hello {{ .Username }}</h2>
-                    <p>Your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>
-                    <p>{{ if .Role | eq "admin" }}<a href="/admin">Admin page</a> {{ end }}<a href="/logout">Logout</a></p>
-                {{ end }}
-                <form action="/change" method="post" id="change">
-                    <h3>Change email</h3>
-                    <p><input type="email" name="new_email" placeholder="new email"></p>
-                    <button type="submit">Submit</button>
-                </form>
-            </body>
-            `)
-        if err != nil {
-        	panic(err)
-        }
-        t.Execute(w, data)
-	}
-}
-*/
-
-//Auth Handler for Goji
-func AuthMiddleware(c *web.C, h http.Handler) http.Handler {
-	handler := func(c web.C, w http.ResponseWriter, r *http.Request) {
-		username := GetUsername(r, c)
+func Auth(next http.HandlerFunc) http.HandlerFunc {
+    handler := func(w http.ResponseWriter, r *http.Request) {
+		username := GetUsername(r)
 		if username == "" {
 			log.Println("AuthMiddleware mitigating: "+ r.Host + r.URL.String())
-			c.Env["msg"] = "Please Login"
-			p := &Page{
-				TheName: "GoThing", 
-				Title: "Please log in", 
-				UN: "", 
-			}
-			data := struct {
-	    		Page *Page
-			    Title string
-			} {
-	    		p,
-	    		"Please log in",
-			}
-			err := renderTemplate(w, "login.tmpl", data)
-			if err != nil {
-			    log.Println(err)
-			    return
-			}			
+			//w.Write([]byte("OMG"))
+			http.Redirect(w, r, "http://"+r.Host+"/login", 302)
 			return
 		} else {
-		    log.Println(username + " is visiting " + r.Referer())
-		    h.ServeHTTP(w, r)			
+		    log.Println(username + " is visiting " + r.Referer()) 	
 		}
+		next.ServeHTTP(w, r)
 	}
-	return web.HandlerFunc(handler)
+	return http.HandlerFunc(handler)
 }
