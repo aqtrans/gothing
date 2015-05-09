@@ -477,12 +477,11 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
     fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
-    log.Println("name:"+ name)
-    log.Println("fpath:"+ fpath)
-//    http.ServeFile(w, r, fpath)
-
-    thumbPath := cfg.ThumbDir+path.Base(name)
-    log.Println("thumbpath:"+thumbPath)
+	thumbPath := cfg.ThumbDir+path.Base(name)
+	
+    //log.Println("name:"+ name)
+    //log.Println("fpath:"+ fpath)
+    //log.Println("thumbpath:"+thumbPath)
 
     //Check to see if the large image already exists
     //If so, serve it directly

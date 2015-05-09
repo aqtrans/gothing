@@ -581,49 +581,6 @@ func makeThumb(fpath, thumbpath string) {
 	return
 }
 
-
-
-/*
-func handleAdmin(w http.ResponseWriter, r *http.Request) {
-    if user, err := aaa.CurrentUser(w, r); err == nil {
-        type data struct {
-            User httpauth.UserData
-            Roles map[string]httpauth.Role
-            Users []httpauth.UserData
-            Msg []string
-        }
-        messages := aaa.Messages(w, r)
-        users, err := backend.Users()
-        if err != nil {
-            panic(err)
-        }
-
-        d := data{User:user, Roles:roles, Users:users, Msg:messages}
-		err = renderTemplate(w, "admin.tmpl", d)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-}
-*/
-
-
-
-//Goji Logger middleware
-/*
-func LoggerMiddleware(h http.Handler) http.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		rawurl := r.Header.Get("X-Raw-URL")
-		ua := r.Header.Get("User-Agent")
-		scheme := r.Header.Get("X-Forwarded-Proto")
-		ip := r.Header.Get("X-Forwarded-For")
-		log.Println("Started "+r.Method+" "+r.URL.Path+"| Host: "+r.Host+" | Raw URL: "+rawurl+" | UserAgent: "+ua+" | HTTPS: "+scheme+" | IP: "+ip) 
-		h.ServeHTTP(w, r)
-		log.Println("After request")
-	}
-	return http.HandlerFunc(handler)
-}*/
-
 func (i *Image) save() error {
     err := Db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket([]byte("Images"))
@@ -646,7 +603,7 @@ func (i *Image) save() error {
     	go embiggenHandler(i.Filename)
     }
     //log.Println(contentType)
-    log.Println("+IMAGE SAVED")
+    log.Println("++++IMAGE SAVED")
     return nil
 }
 
