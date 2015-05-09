@@ -13,15 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	//"github.com/zenazn/goji/web"
-	//"github.com/zenazn/goji/web/middleware"
-	//"github.com/zenazn/goji/web/mutil"
-	//"github.com/zenazn/goji/bind"
-    //"github.com/zenazn/goji/graceful"
-	//"github.com/hypebeast/gojistatic"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	//"github.com/gin-gonic/gin"
 	"github.com/oxtoacart/bpool"
 	"github.com/russross/blackfriday"
 	"github.com/boltdb/bolt"
@@ -685,7 +678,7 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 	return written, err
 }
 
-//Goji Custom Logging Middleware
+//Custom Logging Middleware
 func Logger(next http.Handler) http.Handler {
     return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
 		var buf bytes.Buffer
