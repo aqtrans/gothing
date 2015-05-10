@@ -11,23 +11,4 @@ Short URL:<input type="text" name="short"><br>
 Long URL:<input type="text" name="long"><br>
 <input type="submit" class="button success" value="Submit">
 </form>
-<script type="text/javascript">
-$(document).ready(function(){ 
-	$("#shorturl").submit(function(event){
-	  event.preventDefault();	 
-		console.log( $( this ).serialize() );	
-	  $.post( "/api/shorten/new", $( this ).serialize(), function(data){
-        var splitdata = data.split("|")
-        if(splitdata[0]=='success'){
-          $(".alerts").append("<div class=\"alert-box success\" data-alert>Link successfully shortened! <a style='color:#fff' href="+splitdata[1]+"><i class='fa fa-external-link'></i>[Short URL]</a><a class=\"close\">&times;</a></div>");
-          $("#shorturl")[0].reset();
-        $(document).foundation('alert','reflow');
-        } else if(splitdata[0]=='fail'){
-          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to shorten URL<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
-        }
-      });
-	});  
-});
-</script>
 {{ end }}
