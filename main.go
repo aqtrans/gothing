@@ -6,43 +6,33 @@ package main
 // - Refactor all save() functions to do the actual file saving as well...
 // ...only saving if the BoltDB function doesn't error out
 
-
 import (
+	"bytes"
 	"crypto/rand"
-	"errors"
-	"flag"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"sort"
-	"github.com/zenazn/goji/web"
-	"github.com/zenazn/goji/web/middleware"
-	"github.com/zenazn/goji/web/mutil"
-	"github.com/zenazn/goji/bind"
-    "github.com/zenazn/goji/graceful"
-	"github.com/hypebeast/gojistatic"
-	"github.com/oxtoacart/bpool"
-	"github.com/russross/blackfriday"
-	"github.com/kennygrant/sanitize"
 	"github.com/boltdb/bolt"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/disintegration/imaging"
+	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
+	"github.com/oxtoacart/bpool"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/russross/blackfriday"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
-	"os/exec"
-	"net/http"
-	"net/url"
-	"runtime"
-	"os"
-	"time"
-	"regexp"
-	"strings"
-	"strconv"
-	"path"
-	"bytes"
-	"path/filepath"
 	"mime"
+	"net/http"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 //const timestamp = "2006-01-02_at_03:04:05PM"
@@ -52,128 +42,127 @@ type Configuration struct {
 	Port     string
 	Username string
 	Password string
-	Email    string 
-	ImgDir   string 
-	FileDir  string 
+	Email    string
+	ImgDir   string
+	FileDir  string
 	ThumbDir string
-	GifDir   string 
-	MainTLD  string 
-	ShortTLD string 
-	ImageTLD string 
+	GifDir   string
+	MainTLD  string
+	ShortTLD string
+	ImageTLD string
 	GifTLD   string
 }
 
 var (
-
-    bufpool *bpool.BufferPool
-    templates map[string]*template.Template
-    _24K int64 = (1 << 20) * 24
-	fLocal bool
-	Db, _ = bolt.Open("./bolt.db", 0600, nil)
-	cfg = Configuration{}
+	bufpool   *bpool.BufferPool
+	templates map[string]*template.Template
+	_24K      int64 = (1 << 20) * 24
+	fLocal    bool
+	Db, _     = bolt.Open("./bolt.db", 0600, nil)
+	cfg       = Configuration{}
 
 	//Prometheus stuff
-    tx_num = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "total",
-        Help:      "Total number of BoltDB TX requests.",
-    })
-    tx_page_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "page_count",
-        Help:      "Total number of BoltDB TX pages.",
-    })
-    tx_cursor_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "cursor_count",
-        Help:      "Total number of BoltDB TX cursors.",
-    })
-    tx_write_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "write_count",
-        Help:      "Total number of BoltDB TX writes.",
-    })       
-    tx_write_time = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "write_time",
-        Help:      "Time spent writing BoltDB transactions.",
-    })   
-    paste_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "paste",
-        Name:      "count",
-        Help:      "Total number of Pastes.",
-    })
-    file_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "file",
-        Name:      "count",
-        Help:      "Total number of Files.",
-    })    
-    shorturl_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "shorturl",
-        Name:      "count",
-        Help:      "Total number of Shorturls.",
-    })
-    images_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "image",
-        Name:      "count",
-        Help:      "Total number of Images.",
-    })
-    goroutine_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Name:      "goroutines",
-        Help:      "Total number of Goroutines.",
-    })      
-    memory_allocated = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "allocated",
-        Help:      "Memory allocated.",
-    })  
-    memory_mallocs = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "mallocs",
-        Help:      "Memory mallocs.",
-    }) 
-    memory_frees = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "frees",
-        Help:      "Memory frees.",
-    })
-    memory_gc_total_pause = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "gc_total_pause",
-        Help:      "Memory GC total pauses.",
-    })     
-    memory_heap = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "heap",
-        Help:      "Memory heap size.",
-    })     
-    memory_stack = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "stack",
-        Help:      "Memory stack size.",
-    })  
-    memory_gc_num = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "gc_num",
-        Help:      "Memory GC number.",
-    })                       
+	tx_num = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "total",
+		Help:      "Total number of BoltDB TX requests.",
+	})
+	tx_page_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "page_count",
+		Help:      "Total number of BoltDB TX pages.",
+	})
+	tx_cursor_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "cursor_count",
+		Help:      "Total number of BoltDB TX cursors.",
+	})
+	tx_write_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "write_count",
+		Help:      "Total number of BoltDB TX writes.",
+	})
+	tx_write_time = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "write_time",
+		Help:      "Time spent writing BoltDB transactions.",
+	})
+	paste_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "paste",
+		Name:      "count",
+		Help:      "Total number of Pastes.",
+	})
+	file_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "file",
+		Name:      "count",
+		Help:      "Total number of Files.",
+	})
+	shorturl_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "shorturl",
+		Name:      "count",
+		Help:      "Total number of Shorturls.",
+	})
+	images_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "image",
+		Name:      "count",
+		Help:      "Total number of Images.",
+	})
+	goroutine_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Name:      "goroutines",
+		Help:      "Total number of Goroutines.",
+	})
+	memory_allocated = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "allocated",
+		Help:      "Memory allocated.",
+	})
+	memory_mallocs = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "mallocs",
+		Help:      "Memory mallocs.",
+	})
+	memory_frees = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "frees",
+		Help:      "Memory frees.",
+	})
+	memory_gc_total_pause = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "gc_total_pause",
+		Help:      "Memory GC total pauses.",
+	})
+	memory_heap = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "heap",
+		Help:      "Memory heap size.",
+	})
+	memory_stack = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "stack",
+		Help:      "Memory stack size.",
+	})
+	memory_gc_num = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "gc_num",
+		Help:      "Memory GC number.",
+	})
 )
 
 //Flags
@@ -182,81 +171,84 @@ var (
 //Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
 type Page struct {
 	TheName string
-    Title   string
-    UN      string
+	Title   string
+	UN      string
 }
 
 type ListPage struct {
-    *Page
-    Pastes  []*Paste
-    Files   []*File
-    Shorturls []*Shorturl
-    Images  []*Image
+	*Page
+	Pastes    []*Paste
+	Files     []*File
+	Shorturls []*Shorturl
+	Images    []*Image
 }
 
 type GalleryPage struct {
-    *Page
-    Images  []*Image
+	*Page
+	Images []*Image
 }
 
 //BoltDB structs:
 type Paste struct {
 	Created int64
-	Title string
+	Title   string
 	Content string
-	Hits	int64
+	Hits    int64
 }
 
 type File struct {
-	Created int64
-	Filename string
-	Hits	int64
+	Created   int64
+	Filename  string
+	Hits      int64
 	RemoteURL string
 }
 
 type Image struct {
-	Created int64
-	Filename string
-	Hits	int64
+	Created   int64
+	Filename  string
+	Hits      int64
 	RemoteURL string
 }
 
 type Shorturl struct {
 	Created int64
-	Short 	string
-	Long 	string
-	Hits 	int64
+	Short   string
+	Long    string
+	Hits    int64
+}
+
+//JSON Response
+type jsonresponse struct {
+	Name    string `json:"name,omitempty"`
+	Success bool   `json:"success"`
 }
 
 //Sorting functions
 type ImageByDate []*Image
+
 func (a ImageByDate) Len() int           { return len(a) }
 func (a ImageByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ImageByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type PasteByDate []*Paste
+
 func (a PasteByDate) Len() int           { return len(a) }
 func (a PasteByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a PasteByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type FileByDate []*File
+
 func (a FileByDate) Len() int           { return len(a) }
 func (a FileByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a FileByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type ShortByDate []*Shorturl
+
 func (a ShortByDate) Len() int           { return len(a) }
 func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
-	//Goji DefaultMux overrides
-	bind.WithFlag()
-	if fl := log.Flags(); fl&log.Ltime != 0 {
-	log.SetFlags(fl | log.Lmicroseconds)
-	}
-	graceful.DoubleKickWindow(2 * time.Second)
-
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 
@@ -274,7 +266,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-    funcMap := template.FuncMap {"prettyDate": PrettyDate, "safeHTML": SafeHTML, "imgClass": ImgClass}
+	funcMap := template.FuncMap{"prettyDate": PrettyDate, "safeHTML": SafeHTML, "imgClass": ImgClass}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
@@ -296,12 +288,12 @@ func ImgClass(s string) string {
 }
 
 func SafeHTML(s string) template.HTML {
-     return template.HTML(s)
+	return template.HTML(s)
 }
 
 func timeTrack(start time.Time, name string) {
-    elapsed := time.Since(start)
-    log.Printf("[timer] %s took %s", name, elapsed)
+	elapsed := time.Since(start)
+	log.Printf("[timer] %s took %s", name, elapsed)
 }
 
 func markdownRender(content []byte) []byte {
@@ -327,12 +319,12 @@ func markdownRender(content []byte) []byte {
 //When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
 func getScheme(r *http.Request) (scheme string) {
-	scheme = r.Header.Get("X-Forwarded-Proto")+"://"
+	scheme = r.Header.Get("X-Forwarded-Proto") + "://"
 	/*
-	scheme = "http://"
-	if r.TLS != nil {
-		scheme = "https://"
-	}
+		scheme = "http://"
+		if r.TLS != nil {
+			scheme = "https://"
+		}
 	*/
 	if scheme == "://" {
 		scheme = "http://"
@@ -340,7 +332,6 @@ func getScheme(r *http.Request) (scheme string) {
 	return scheme
 }
 
-//func renderTemplate(w http.ResponseWriter, name string, p *Page) error {
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
 	tmpl, ok := templates[name]
 	if !ok {
@@ -362,416 +353,118 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 	return nil
 }
 
-func indexHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "indexHandler")
-	title := "index"
-	p, _ := loadMainPage(title, r, c)
-	err := renderTemplate(w, "index.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func loadGalleryPage(r *http.Request, c web.C) (*GalleryPage, error) {
-	defer timeTrack(time.Now(), "loadGalleryPage")
-    page, perr := loadPage("Gallery", r, c)
-    if perr != nil {
-        log.Println(perr)
-    }
-
-	var images []*Image
-	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Images"))
-	    b.ForEach(func(k, v []byte) error {
-	        fmt.Printf("key=%s, value=%s\n", k, v)
-	        var image *Image
-	        err := json.Unmarshal(v, &image)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		images = append(images, image)
-    		return nil
-	    })
-	    return nil
-	})
-	sort.Sort(ImageByDate(images))
-	return &GalleryPage{Page: page, Images: images}, nil
-}
-
-func galleryHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "galleryHandler")
-	l, err := loadGalleryPage(r, c)
-	if err != nil {
-		log.Println(err)
-	}
-
-	err = renderTemplate(w, "gallery.tmpl", l)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func galleryEsgyHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "galleryEsgyHandler")
-	l, err := loadGalleryPage(r, c)
-	if err != nil {
-		log.Println(err)
-	}
-
-	err = renderTemplate(w, "gallery-esgy.tmpl", l)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func galleryListHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "galleryListHandler")
-	l, err := loadGalleryPage(r, c)
-	if err != nil {
-		log.Println(err)
-	}
-
-	err = renderTemplate(w, "admin-list.tmpl", l)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func lgHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "lgHandler")
-	title := "lg"
-	p, err := loadPage(title, r, c)
-	data := struct {
-		Page *Page
-	    Title string
-	    Message string
-	} {
-		p,
-		title,
-		"",
-	}
-	err = renderTemplate(w, "lg.tmpl", data)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func searchHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "searchHandler")
-	term := c.URLParams["term"]
-	sterm := regexp.MustCompile(term)
-
-	file := &File{}
-	paste := &Paste{}
-
-	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
-	    c := tx.Bucket([]byte("Pastes"))
-	    c.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        err := json.Unmarshal(v, &paste)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		plink := paste.Title
-    		pfull := paste.Title + paste.Content
-    		if sterm.MatchString(pfull) {
-    			fmt.Fprintln(w, plink)
-    		}
-	        return nil
-	    })
-	    d := tx.Bucket([]byte("Files"))
-	    d.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        err := json.Unmarshal(v, &file)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		flink := file.Filename
-    		if sterm.MatchString(flink) {
-    			fmt.Fprintln(w, flink)
-    		}
-	        return nil
-	    })
-	    return nil
-	})
-
-}
-
-func uploadPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "uploadPageHandler")
-	title := "up"
-	p, _ := loadMainPage(title, r, c)
-	err := renderTemplate(w, "up.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func uploadImagePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "uploadImagePageHandler")
-	title := "upimg"
-	p, _ := loadMainPage(title, r, c)
-	err := renderTemplate(w, "upimg.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func pastePageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "pastePageHandler")
-	title := "paste"
-	p, _ := loadMainPage(title, r, c)
-	err := renderTemplate(w, "paste.tmpl", p)
-	r.ParseForm()
-	//log.Println(r.Form)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func shortenPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "shortenPageHandler")
-	title := "shorten"
-	p, _ := loadMainPage(title, r, c)
-	err := renderTemplate(w, "shorten.tmpl", p)
-	r.ParseForm()
-	//log.Println(r.Form)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func loginPageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "loginPageHandler")
-	title := "login"
-	p, err := loadPage(title, r, c)
-	data := struct {
-		Page *Page
-	    Title string
-	} {
-		p,
-		title,
-	}
-	err = renderTemplate(w, "login.tmpl", data)
-	if err != nil {
-	    log.Println(err)
-	    return
-	}
-}
-
-
 func ParseBool(value string) bool {
-    boolValue, err := strconv.ParseBool(value)
-    if err != nil {
-        return false
-    }
-    return boolValue
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return false
+	}
+	return boolValue
 }
 
-func loadPage(title string, r *http.Request, c web.C) (*Page, error) {
+func loadPage(title string, r *http.Request) (*Page, error) {
 	//timer.Step("loadpageFunc")
-	user := GetUsername(r, c)
+	user := GetUsername(r)
 	return &Page{TheName: "GoThing", Title: title, UN: user}, nil
 }
 
-func loadMainPage(title string, r *http.Request, c web.C) (interface{}, error) {
+func loadMainPage(title string, r *http.Request) (interface{}, error) {
 	//timer.Step("loadpageFunc")
-	p, err := loadPage(title, r, c)
+	p, err := loadPage(title, r)
 	if err != nil {
 		return nil, err
 	}
 	data := struct {
 		Page *Page
-	} {
+	}{
 		p,
 	}
 	return data, nil
 }
 
-func loadListPage(r *http.Request, c web.C) (*ListPage, error) {
-    page, perr := loadPage("List", r, c)
-    if perr != nil {
-        log.Println(perr)
-    }
+func loadListPage(r *http.Request) (*ListPage, error) {
+	page, perr := loadPage("List", r)
+	if perr != nil {
+		log.Println(perr)
+	}
 
 	var files []*File
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Files"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("FILES: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var file *File
-	        err := json.Unmarshal(v, &file)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		files = append(files, file)
-	        return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Files"))
+		b.ForEach(func(k, v []byte) error {
+			//log.Println("FILES: key="+string(k)+" value="+string(v))
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var file *File
+			err := json.Unmarshal(v, &file)
+			if err != nil {
+				log.Println(err)
+			}
+			files = append(files, file)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(FileByDate(files))
 
 	var pastes []*Paste
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Pastes"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("PASTE: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var paste *Paste
-	        err := json.Unmarshal(v, &paste)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		//log.Println(paste)
-    		//log.Printf("Addr: %p\n", paste)
-    		pastes = append(pastes, paste)
-	        return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Pastes"))
+		b.ForEach(func(k, v []byte) error {
+			//log.Println("PASTE: key="+string(k)+" value="+string(v))
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var paste *Paste
+			err := json.Unmarshal(v, &paste)
+			if err != nil {
+				log.Println(err)
+			}
+			//log.Println(paste)
+			//log.Printf("Addr: %p\n", paste)
+			pastes = append(pastes, paste)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(PasteByDate(pastes))
 
 	var shorts []*Shorturl
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Shorturls"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("SHORT: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var short *Shorturl
-	        err := json.Unmarshal(v, &short)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		shorts = append(shorts, short)
-	        return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Shorturls"))
+		b.ForEach(func(k, v []byte) error {
+			//log.Println("SHORT: key="+string(k)+" value="+string(v))
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var short *Shorturl
+			err := json.Unmarshal(v, &short)
+			if err != nil {
+				log.Println(err)
+			}
+			shorts = append(shorts, short)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(ShortByDate(shorts))
 
 	var images []*Image
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Images"))
-	    b.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var image *Image
-	        err := json.Unmarshal(v, &image)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		images = append(images, image)
-    		return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Images"))
+		b.ForEach(func(k, v []byte) error {
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var image *Image
+			err := json.Unmarshal(v, &image)
+			if err != nil {
+				log.Println(err)
+			}
+			images = append(images, image)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(ImageByDate(images))
 
 	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
-}
-
-
-func listHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "listHandler")
-	l, err := loadListPage(r, c)
-	if err != nil {
-		log.Println(err)
-	}
-	err = renderTemplate(w, "list.tmpl", l)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-func APInewRemoteFile(c web.C, w http.ResponseWriter, r *http.Request) {
-	remoteURL := r.FormValue("remote")
-	finURL := remoteURL
-	if !strings.HasPrefix(remoteURL,"http") {
-		log.Println("remoteURL does not contain a URL prefix, so adding http")
-		finURL = "http://"+remoteURL
-	}
-	fileURL, err := url.Parse(finURL)
-	if err != nil {
-		panic(err)
-	}	
-	path := fileURL.Path
-	segments := strings.Split(path, "/")
-	fileName := segments[len(segments)-1]
-	/*
-	log.Println("Filename:")
-	log.Println(fileName)
-	log.Println("Path:")
-	log.Println(path)
-	*/
-	dlpath := cfg.FileDir
-    if r.FormValue("remote-file-name") != "" {
-    	fileName = sanitize.Name(r.FormValue("remote-file-name"))
-    	log.Println("custom remote file name: "+fileName)
-    }	
-	file, err := os.Create(filepath.Join(dlpath, fileName))
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-		w.Write([]byte("fail"))
-	}
-	defer file.Close()
-	check := http.Client{
-			CheckRedirect: func(r *http.Request, via [] *http.Request) error {
-			r.URL.Opaque = r.URL.Path
-			return nil
-			},
-	}
-	resp, err := check.Get(finURL)
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-		w.Write([]byte("fail"))
-	}
-	defer resp.Body.Close()
-	fmt.Println(resp.Status)
-
-	size, err := io.Copy(file, resp.Body)
-	if err != nil {
-		panic(err)
-		w.Write([]byte("fail"))
-	}
-
-	//BoltDB stuff
-    fi := &File{
-        Created: time.Now().Unix(),
-        Filename: fileName,
-        RemoteURL: finURL,
-    }
-    err = fi.save()
-    if err != nil {
-        log.Println(err)
-		w.Write([]byte("fail"))
-    }
-
-	//fmt.Printf("%s with %v bytes downloaded", fileName, size)
-	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
-	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
-	//log.Println("Filename:")
-	//log.Println(fileName)
-
-	/*
-	c.Env["msg"] = fileName+" successfully uploaded! | <a style='color:#fff' href=/d/"+fileName+"><i class='fa fa-link'></i>Link</a>"
-	title := fileName+" successfully uploaded!"
-	p, _ := loadMainPage(title, r, c)
-	w.Header().Set("Location", "http://go.jba.io/up")
-	w.WriteHeader(303)
-	err = renderTemplate(w, "up.tmpl", p)
-	if err != nil {
-		log.Println(err)
-	}*/
-	
-	w.Write([]byte("success|"+fileName))
 }
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
@@ -805,641 +498,57 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	return nil
 }
 
-func APInewFile(c web.C, w http.ResponseWriter, r *http.Request) {
-	//vars := mux.Vars(r)
-	contentLength := r.ContentLength
-	var reader io.Reader
-	var f io.WriteCloser
-	var err error
-	var filename string
-	//var cli bool
-	//var remote bool
-	var uptype string
-	var fi *File
-	//fi := &File{}
-	path := cfg.FileDir
-	contentType := r.Header.Get("Content-Type")
-
-	//Determine how the file is being uploaded
-	if r.FormValue("remote") != "" {
-		uptype = "remote"
-	} else if contentType == "" {
-		uptype = "cli"
-	} else {
-		uptype = "form"
-	}
-	//log.Println(uptype)
-
-	//Remote File Uploads
-	if uptype == "remote" {
-		remoteURL := r.FormValue("remote")
-		finURL := remoteURL
-		if !strings.HasPrefix(remoteURL,"http") {
-			log.Println("remoteURL does not contain a URL prefix, so adding http")
-			finURL = "http://"+remoteURL
-		}
-		fileURL, err := url.Parse(finURL)
-		if err != nil {
-			panic(err)
-		}	
-		//path := fileURL.Path
-		segments := strings.Split(fileURL.Path, "/")
-		filename = segments[len(segments)-1]
-		/*
-		log.Println("Filename:")
-		log.Println(fileName)
-		log.Println("Path:")
-		log.Println(path)
-		*/
-		//dlpath := cfg.FileDir
-	    if r.FormValue("remote-file-name") != "" {
-	    	filename = sanitize.Name(r.FormValue("remote-file-name"))
-	    	log.Println("custom remote file name: "+filename)
-	    }
-		file, err := os.Create(filepath.Join(path, filename))
-		if err != nil {
-			fmt.Println(err)
-			panic(err)
-		}
-		defer file.Close()
-		check := http.Client{
-				CheckRedirect: func(r *http.Request, via [] *http.Request) error {
-				r.URL.Opaque = r.URL.Path
-				return nil
-				},
-		}
-		resp, err := check.Get(finURL)
-		if err != nil {
-			fmt.Println(err)
-			panic(err)
-		}
-		defer resp.Body.Close()
-		fmt.Println(resp.Status)
-
-		size, err := io.Copy(file, resp.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		//BoltDB stuff
-	    fi = &File{
-	        Created: time.Now().Unix(),
-	        Filename: filename,
-	        RemoteURL: finURL,
-	    }
-
-		//fmt.Printf("%s with %v bytes downloaded", fileName, size)
-		//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
-		fmt.Printf("%s with %v bytes downloaded from %s", filename, size, finURL)
-	} else if uptype == "cli" {
-		log.Println("Content-type blank, so this should be a CLI upload...")
-		//Then this should be an upload from the command line...
-		reader = r.Body
-		if contentLength == -1 {
-			var err error
-			var f io.Reader
-			f = reader
-			var b bytes.Buffer
-			n, err := io.CopyN(&b, f, _24K+1)
-			if err != nil && err != io.EOF {
-				log.Printf("%s", err.Error())
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			if n > _24K {
-				file, err := ioutil.TempFile("./tmp/", "transfer-")
-				if err != nil {
-					log.Printf("%s", err.Error())
-					http.Error(w, err.Error(), 500)
-					return
-				}
-				defer file.Close()
-				n, err = io.Copy(file, io.MultiReader(&b, f))
-				if err != nil {
-					os.Remove(file.Name())
-					log.Printf("%s", err.Error())
-					http.Error(w, err.Error(), 500)
-					return
-				}
-				reader, err = os.Open(file.Name())
-			} else {
-				reader = bytes.NewReader(b.Bytes())
-			}
-			contentLength = n
-		}
-		filename = sanitize.Path(filepath.Base(c.URLParams["id"]))
-		log.Println(filename)
-		if filename == "." {
-			log.Println("Filename is blank " + filename)
-			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			var bytes = make([]byte, 4)
-			rand.Read(bytes)
-			for k, v := range bytes {
-				bytes[k] = dictionary[v%byte(len(dictionary))]
-			}
-			filename = string(bytes)
-		}
-	    if r.FormValue("local-file-name") != "" {
-	    	filename = sanitize.Name(r.FormValue("local-file-name"))
-	    	log.Println("custom local file name: "+filename)
-	    }		
-		log.Printf("Uploading %s %d %s", filename, contentLength, contentType)
-		
-		if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
-			fmt.Printf("%s", err.Error())
-			http.Error(w, errors.New("Could not save file").Error(), 500)
-			return
-		}
-		defer f.Close()
-		if _, err = io.Copy(f, reader); err != nil {
-			return
-		}		
-		contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["id"]))
-		//BoltDB stuff
-	    fi = &File{
-	        Created: time.Now().Unix(),
-	        Filename: filename,
-	    }			
-	} else if uptype == "form" {
-        //log.Println("Content-type is "+contentType)
-        err := r.ParseMultipartForm(_24K)
-        if err != nil {
-            log.Println("ParseMultiform reader error")
-            log.Println(err)
-            return        	
-        }
-        file, handler, err := r.FormFile("file")
-		filename = handler.Filename
-		defer file.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	    if r.FormValue("local-file-name") != "" {
-	    	filename = sanitize.Name(r.FormValue("local-file-name"))
-	    	log.Println("custom local file name: "+filename)
-	    }
-
-        f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        defer f.Close()
-        io.Copy(f, file)
-
-		//BoltDB stuff
-	    fi = &File{
-	        Created: time.Now().Unix(),
-	        Filename: filename,
-	    }		
-	}	
-
-    err = fi.save()
-    if err != nil {
-        log.Println(err)
-    }
-
-    if uptype == "cli" {
-    	fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
-    } else {
-
-		w.Write([]byte("success|"+filename))  	
-    }
-}
-
 func (f *File) save() error {
-    err := Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Files"))
-        encoded, err := json.Marshal(f)
-        if err != nil {
-        	log.Println(err)
-            return err
-        }
-        return b.Put([]byte(f.Filename), encoded)
-    })
-    if err != nil {
-    	log.Println(err)
-    	return err
-    }
-	//log.Println(f)    
-    log.Println("++++FILE SAVED")
-    return nil
-}
-
-
-
-//Short URL Handlers
-func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
-
-	defer timeTrack(time.Now(), "shortUrlHandler")
-
-	shorturl := &Shorturl{}
-
-	//The Host that the user queried.
-	host := r.Host
-	host = strings.TrimSpace(host)
-	//Figure out if a subdomain exists in the host given.
-	host_parts := strings.Split(host, ".")
-	subdomain := ""
-	log.Println("Received Short URL request for "+host)
-	if len(host_parts) > 2 {
-	    //The subdomain exists, we store it as the first element 
-	    //in a new array
-	    subdomain = string(host_parts[0])
-	}
-	title := subdomain
 	err := Db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Shorturls"))
-    	v := b.Get([]byte(title))
-    	//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-    	//After JSON Unmarshal, Content should be in paste.Content field
-    	if v == nil {
-			http.Error(w, "Error 400 - No such domain at this address", 400)
-			err := errors.New(title + "No Such Short URL")
+		b := tx.Bucket([]byte("Files"))
+		encoded, err := json.Marshal(f)
+		if err != nil {
+			log.Println(err)
 			return err
-			//log.Println(err)
-    	} else {
-    		err := json.Unmarshal(v, &shorturl)
-    		if err != nil {
-    			log.Println(err)
-    		}
-	        count := (shorturl.Hits + 1)
-	        //If the shorturl is local, just serve whatever file being requested
-	        if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
-	        	log.Println("LONG URL CONTAINS ShortTLD")
-	        	if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
-	        		u, err := url.Parse(shorturl.Long)
-	        		if err != nil {
-	        			log.Println(err)
-	        		}
-				    segments := strings.Split(u.Path, "/")
-				    fileName := segments[len(segments)-1]	        		
-	        		log.Println("Serving "+shorturl.Long+" file directly")
-	        		http.ServeFile(w, r, cfg.ImgDir+fileName) 
-	        	}
-	        }
-	        if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
-	        	log.Println("LONG URL CONTAINS MainTLD")
-	        	if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
-	        		u, err := url.Parse(shorturl.Long)	        		
-	        		if err != nil {
-	        			log.Println(err)
-	        		}
-				    segments := strings.Split(u.Path, "/")
-				    fileName := segments[len(segments)-1]	        		
-	        		log.Println("Serving "+shorturl.Long+" file directly")
-	        		http.ServeFile(w, r, cfg.ImgDir+fileName) 
-	        	}
-	        }	        
-	        http.Redirect(w, r, shorturl.Long, 302)
-
-	        s := &Shorturl{
-	            Created: shorturl.Created,
-	            Short: shorturl.Short,
-	            Long: shorturl.Long,
-	            Hits: count,
-	        }
-	        encoded, err := json.Marshal(s)
-
-		//return nil
-    	return b.Put([]byte(title), encoded)
-    	}
+		}
+		return b.Put([]byte(f.Filename), encoded)
 	})
 	if err != nil {
 		log.Println(err)
+		return err
 	}
-}
-
-func APInewShortUrlForm(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewShortUrlForm")
-	err := r.ParseForm()
-	if err != nil {
-		log.Println(err)
-		w.Write([]byte("fail"))
-	}
-	short := r.PostFormValue("short")
-	if short != "" {
-		short = short
-	} else {
-		dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		var bytes = make([]byte, 4)
-		rand.Read(bytes)
-		for k, v := range bytes {
-			bytes[k] = dictionary[v%byte(len(dictionary))]
-		}
-		short = string(bytes)
-	}
-	long := r.PostFormValue("long")
-	s := &Shorturl{
-	    Created: time.Now().Unix(),
-	    Short: short,
-	    Long: long,
-	}
-
-	/*
-	Created string
-	Short 	string
-	Long 	string
-	*/
-
-	err = s.save()
-	if err != nil {
-		log.Println(err)
-		w.Write([]byte("fail"))
-	}
-	//log.Println("Short: " + s.Short)
-	//log.Println("Long: " + s.Long)
-
-	w.Write([]byte("success|"+s.Short))
-
+	//log.Println(f)
+	log.Println("++++FILE SAVED")
+	return nil
 }
 
 func (s *Shorturl) save() error {
 	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
-	    encoded, err := json.Marshal(s)
-	    if err != nil {
-	    	return err
-	    }
-	    return b.Put([]byte(s.Short), encoded)
+		encoded, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(s.Short), encoded)
 	})
-    if err != nil {
-    	return err
-    }	
+	if err != nil {
+		return err
+	}
 	log.Println("++++SHORTURL SAVED")
 	return nil
-}
-
-//Pastebin handlers
-func APInewPaste(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewPaste")
-	log.Println("Paste request...")
-	paste := r.Body
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(paste)
-	bpaste := buf.String()
-	var name = ""
-	if c.URLParams["id"] != "" {
-		name = c.URLParams["id"]
-	} else {
-		dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		var bytes = make([]byte, 4)
-		rand.Read(bytes)
-		for k, v := range bytes {
-			bytes[k] = dictionary[v%byte(len(dictionary))]
-		}
-		name = string(bytes)
-	}
-	p := &Paste{
-	    Created: time.Now().Unix(),
-	    Title: name,
-	    Content: bpaste,
-	}
-	err := p.save()
-	if err != nil {
-		log.Println(err)
-	}
-	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
-}
-
-func APInewPasteForm(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewPasteForm")
-	err := r.ParseForm()
-	if err != nil {
-		log.Println(err)
-	}
-	title := r.PostFormValue("title")
-	if title != "" {
-		title = title
-	} else {
-		dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		var bytes = make([]byte, 4)
-		rand.Read(bytes)
-		for k, v := range bytes {
-			bytes[k] = dictionary[v%byte(len(dictionary))]
-		}
-		title = string(bytes)
-	}
-	paste := r.PostFormValue("paste")
-	p := &Paste{
-	    Created: time.Now().Unix(),
-	    Title: title,
-	    Content: paste,
-	}
-	err = p.save()
-	if err != nil {
-		log.Println(err)
-	}
-	http.Redirect(w, r, getScheme(r)+r.Host+"/p/"+title, 302)
 }
 
 func (p *Paste) save() error {
 	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
-	    encoded, err := json.Marshal(p)
-	    if err != nil {
-	    	log.Println(err)
-	    	return err
-	    }
-	    return b.Put([]byte(p.Title), encoded)
-	})
-    if err != nil {
-    	log.Println(err)
-    	return err
-    }	
-	log.Println("++++PASTE SAVED")
-	return nil
-}
-
-func pasteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "pasteHandler")
-	title := c.URLParams["id"]
-	paste := &Paste{}
-	err := Db.View(func(tx *bolt.Tx) error {
-    	v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
-    	//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-    	//After JSON Unmarshal, Content should be in paste.Content field
-    	if v == nil {
-    		http.NotFound(w, r)
-    		return nil
-    	}
-    		err := json.Unmarshal(v, &paste)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
-    		//I need '<' and '>' in tact for scripts and such
-
-	   		//safe := template.HTMLEscapeString(paste.Content)
-	   		//safe := sanitize.HTML(paste.Content)
-
-	   		safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
-	   		//safe := paste.Content
-			fmt.Fprintf(w, "%s", safe)
-    		return nil
+		encoded, err := json.Marshal(p)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		return b.Put([]byte(p.Title), encoded)
 	})
 	if err != nil {
 		log.Println(err)
+		return err
 	}
-
-    //Attempt to increment paste hit counter...
-    err = Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Pastes"))
-        v := b.Get([]byte(title))
-        //If there is no existing key, do not do a thing
-        if v == nil {
-        	http.NotFound(w, r)
-        	return nil
-        }
-        err := json.Unmarshal(v, &paste)
-        if err != nil {
-            log.Println(err)
-        }
-        count := (paste.Hits + 1)
-        p := &Paste{
-            Created: paste.Created,
-            Title: paste.Title,
-            Content: paste.Content,
-            Hits: count,
-        }
-        encoded, err := json.Marshal(p)
-        return b.Put([]byte(title), encoded)
-    })
-    if err != nil{
-    	log.Println(err)
-    }
-}
-
-func downloadHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "downloadHandler")
-    name := c.URLParams["name"]
-    fpath := cfg.FileDir + path.Base(name)
-
-    //Attempt to increment file hit counter...
-    file := &File{}
-    Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Files"))
-        v := b.Get([]byte(name))
-        //If there is no existing key, do not do a thing
-        if v == nil {
-        	http.NotFound(w, r)
-        	return nil
-        }
-        err := json.Unmarshal(v, &file)
-        if err != nil {
-            log.Println(err)
-        }
-        count := (file.Hits + 1)
-        fi := &File{
-            Created: file.Created,
-            Filename: file.Filename,
-            Hits: count,
-        }
-        encoded, err := json.Marshal(fi)
-        http.ServeFile(w, r, fpath)
-        return b.Put([]byte(name), encoded)
-    })
-    
-}
-
-func downloadImageHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "downloadImageHandler")
-    name := c.URLParams["name"]
-    fpath := cfg.ImgDir + path.Base(name)
-
-    extensions := []string{".webm",".gif",".jpg",".jpeg",".png"}
-	//If this is extensionless, search for the proper file with the extension
-	if filepath.Ext(name) == "" {
-		log.Println("NO EXTENSION FOUND OMG")
-		for _, ext := range extensions {
-			if _, err := os.Stat(fpath + ext); err == nil {
-				name = name + ext
-				fpath = cfg.ImgDir + path.Base(name)
-				break
-			}
-		}
-	}
-
-    //Attempt to increment file hit counter...
-    image := &Image{}
-    Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Images"))
-        v := b.Get([]byte(name))
-        //If there is no existing key, do not do a thing
-        if v == nil {
-        	http.NotFound(w, r)
-        	return nil
-        }
-        err := json.Unmarshal(v, &image)
-        if err != nil {
-            log.Println(err)
-        }
-        count := (image.Hits + 1)
-        imi := &Image{
-            Created: image.Created,
-            Filename: image.Filename,
-            Hits: count,
-        }
-        encoded, err := json.Marshal(imi)
-        return b.Put([]byte(name), encoded)
-    })
-    
-	
-	//If this is a webm file, serve it so it acts like a GIF	
-	if filepath.Ext(name) == ".webm" {
-		//w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte(`<!doctype html><html><head><title>`+name+`</title></head>
-					    <body><video src=/imagedirect/`+name+` autoplay loop muted></video></body>
-					    </html>`))
-    } else {
-	    http.ServeFile(w, r, fpath)    	
-    }
-}
-
-//Separate function so thumbnail displays on the Gallery page do not increase hit counter
-//TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
-func imageThumbHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-    name := c.URLParams["name"]
-    fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
-    log.Println("name:"+ name)
-    log.Println("fpath:"+ fpath)
-//    http.ServeFile(w, r, fpath)
-
-    thumbPath := cfg.ThumbDir+path.Base(name)
-    log.Println("thumbpath:"+thumbPath)
-
-    //Check to see if the large image already exists
-    //If so, serve it directly
-	if _, err := os.Stat(thumbPath); err == nil {
-		log.Println("Pre-existing thumbnail already found, serving it...")
-		http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
-	} else {
-		log.Println("Thumbnail not found. Running thumbnail function...")
-		makeThumb(fpath, thumbPath)
-
-		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-		//convert -define "jpeg:size=300x300 -thumbnail 300x300 ./up-imgs/
-
-		/*
-		resize := exec.Command("/usr/bin/convert", fpath, "-strip", "-thumbnail","x300", thumbPath)
-    	contentType := mime.TypeByExtension(filepath.Ext(path.Base(strings.TrimSuffix(name, ".png"))))
-    	if contentType == "image/gif" {
-    		gpath := fpath+"[0]"
-			resize = exec.Command("/usr/bin/convert", gpath, "-strip", "-thumbnail","x300", thumbPath)
-		}
-		//resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--resize-height", "300", fpath, "#0", "-o", thumbPath)
-		err = resize.Run()
-		if err != nil {
-			log.Println(err)
-		}
-		*/
-		//Trying with imaging library now
-
-
-	    http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
-	}
-
+	log.Println("++++PASTE SAVED")
+	return nil
 }
 
 func makeThumb(fpath, thumbpath string) {
@@ -1447,7 +556,7 @@ func makeThumb(fpath, thumbpath string) {
 	if contentType == "video/webm" {
 		log.Println("WEBM FILE DETECTED")
 		//ffmpeg -i doit.webm -vframes 1 -filter:v scale="-1:300" doit.thumb.png
-		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v","scale='-1:300'", thumbpath)
+		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
 			log.Println(err)
@@ -1457,541 +566,80 @@ func makeThumb(fpath, thumbpath string) {
 
 	img, err := imaging.Open(fpath)
 	if err != nil {
-	  log.Println(err)
-	  return
+		log.Println(err)
+		return
 	}
-	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)	
+	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)
 	err = imaging.Save(thumb, thumbpath)
 	if err != nil {
-	  log.Println(err)
-	  return
+		log.Println(err)
+		return
 	}
 	return
 }
 
-func imageDirectHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-    name := c.URLParams["name"]
-    fpath := cfg.ImgDir + path.Base(name)
-    http.ServeFile(w, r, fpath)
-}
-
-
-//Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
-//Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
-func imageBigHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-    name := c.URLParams["name"]
-    smallPath := cfg.ImgDir+path.Base(name)
-    bigPath := cfg.GifDir+path.Base(name)
-
-    //Check to see if the large image already exists
-    //If so, serve it directly
-	if _, err := os.Stat(bigPath); err == nil {
-		log.Println("Pre-existing BIG gif already found, serving it...")
-		http.ServeFile(w, r, cfg.GifDir+path.Base(name))
-	} else {
-		log.Println("BIG gif not found. Running gifsicle...")
-		file, err := os.Open(smallPath)
-		if err != nil {
-		     log.Println(err)
-		     return
-		}
-		file.Close()
-		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256","--resize", "2000x_", smallPath, "-o", bigPath)
-		err = resize.Run()
+func (i *Image) save() error {
+	err := Db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Images"))
+		encoded, err := json.Marshal(i)
 		if err != nil {
 			log.Println(err)
+			return err
 		}
-	    http.ServeFile(w, r, cfg.GifDir+name)
-	}
-}
-
-//Separate function to resize GIFs in a goroutine
-func embiggenHandler(i string) {
-    name := i
-    smallPath := cfg.ImgDir+path.Base(name)
-    bigPath := cfg.GifDir+path.Base(name)
-
-    //Check to see if the large image already exists
-    //If so, serve it directly
-	if _, err := os.Stat(bigPath); err == nil {
-		log.Println("Pre-existing BIG gif already found, serving it...")
-		return
-	} else {
-		log.Println("BIG gif not found. Running gifsicle...")
-		file, err := os.Open(smallPath)
-		if err != nil {
-		     log.Println(err)
-		     return
-		}
-		file.Close()
-		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256","--resize", "2000x_", smallPath, "-o", bigPath)
-		err = resize.Run()
-		if err != nil {
-			log.Println(err)
-		}
-	    log.Println(name+" BIG GIF has been saved.")
-	}
-}
-
-//Delete stuff
-func APIdeleteHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	//Requests should come in on /api/delete/{type}/{name}
-	ftype := c.URLParams["type"]
-	fname := c.URLParams["name"]
-	if ftype == "file" {
-		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
-		    return tx.Bucket([]byte("Files")).Delete([]byte(fname))
-		})
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		fpath := cfg.FileDir + fname
-		err = os.Remove(fpath)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		//c.Env["msg"] = "File " + fname + " has been deleted"
-		//http.Redirect(w, r, "/list", http.StatusSeeOther)
-		w.Write([]byte("success|"+fname))
-	} else if ftype == "image" {
-		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
-		    return tx.Bucket([]byte("Images")).Delete([]byte(fname))
-		})
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		fpath := cfg.ImgDir + fname
-		err = os.Remove(fpath)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		//c.Env["msg"] = "Image " + fname + " has been deleted"
-		//http.Redirect(w, r, "/list", http.StatusSeeOther)
-		w.Write([]byte("success|"+fname))
-	} else if ftype == "paste" {
-		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
-		    return tx.Bucket([]byte("Pastes")).Delete([]byte(fname))
-		})
-		if err != nil {
-			log.Println(err)
-		}
-		//c.Env["msg"] = "Paste " + fname + " has been deleted"
-		//http.Redirect(w, r, "/list", http.StatusSeeOther)
-		w.Write([]byte("success|"+fname))
-	} else if ftype == "shorturl" {
-		err := Db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
-		    return tx.Bucket([]byte("Shorturls")).Delete([]byte(fname))
-		})
-		if err != nil {
-			log.Println(err)
-		}
-		//c.Env["msg"] = "ShortURL " + fname + " has been deleted"
-		//http.Redirect(w, r, "/list", http.StatusSeeOther)
-		w.Write([]byte("success|"+fname))
-	} else {
-		w.Write([]byte("fail|"))
-	}
-}
-
-/*
-func handleAdmin(c web.C, w http.ResponseWriter, r *http.Request) {
-    if user, err := aaa.CurrentUser(w, r); err == nil {
-        type data struct {
-            User httpauth.UserData
-            Roles map[string]httpauth.Role
-            Users []httpauth.UserData
-            Msg []string
-        }
-        messages := aaa.Messages(w, r)
-        users, err := backend.Users()
-        if err != nil {
-            panic(err)
-        }
-
-        d := data{User:user, Roles:roles, Users:users, Msg:messages}
-		err = renderTemplate(w, "admin.tmpl", d)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-}
-*/
-
-func APIlgAction(c web.C, w http.ResponseWriter, r *http.Request) {
-	url := r.PostFormValue("url")
-	err := r.ParseForm()
+		return b.Put([]byte(i.Filename), encoded)
+	})
 	if err != nil {
 		log.Println(err)
+		return err
 	}
-	if r.Form.Get("lg-action") == "ping" {
-		//Ping stuff
-		out, err := exec.Command("ping", "-c10", url).Output()
-		if err != nil {
-			log.Println(err)
-		}
-		outs := string(out)
-		title := "Pinging " + url
-		p, err := loadPage(title, r, c)
-		data := struct {
-			Page *Page
-		    Title string
-		    Message string
-		} {
-			p,
-			title,
-			outs,
-		}
-		err = renderTemplate(w, "lg.tmpl", data)
-		if err != nil {
-			log.Println(err)
-		}
-	} else if r.Form.Get("lg-action") == "mtr" {
-		//MTR stuff
-		out, err := exec.Command("mtr", "--report-wide", "-c10", url).Output()
-		if err != nil {
-			log.Println(err)
-		}
-		outs := string(out)
-		title := "MTR to " + url
-		p, err := loadPage(title, r, c)
-		data := struct {
-			Page *Page
-		    Title string
-		    Message string
-		} {
-			p,
-			title,
-			outs,
-		}
-		err = renderTemplate(w, "lg.tmpl", data)
-		if err != nil {
-			log.Println(err)
-		}
-	} else if r.Form.Get("lg-action") == "traceroute" {
-		//Traceroute stuff
-		out, err := exec.Command("traceroute", url).Output()
-		if err != nil {
-			log.Println(err)
-		}
-		outs := string(out)
-		title := "Traceroute to " + url
-		p, err := loadPage(title, r, c)
-		data := struct {
-			Page *Page
-		    Title string
-		    Message string
-		} {
-			p,
-			title,
-			outs,
-		}
-		err = renderTemplate(w, "lg.tmpl", data)
-		if err != nil {
-			log.Println(err)
-		}
-	} else {
-	    //If formvalue isn't MTR, Ping, or traceroute, this should be hit
-		http.NotFound(w, r)
-		return	    		
+	//Detect what kind of image, so we can embiggen GIFs from the get-go
+
+	contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
+	if contentType == "image/gif" {
+		log.Println("GIF detected; Running embiggen function...")
+		go embiggenHandler(i.Filename)
 	}
+	//log.Println(contentType)
+	log.Println("++++IMAGE SAVED")
+	return nil
 }
 
-//Goji Logger middleware
-/*
-func LoggerMiddleware(h http.Handler) http.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		rawurl := r.Header.Get("X-Raw-URL")
-		ua := r.Header.Get("User-Agent")
-		scheme := r.Header.Get("X-Forwarded-Proto")
-		ip := r.Header.Get("X-Forwarded-For")
-		log.Println("Started "+r.Method+" "+r.URL.Path+"| Host: "+r.Host+" | Raw URL: "+rawurl+" | UserAgent: "+ua+" | HTTPS: "+scheme+" | IP: "+ip) 
-		h.ServeHTTP(w, r)
-		log.Println("After request")
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusWriter) Status() int {
+	return w.status
+}
+
+func (w *statusWriter) Size() int {
+	return w.size
+}
+
+func (w *statusWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.status = 200
 	}
-	return http.HandlerFunc(handler)
-}*/
-
-
-
-func APInewRemoteImage(c web.C, w http.ResponseWriter, r *http.Request) {
-    remoteURL := r.FormValue("remote-image")
-    finURL := remoteURL
-    if !strings.HasPrefix(remoteURL,"http") {
-        log.Println("remoteURL does not contain a URL prefix, so adding http")
-        log.Println(remoteURL)
-        finURL = "http://"+remoteURL
-    }
-    fileURL, err := url.Parse(finURL)
-    if err != nil {
-        panic(err)
-    }   
-    path := fileURL.Path
-    segments := strings.Split(path, "/")
-    fileName := segments[len(segments)-1]
-    /*
-    log.Println("Filename:")
-    log.Println(fileName)
-    log.Println("Path:")
-    log.Println(path)
-    */
-    dlpath := cfg.ImgDir
-    if r.FormValue("remote-image-name") != "" {
-    	fileName = sanitize.Name(r.FormValue("remote-image-name"))
-    	log.Println("custom remote image name: "+fileName)    	
-    }
-    file, err := os.Create(filepath.Join(dlpath, fileName))
-    if err != nil {
-        fmt.Println(err)
-        panic(err)
-        w.Write([]byte("fail"))
-    }
-    defer file.Close()
-    check := http.Client{
-            CheckRedirect: func(r *http.Request, via [] *http.Request) error {
-            r.URL.Opaque = r.URL.Path
-            return nil
-            },
-    }
-    resp, err := check.Get(finURL)
-    if err != nil {
-        fmt.Println(err)
-        panic(err)
-        w.Write([]byte("fail"))
-    }
-    defer resp.Body.Close()
-    fmt.Println(resp.Status)
-
-    _, err = io.Copy(file, resp.Body)
-    if err != nil {
-        panic(err)
-        w.Write([]byte("fail"))
-    }
-
-    //BoltDB stuff
-    imi := &Image{
-        Created: time.Now().Unix(),
-        Filename: fileName,
-        RemoteURL: finURL,
-    }
-    err = imi.save()
-    if err != nil {
-        log.Println(err)
-        w.Write([]byte("fail"))
-    }
-
-    //fmt.Printf("%s with %v bytes downloaded", fileName, size)
-    //fmt.Fprintf(w, "%s image with %v bytes downloaded from %s", fileName, size, finURL)
-    //fmt.Printf("%s image with %v bytes downloaded from %s", fileName, size, finURL)
-    //log.Println("Filename:")
-    //log.Println(fileName)
-    //http.Redirect(w, r, "/i", 302)
-
-    w.Write([]byte("success|"+fileName))
+	written, err := w.ResponseWriter.Write(b)
+	w.size += written
+	return written, err
 }
 
-func APInewImage(c web.C, w http.ResponseWriter, r *http.Request) {
-    //vars := mux.Vars(r)
-    contentLength := r.ContentLength
-    var reader io.Reader
-    var f io.WriteCloser
-    var err error
-    var filename string
-    path := cfg.ImgDir
-    log.Println(r)
-    contentType := r.Header.Get("Content-Type") 
-    if contentType == "" {
-        log.Println("Content-type blank, so this should be a CLI upload...")
-        //Then this should be an upload from the command line...
-        reader = r.Body
-        if contentLength == -1 {
-            var err error
-            var f io.Reader
-            f = reader
-            var b bytes.Buffer
-            n, err := io.CopyN(&b, f, _24K+1)
-            if err != nil && err != io.EOF {
-                log.Printf("%s", err.Error())
-                http.Error(w, err.Error(), 500)
-                return
-            }
-            if n > _24K {
-                file, err := ioutil.TempFile("./tmp/", "transfer-")
-                if err != nil {
-                    log.Printf("%s", err.Error())
-                    http.Error(w, err.Error(), 500)
-                    return
-                }
-                defer file.Close()
-                n, err = io.Copy(file, io.MultiReader(&b, f))
-                if err != nil {
-                    os.Remove(file.Name())
-                    log.Printf("%s", err.Error())
-                    http.Error(w, err.Error(), 500)
-                    return
-                }
-                reader, err = os.Open(file.Name())
-            } else {
-                reader = bytes.NewReader(b.Bytes())
-            }
-            contentLength = n
-        }
-        filename = sanitize.Path(filepath.Base(c.URLParams["filename"]))
-        if filename == "." {
-            log.Println("Filename is blank " + filename)
-            dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-            var bytes = make([]byte, 4)
-            rand.Read(bytes)
-            for k, v := range bytes {
-                bytes[k] = dictionary[v%byte(len(dictionary))]
-            }
-            filename = string(bytes)
-        }
-	    if r.FormValue("local-image-name") != "" {
-	    	filename = sanitize.Name(r.FormValue("local-image-name"))
-	    	log.Println("custom local image name: "+filename)
-	    }
-        log.Printf("Uploading image %s %d %s", filename, contentLength, contentType)
-        
-        if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
-            fmt.Printf("%s", err.Error())
-            http.Error(w, errors.New("Could not save image").Error(), 500)
-            return
-        }
-        defer f.Close()
-        if _, err = io.Copy(f, reader); err != nil {
-            return
-        }       
-        contentType = mime.TypeByExtension(filepath.Ext(c.URLParams["filename"]))
-    } else {
-        log.Println("Content-type is "+contentType)
-        err := r.ParseMultipartForm(_24K)
-        if err != nil {
-            log.Println("ParseMultiform reader error")
-            log.Println(err)
-            return        	
-        }
-        file, handler, err := r.FormFile("file")
-        filename = handler.Filename
-	    if r.FormValue("local-image-name") != "" {
-	    	filename = sanitize.Name(r.FormValue("local-image-name"))
-	    	log.Println("custom local image name: "+filename)
-	    }		        
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        defer file.Close()
-        f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        defer f.Close()
-        io.Copy(f, file)
-
-        /*
-        mr, err := r.MultipartReader()
-        if err != nil {
-            log.Println("Multipart reader error")
-            log.Println(err)
-            return
-        }
-        //filename := mr.currentPart.FileHeader.Filename
-        //log.Println(r.PostFormValue("local-image-name"))
-        for {
-
-            part, err := mr.NextPart()
-            if err == io.EOF {
-                break
-            }
-            //if part.FileName() is empty, skip this iteration.
-            if part.FileName() != "" {
-                filename = part.FileName()
-            }
-            var read int64
-            var p float32
-            dst, err := os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-            if err != nil {
-                return
-            }
-            for {
-                buffer := make([]byte, 100000)
-                cBytes, err := part.Read(buffer)
-                if err == io.EOF {
-                    break
-                }
-                read = read + int64(cBytes)
-                //fmt.Printf("read: %v \n",read )
-                p = float32(read) / float32(contentLength) *100
-                fmt.Fprintf(w, "progress: %v \n",p )
-                dst.Write(buffer[0:cBytes])
-            }
-        }*/
-
-    }
-
-    // w.Statuscode = 200
-
-    //BoltDB stuff
-    imi := &Image{
-        Created: time.Now().Unix(),
-        Filename: filename,
-    }
-    err = imi.save()
-    if err != nil {
-        log.Println(err)
-        w.Write([]byte("fail"))
-    }
-
-	w.Write([]byte("success|"+filename))
-}
-
-func (i *Image) save() error {
-    err := Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Images"))
-        encoded, err := json.Marshal(i)
-        if err != nil {
-        	log.Println(err)
-            return err
-        }
-        return b.Put([]byte(i.Filename), encoded)
-    })
-    if err != nil {
-    	log.Println(err)
-    	return err
-    }    
-    //Detect what kind of image, so we can embiggen GIFs from the get-go
-
-    contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
-    if contentType == "image/gif" {
-    	log.Println("GIF detected; Running embiggen function...")
-    	go embiggenHandler(i.Filename)
-    }
-    //log.Println(contentType)
-    log.Println("+IMAGE SAVED")
-    return nil
-}
-
-
-//Goji Custom Logging Middleware
-func LoggerMiddleware(c *web.C, h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+//Custom Logging Middleware
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var buf bytes.Buffer
-		reqID := middleware.GetReqID(*c)
-		//printStart(reqID, r)
-		if reqID != "" {
-			fmt.Fprintf(&buf, "[%s] ", reqID)
-		}
+
+		start := time.Now()
+		writer := statusWriter{w, 0, 0}
+
 		buf.WriteString("Started ")
 		fmt.Fprintf(&buf, "%s ", r.Method)
 		fmt.Fprintf(&buf, "%q ", r.URL.String())
@@ -2000,144 +648,29 @@ func LoggerMiddleware(c *web.C, h http.Handler) http.Handler {
 		buf.WriteString(r.RemoteAddr)
 
 		//Log to file
-		f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+		f, err := os.OpenFile("./req.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-		    log.Fatalf("error opening file: %v", err)
+			log.Fatalf("error opening file: %v", err)
 		}
 		defer f.Close()
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 		log.Print(buf.String())
 		//Reset buffer to be reused by the end stuff
-		buf.Reset()	
+		buf.Reset()
 
-		lw := mutil.WrapWriter(w)
+		next.ServeHTTP(&writer, r)
 
-		t1 := time.Now()
-		h.ServeHTTP(lw, r)
+		end := time.Now()
+		latency := end.Sub(start)
+		status := writer.Status()
 
-		if lw.Status() == 0 {
-			lw.WriteHeader(http.StatusOK)
-		}
-		t2 := time.Now()
-
-		//printEnd(reqID, lw, t2.Sub(t1))
-		dt := t2.Sub(t1)
 		buf.WriteString("Returning ")
-		status := lw.Status()
 		fmt.Fprintf(&buf, "%v", status)
 		buf.WriteString(" in ")
-		if dt < 500*time.Millisecond {
-			fmt.Fprintf(&buf, "%s", dt)
-		} else if dt < 5*time.Second {
-			fmt.Fprintf(&buf, "%s", dt)
-		} else {
-			fmt.Fprintf(&buf, "%s", dt)
-		}
+		fmt.Fprintf(&buf, "%s", latency)
 		//log.SetOutput(io.MultiWriter(os.Stdout, f))
 		log.Print(buf.String())
-	}
-	return http.HandlerFunc(fn)
-}
-
-func viewMarkdownHandler(c web.C, w http.ResponseWriter, r *http.Request) {
-	//vars := mux.Vars(r)
-    //name := vars["page"]
-    name := c.URLParams["page"]
-	p, err := loadPage(name, r, c)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-    body, err := ioutil.ReadFile("./md/"+name+".md")
-	if err != nil {
-		http.NotFound(w, r)
-		log.Println(err)
-		return
-	}    
-	//unsafe := blackfriday.MarkdownCommon(body)
-	md := markdownRender(body) 
-	mdhtml := template.HTML(md)
-	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)	
-
-	data := struct {
-		Page *Page
-	    Title string
-	    MD template.HTML
-	} {
-		p,
-		name,
-		mdhtml,
-	}
-	err = renderTemplate(w, "md.tmpl", data)	
-    if err != nil {
-    	log.Println(err)
-    }
-	log.Println(name + " Page rendered!")
-}
-
-func Readme(c web.C, w http.ResponseWriter, r *http.Request) {
-    name := "README"
-	p, err := loadPage(name, r, c)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-    body, err := ioutil.ReadFile("./"+name+".md")
-	if err != nil {
-		log.Println(err)
-		return
-	}    
-	//unsafe := blackfriday.MarkdownCommon(body)
-	md := markdownRender(body) 
-	mdhtml := template.HTML(md)
-	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)	
-	data := struct {
-		Page *Page
-	    Title string
-	    MD template.HTML
-	} {
-		p,
-		name,
-		mdhtml,
-	}
-	err = renderTemplate(w, "md.tmpl", data)	
-    if err != nil {
-    	log.Println(err)
-    }
-	log.Println(name + " Page rendered!")
-}
-
-func Changelog(c web.C, w http.ResponseWriter, r *http.Request) {
-    name := "CHANGELOG"
-	p, err := loadPage(name, r, c)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-    body, err := ioutil.ReadFile("./"+name+".md")
-	if err != nil {
-		log.Println(err)
-		return
-	}    
-	//unsafe := blackfriday.MarkdownCommon(body)
-	md := markdownRender(body) 
-	mdhtml := template.HTML(md)
-	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)	
-	data := struct {
-		Page *Page
-	    Title string
-	    MD template.HTML
-	} {
-		p,
-		name,
-		mdhtml,
-	}
-	err = renderTemplate(w, "md.tmpl", data)	
-    if err != nil {
-    	log.Println(err)
-    }
-	log.Println(name + " Page rendered!")
+	})
 }
 
 //Generate a random key of specific length
@@ -2155,7 +688,7 @@ func RandKey(leng int8) string {
 //Generate stats, printed in format directly compatible with http://prometheus.io
 //I could use the Prometheus client library, but seeing as the runtime stats and boltdb stats provide all I need, I see no point
 /*
-func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
 
 	memStats := &runtime.MemStats{}
 
@@ -2168,18 +701,18 @@ func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	//How much stuff is being held, taken from BoltDB buckets
 	ds := Db.Stats()
 	dst := ds.TxStats
-	
+
 	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
 	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
 	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
 	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
 	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
-	
+
 
 
 	err := Db.View(func(tx *bolt.Tx) error {
 		p := tx.Bucket([]byte("Pastes"))
-		ps := p.Stats()		
+		ps := p.Stats()
     	f := tx.Bucket([]byte("Files"))
     	fs := f.Stats()
     	sh := tx.Bucket([]byte("Shorturls"))
@@ -2192,19 +725,19 @@ func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 		shorturl_count.Set(float64(shs.KeyN))
 		images_count.Set(float64(is.KeyN))
 
-    	
+
 		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
 		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
 		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
 		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
-		
+
 		return nil
 	})
 	if err != nil {
 		log.Println(err)
 	}
 
-	
+
 	//Runtime stats
 	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
 	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
@@ -2214,7 +747,7 @@ func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
 	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
 	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
-	
+
 
 	tx_num.Set(float64(ds.TxN))
 	tx_page_count.Set(float64(dst.PageCount))
@@ -2231,9 +764,34 @@ func runtimeStatsHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	memory_gc_num.Set(float64(memStats.NumGC))
 
 
-  
+
 }
 */
+
+func makeJSON(w http.ResponseWriter, data interface{}) ([]byte, error) {
+	jsonData, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return nil, err
+	}
+	//log.Println(string(jsonData))
+	return jsonData, nil
+}
+
+func WriteJ(w http.ResponseWriter, name string, success bool) error {
+	j := jsonresponse{
+		Name:    name,
+		Success: success,
+	}
+	json, err := makeJSON(w, j)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	w.Write(json)
+	//log.Println(string(json))
+	return nil
+}
 
 func main() {
 	/* for reference
@@ -2248,7 +806,6 @@ func main() {
 	//log.Println(tm)
 	//log.Println(tm.Format(timestamp))
 
-
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
 	decoder := json.NewDecoder(conf)
@@ -2259,22 +816,22 @@ func main() {
 	//log.Println(cfg.Username)
 
 	//Check for essential directory existence
-   _, err = os.Stat(cfg.ImgDir)
-   if err != nil {
-      os.Mkdir(cfg.ImgDir, 0755)
-   }
-   _, err = os.Stat(cfg.FileDir)
-   if err != nil {
-      os.Mkdir(cfg.FileDir, 0755)
-   }
-   _, err = os.Stat(cfg.GifDir)
-   if err != nil {
-      os.Mkdir(cfg.GifDir, 0755)
-   }
-   _, err = os.Stat(cfg.ThumbDir)
-   if err != nil {
-      os.Mkdir(cfg.ThumbDir, 0755)
-   }
+	_, err = os.Stat(cfg.ImgDir)
+	if err != nil {
+		os.Mkdir(cfg.ImgDir, 0755)
+	}
+	_, err = os.Stat(cfg.FileDir)
+	if err != nil {
+		os.Mkdir(cfg.FileDir, 0755)
+	}
+	_, err = os.Stat(cfg.GifDir)
+	if err != nil {
+		os.Mkdir(cfg.GifDir, 0755)
+	}
+	_, err = os.Stat(cfg.ThumbDir)
+	if err != nil {
+		os.Mkdir(cfg.ThumbDir, 0755)
+	}
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
 	defer Db.Close()
@@ -2295,55 +852,17 @@ func main() {
 		_, err = tx.CreateBucketIfNotExists([]byte("Images"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
-		}		
+		}
 		return nil
 	})
-	/*
-	Db.View(func(tx *bolt.Tx) error {
-    	b := tx.Bucket([]byte("Pastes"))
-    	log.Println("-------BOLTDB Pastes: ")
-    	b.ForEach(func(k, v []byte) error {
-        	fmt.Printf("key=%s, value=%s\n", k, v)
-        	return nil
-    	})
-    	c := tx.Bucket([]byte("Files"))
-    	log.Println("-------BOLTDB Files: ")
-    	c.ForEach(func(k, v []byte) error {
-        	fmt.Printf("key=%s, value=%s\n", k, v)
-        	return nil
-    	})
-    	e := tx.Bucket([]byte("Shorturls"))
-    	log.Println("-------BOLTDB Shorturls: ")
-    	e.ForEach(func(k, v []byte) error {
-        	fmt.Printf("key=%s, value=%s\n", k, v)
-        	return nil
-    	})
-    	f := tx.Bucket([]byte("Images"))
-    	log.Println("-------BOLTDB Images: ")
-    	f.ForEach(func(k, v []byte) error {
-        	fmt.Printf("key=%s, value=%s\n", k, v)
-        	return nil
-    	})    	
-    	return nil
-	})*/
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cfg.Port
 	}
 
-	/*
-	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	rb := make([]byte, 32)
-	rand.Read(rb)
-	for k, v := range rb {
-		rb[k] = dictionary[v%byte(len(dictionary))]
-	}
-	sess_id := string(rb)
-	*/
 	new_sess := RandKey(32)
 	log.Println("Session ID: " + new_sess)
-
 
 	memStats := &runtime.MemStats{}
 
@@ -2357,34 +876,33 @@ func main() {
 	ds := Db.Stats()
 	dst := ds.TxStats
 	/*
-	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
-	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
-	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
-	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
-	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
+		fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
+		fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
+		fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
+		fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
+		fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
 	*/
-
 
 	err = Db.View(func(tx *bolt.Tx) error {
 		p := tx.Bucket([]byte("Pastes"))
-		ps := p.Stats()		
-    	f := tx.Bucket([]byte("Files"))
-    	fs := f.Stats()
-    	sh := tx.Bucket([]byte("Shorturls"))
-    	shs := sh.Stats()
-    	i := tx.Bucket([]byte("Images"))
-    	is := i.Stats()
+		ps := p.Stats()
+		f := tx.Bucket([]byte("Files"))
+		fs := f.Stats()
+		sh := tx.Bucket([]byte("Shorturls"))
+		shs := sh.Stats()
+		i := tx.Bucket([]byte("Images"))
+		is := i.Stats()
 
 		paste_count.Set(float64(ps.KeyN))
 		file_count.Set(float64(fs.KeyN))
 		shorturl_count.Set(float64(shs.KeyN))
 		images_count.Set(float64(is.KeyN))
 
-    	/*
-		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
-		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
-		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
-		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
+		/*
+			fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
+			fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
+			fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
+			fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
 		*/
 		return nil
 	})
@@ -2393,15 +911,15 @@ func main() {
 	}
 
 	/*
-	//Runtime stats
-	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
-	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
-	fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
-	fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
-	fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
-	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
-	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
-	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
+		//Runtime stats
+		fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
+		fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
+		fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
+		fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
+		fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
+		fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
+		fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
+		fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
 	*/
 
 	tx_num.Set(float64(ds.TxN))
@@ -2413,7 +931,7 @@ func main() {
 	memory_allocated.Set(float64(memStats.Alloc))
 	memory_mallocs.Set(float64(memStats.Mallocs))
 	memory_frees.Set(float64(memStats.Frees))
-	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs)/nsInMs)
+	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs) / nsInMs)
 	memory_heap.Set(float64(memStats.HeapAlloc))
 	memory_stack.Set(float64(memStats.StackInuse))
 	memory_gc_num.Set(float64(memStats.NumGC))
@@ -2435,193 +953,114 @@ func main() {
 	prometheus.MustRegister(memory_stack)
 	prometheus.MustRegister(memory_gc_num)
 
-
 	flag.Parse()
 	flag.Set("bind", ":3000")
-	
-	g := web.New()
-	g.Use(middleware.EnvInit)
-	//g.Use(AuthMiddleware)
-	//g.Abandon(AuthMiddleware)
-	g.Use(middleware.RequestID)
-    g.Use(LoggerMiddleware)
-    g.Use(middleware.Recoverer)
-    g.Use(middleware.AutomaticOptions)		
-	//Static handler
-	g.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
-	g.Get("/", indexHandler)
 
-	g.Use(AuthMiddleware)
-	g.Get("/priv", Readme)
-	g.Abandon(AuthMiddleware)
+	std := alice.New(Logger)
+	//stda := alice.New(Auth, Logger)
 
-	g.Get("/readme", Readme)
-	g.Get("/changelog", Changelog)
+	r := mux.NewRouter().StrictSlash(true)
+	d := r.Host("go.jba.io").Subrouter()
+
+	if fLocal {
+		log.Println("Listening on .dev domains due to -l flag...")
+		d = r.Host("go.dev").Subrouter()
+	} else {
+		log.Println("Listening on " + cfg.MainTLD + " domain")
+	}
+
+	d.HandleFunc("/", indexHandler).Methods("GET")
+	d.HandleFunc("/priv", Auth(Readme)).Methods("GET")
+	d.HandleFunc("/readme", Readme).Methods("GET")
+	d.HandleFunc("/changelog", Changelog).Methods("GET")
+	d.HandleFunc("/login", loginHandler).Methods("POST")
+	d.HandleFunc("/login", loginPageHandler).Methods("GET")
+	d.HandleFunc("/logout", logoutHandler).Methods("POST")
+	d.HandleFunc("/logout", logoutHandler).Methods("GET")
+	d.HandleFunc("/list", listHandler).Methods("GET")
+	d.HandleFunc("/s", shortenPageHandler).Methods("GET")
+	d.HandleFunc("/short", shortenPageHandler).Methods("GET")
+	d.HandleFunc("/lg", lgHandler).Methods("GET")
+	d.HandleFunc("/p", pastePageHandler).Methods("GET")
+	d.HandleFunc("/p/{name}", pasteHandler).Methods("GET")
+	d.HandleFunc("/up", uploadPageHandler).Methods("GET")
+	d.HandleFunc("/iup", uploadImagePageHandler).Methods("GET")
+	d.HandleFunc("/search/{name}", searchHandler).Methods("GET")
+	d.HandleFunc("/d/{name}", downloadHandler).Methods("GET")
+	d.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
+	d.HandleFunc("/i/{name}", downloadImageHandler).Methods("GET")
+	d.HandleFunc("/md/{name}", viewMarkdownHandler).Methods("GET")
+	d.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
+	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
+	d.HandleFunc("/i", galleryHandler).Methods("GET")
+	d.HandleFunc("/il", galleryListHandler).Methods("GET")
+	d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
+		WriteJ(w, "LOL", false)
+	}).Methods("GET", "POST")
+	d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {
+		WriteJ(w, "", false)
+	}).Methods("GET", "POST")
+
+	//CLI API Functions
+	d.HandleFunc("/up/{name}", APInewFile).Methods("POST", "PUT")
+	d.HandleFunc("/up", APInewFile).Methods("POST", "PUT")
+	d.HandleFunc("/p/{name}", APInewPaste).Methods("POST", "PUT")
+	d.HandleFunc("/p", APInewPaste).Methods("POST", "PUT")
+	d.HandleFunc("/lg", APIlgAction).Methods("POST")
+
+	//API Functions
+	api := r.PathPrefix("/api").Subrouter()
+	api.HandleFunc("/delete/{type}/{name}", Auth(APIdeleteHandler)).Methods("GET")
+	api.HandleFunc("/paste/new", APInewPasteForm).Methods("POST")
+	api.HandleFunc("/file/new", APInewFile).Methods("POST")
+	api.HandleFunc("/file/remote", APInewRemoteFile).Methods("POST")
+	api.HandleFunc("/shorten/new", APInewShortUrlForm).Methods("POST")
+	api.HandleFunc("/lg", APIlgAction).Methods("POST")
+	api.HandleFunc("/image/new", APInewImage).Methods("POST")
+	api.HandleFunc("/image/remote", APInewRemoteImage).Methods("POST")
+
+	//Dedicated image subdomain routes
+	i := r.Host(cfg.ImageTLD).Subrouter()
+	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
+	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
+	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
+	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
+	i.HandleFunc("/{name}", downloadImageHandler).Methods("GET")
+
+	//Big GIFs
+	big := r.Host(cfg.GifTLD).Subrouter()
+	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
+
+	//Dynamic subdomains
+	wild := r.Host("{name}.es.gy").Subrouter()
+	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
+
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
+	http.Handle("/", std.Then(r))
+	http.ListenAndServe(":3000", nil)
+
 	//Runtime stats
 	//g.Get("/stats", runtimeStatsHandler)
 
-	//Login/logout
-	g.Post("/login", loginHandler)
-	g.Get("/login", loginPageHandler)
-	g.Get("/logout", logoutHandler)
-	g.Post("/logout", logoutHandler)
-
-	//List of everything
-	g.Get("/list", listHandler)
-	//New short URL page
-	g.Get("/s", shortenPageHandler)
-	g.Get("/short", shortenPageHandler)	
-	//Looking Glass page
-	g.Get("/lg", lgHandler)
-	//New Paste Page
-	g.Get("/p", pastePageHandler)
-	//View existing Paste page
-	g.Get("/p/:id", pasteHandler)
-	//New Upload Page
-	g.Get("/up", uploadPageHandler)
-	//New Image Upload Page
-	g.Get("/iup", uploadImagePageHandler)
-	//Search page
-	g.Handle("/search/:term", searchHandler)
-	//Download files
-	g.Get("/d/:name", downloadHandler)
-	//Download BIG images
-	g.Get("/big/:name", imageBigHandler)		
-	//Download images
-	g.Get("/i/:name", downloadImageHandler)	
-	//Markdown rendering
-	g.Get("/md/:page", viewMarkdownHandler)
-	//Thumbs
-	g.Get("/thumbs/:name", imageThumbHandler)
-	//No hit images
-	g.Get("/imagedirect/:name", imageDirectHandler)		
-	//Image Gallery
-	g.Get("/i", galleryHandler)
-	//Image Gallery
-	g.Get("/il", galleryListHandler)
-
 	//Test Goji Context
-	g.Get("/c-test",  func(c web.C, w http.ResponseWriter, r *http.Request) {
-		username := GetUsername(r, c)
-		c.Env["user"] = username
+	/*r.GET("/c-test",  func(w http.ResponseWriter, r *http.Request) {
+		username := GetUsername(c)
+		c.Get("user") = username
 		log.Println("c-Env:")
-		log.Println(c.Env)
-		log.Println(c.Env["user"])
-		if user, ok := c.Env["user"].(string); ok {
+		log.Println(c.Keys)
+		log.Println(c.Get("user"))
+		if user, ok := c.Get("user").(string); ok {
 			w.Write([]byte("Hello " + user))
 		} else {
 			w.Write([]byte("Hello Stranger!"))
 			//log.Println(username)
 			//log.Println(c.Env)
-			log.Println(c.Env["user"].(string))
+			log.Println(c.Get("user").(string))
 		}
-	})
-	//File upload
-	g.Post("/up/:id", APInewFile)
-	g.Put("/up/:id", APInewFile)
-	g.Post("/up", APInewFile)	
-	g.Put("/up", APInewFile)
-	//Pastebin upload
-	g.Post("/p/:id", APInewPaste)
-	g.Put("/p/:id", APInewPaste)
-	g.Post("/p", APInewPaste)	
-	g.Post("/p/", APInewPaste)
-	//Looking Glass
-	g.Post("/lg", APIlgAction)
+	})*/
 
-	//API Stuff	
-	api := web.New()
-	g.Handle("/api/*", api)
-	api.Use(middleware.SubRouter)
-	api.Use(AuthMiddleware)
-	api.Get("/delete/:type/:name", APIdeleteHandler)
-	api.Abandon(AuthMiddleware)
-	api.Post("/paste/new", APInewPasteForm)
-	api.Post("/file/new", APInewFile)
-	api.Post("/file/remote", APInewRemoteFile)
-	api.Post("/shorten/new", APInewShortUrlForm)
-	api.Post("/lg", APIlgAction)
-	api.Post("/image/new", APInewImage)
-	api.Post("/image/remote", APInewRemoteImage)
+	//http.Handle(cfg.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
 
-	//g.Get("/metrics", prometheus.Handler())
-
-
-	//http.Handle("go.dev/", g)
-	if fLocal {
-		log.Println("Listening on .dev domains due to -l flag...")
-		http.Handle("go.dev/metrics", prometheus.UninstrumentedHandler())	
-		http.Handle("go.dev/", prometheus.InstrumentHandler("general",g))
-	} else {
-		log.Println("Listening on "+cfg.MainTLD+" domain")
-		http.Handle(cfg.MainTLD+"/metrics", prometheus.UninstrumentedHandler())	
-		http.Handle(cfg.MainTLD+"/", prometheus.InstrumentHandler("general",g))
-	}
-	//Should be the catchall, sends to shortURL for the time being
-	//Unsure how to combine Gorilla Mux's wildcard subdomain matching and Goji yet :(
-	//goji.Use(LoggerMiddleware)
-	//goji.Get("/", shortUrlHandler)
-	//goji.Serve()
-
-	//Dedicated image subdomain routes
-	i := web.New()
-	i.Use(middleware.EnvInit)
-	i.Use(middleware.RequestID)
-    i.Use(LoggerMiddleware)
-    i.Use(middleware.Recoverer)
-    i.Use(middleware.AutomaticOptions)		
-	//Static handler
-	i.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))
-	i.Get("/", galleryEsgyHandler)	
-	//Thumbs
-	i.Get("/thumbs/:name", imageThumbHandler)
-	//No hit images
-	i.Get("/imagedirect/:name", imageDirectHandler)	
-	//Huge images
-	i.Get("/big/:name", imageBigHandler)		
-	//Download images
-	i.Get("/:name", downloadImageHandler)
-	http.Handle(cfg.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
-
-	//Dedicated BIG image subdomain for easy linking
-	big := web.New()
-	big.Use(middleware.EnvInit)
-	//g.Use(AuthMiddleware)
-	//g.Abandon(AuthMiddleware)
-	big.Use(middleware.RequestID)
-    big.Use(LoggerMiddleware)
-    big.Use(middleware.Recoverer)
-    big.Use(middleware.AutomaticOptions)	
-	big.Use(gojistatic.Static("public", gojistatic.StaticOptions{SkipLogging: true}))    	
-	//Huge images
-	big.Get("/:name", imageBigHandler)	
-	http.Handle(cfg.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
-
-	//Default Goji mux which picks up all requests leftover and directs them to shortURLHandler
-	mygoji := web.New()
-	mygoji.Use(middleware.RequestID)
-    mygoji.Use(LoggerMiddleware)
-    mygoji.Use(middleware.Recoverer)
-    mygoji.Use(middleware.AutomaticOptions)	
-    mygoji.Get("/", shortUrlHandler)
-
-    mygoji.Compile()
-	api.Compile()
-	g.Compile()   
-	i.Compile()	 
-	big.Compile()
-
-    http.Handle("/", prometheus.InstrumentHandler("shorturls",mygoji))
-    listener := bind.Default()
-    log.Println("Starting Goji on", listener.Addr())
-	graceful.HandleSignals()
-	bind.Ready()
-	graceful.PreHook(func() { log.Printf("Goji received signal, gracefully stopping") })
-	graceful.PostHook(func() { log.Printf("Goji stopped") })
-	err = graceful.Serve(listener, http.DefaultServeMux)
-	if err != nil {
-		log.Fatal(err)
-	}
-	graceful.Wait()
+	//http.Handle(cfg.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
 
 }
