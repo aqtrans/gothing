@@ -6,34 +6,33 @@ package main
 // - Refactor all save() functions to do the actual file saving as well...
 // ...only saving if the BoltDB function doesn't error out
 
-
 import (
+	"bytes"
 	"crypto/rand"
-	"flag"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"sort"
+	"github.com/boltdb/bolt"
+	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
-	"github.com/russross/blackfriday"
-	"github.com/boltdb/bolt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/disintegration/imaging"
+	"github.com/russross/blackfriday"
 	"html/template"
 	"io"
 	"log"
-	"os/exec"
-	"net/http"
-	"runtime"
-	"os"
-	"time"
-	"strings"
-	"strconv"
-	"path"
-	"bytes"
-	"path/filepath"
 	"mime"
+	"net/http"
+	"os"
+	"os/exec"
+	"path"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 //const timestamp = "2006-01-02_at_03:04:05PM"
@@ -43,128 +42,127 @@ type Configuration struct {
 	Port     string
 	Username string
 	Password string
-	Email    string 
-	ImgDir   string 
-	FileDir  string 
+	Email    string
+	ImgDir   string
+	FileDir  string
 	ThumbDir string
-	GifDir   string 
-	MainTLD  string 
-	ShortTLD string 
-	ImageTLD string 
+	GifDir   string
+	MainTLD  string
+	ShortTLD string
+	ImageTLD string
 	GifTLD   string
 }
 
 var (
-
-    bufpool *bpool.BufferPool
-    templates map[string]*template.Template
-    _24K int64 = (1 << 20) * 24
-	fLocal bool
-	Db, _ = bolt.Open("./bolt.db", 0600, nil)
-	cfg = Configuration{}
+	bufpool   *bpool.BufferPool
+	templates map[string]*template.Template
+	_24K      int64 = (1 << 20) * 24
+	fLocal    bool
+	Db, _     = bolt.Open("./bolt.db", 0600, nil)
+	cfg       = Configuration{}
 
 	//Prometheus stuff
-    tx_num = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "total",
-        Help:      "Total number of BoltDB TX requests.",
-    })
-    tx_page_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "page_count",
-        Help:      "Total number of BoltDB TX pages.",
-    })
-    tx_cursor_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "cursor_count",
-        Help:      "Total number of BoltDB TX cursors.",
-    })
-    tx_write_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "write_count",
-        Help:      "Total number of BoltDB TX writes.",
-    })       
-    tx_write_time = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "tx",
-        Name:      "write_time",
-        Help:      "Time spent writing BoltDB transactions.",
-    })   
-    paste_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "paste",
-        Name:      "count",
-        Help:      "Total number of Pastes.",
-    })
-    file_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "file",
-        Name:      "count",
-        Help:      "Total number of Files.",
-    })    
-    shorturl_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "shorturl",
-        Name:      "count",
-        Help:      "Total number of Shorturls.",
-    })
-    images_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "image",
-        Name:      "count",
-        Help:      "Total number of Images.",
-    })
-    goroutine_count = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Name:      "goroutines",
-        Help:      "Total number of Goroutines.",
-    })      
-    memory_allocated = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "allocated",
-        Help:      "Memory allocated.",
-    })  
-    memory_mallocs = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "mallocs",
-        Help:      "Memory mallocs.",
-    }) 
-    memory_frees = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "frees",
-        Help:      "Memory frees.",
-    })
-    memory_gc_total_pause = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "gc_total_pause",
-        Help:      "Memory GC total pauses.",
-    })     
-    memory_heap = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "heap",
-        Help:      "Memory heap size.",
-    })     
-    memory_stack = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "stack",
-        Help:      "Memory stack size.",
-    })  
-    memory_gc_num = prometheus.NewGauge(prometheus.GaugeOpts{
-        Namespace: "tkot",
-        Subsystem: "memory",
-        Name:      "gc_num",
-        Help:      "Memory GC number.",
-    })                       
+	tx_num = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "total",
+		Help:      "Total number of BoltDB TX requests.",
+	})
+	tx_page_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "page_count",
+		Help:      "Total number of BoltDB TX pages.",
+	})
+	tx_cursor_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "cursor_count",
+		Help:      "Total number of BoltDB TX cursors.",
+	})
+	tx_write_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "write_count",
+		Help:      "Total number of BoltDB TX writes.",
+	})
+	tx_write_time = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "tx",
+		Name:      "write_time",
+		Help:      "Time spent writing BoltDB transactions.",
+	})
+	paste_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "paste",
+		Name:      "count",
+		Help:      "Total number of Pastes.",
+	})
+	file_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "file",
+		Name:      "count",
+		Help:      "Total number of Files.",
+	})
+	shorturl_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "shorturl",
+		Name:      "count",
+		Help:      "Total number of Shorturls.",
+	})
+	images_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "image",
+		Name:      "count",
+		Help:      "Total number of Images.",
+	})
+	goroutine_count = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Name:      "goroutines",
+		Help:      "Total number of Goroutines.",
+	})
+	memory_allocated = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "allocated",
+		Help:      "Memory allocated.",
+	})
+	memory_mallocs = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "mallocs",
+		Help:      "Memory mallocs.",
+	})
+	memory_frees = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "frees",
+		Help:      "Memory frees.",
+	})
+	memory_gc_total_pause = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "gc_total_pause",
+		Help:      "Memory GC total pauses.",
+	})
+	memory_heap = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "heap",
+		Help:      "Memory heap size.",
+	})
+	memory_stack = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "stack",
+		Help:      "Memory stack size.",
+	})
+	memory_gc_num = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "tkot",
+		Subsystem: "memory",
+		Name:      "gc_num",
+		Help:      "Memory GC number.",
+	})
 )
 
 //Flags
@@ -173,69 +171,79 @@ var (
 //Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
 type Page struct {
 	TheName string
-    Title   string
-    UN      string
+	Title   string
+	UN      string
 }
 
 type ListPage struct {
-    *Page
-    Pastes  []*Paste
-    Files   []*File
-    Shorturls []*Shorturl
-    Images  []*Image
+	*Page
+	Pastes    []*Paste
+	Files     []*File
+	Shorturls []*Shorturl
+	Images    []*Image
 }
 
 type GalleryPage struct {
-    *Page
-    Images  []*Image
+	*Page
+	Images []*Image
 }
 
 //BoltDB structs:
 type Paste struct {
 	Created int64
-	Title string
+	Title   string
 	Content string
-	Hits	int64
+	Hits    int64
 }
 
 type File struct {
-	Created int64
-	Filename string
-	Hits	int64
+	Created   int64
+	Filename  string
+	Hits      int64
 	RemoteURL string
 }
 
 type Image struct {
-	Created int64
-	Filename string
-	Hits	int64
+	Created   int64
+	Filename  string
+	Hits      int64
 	RemoteURL string
 }
 
 type Shorturl struct {
 	Created int64
-	Short 	string
-	Long 	string
-	Hits 	int64
+	Short   string
+	Long    string
+	Hits    int64
+}
+
+//JSON Response
+type jsonresponse struct {
+	Name    string `json:"name,omitempty"`
+	Success bool   `json:"success"`
 }
 
 //Sorting functions
 type ImageByDate []*Image
+
 func (a ImageByDate) Len() int           { return len(a) }
 func (a ImageByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ImageByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type PasteByDate []*Paste
+
 func (a PasteByDate) Len() int           { return len(a) }
 func (a PasteByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a PasteByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type FileByDate []*File
+
 func (a FileByDate) Len() int           { return len(a) }
 func (a FileByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a FileByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 type ShortByDate []*Shorturl
+
 func (a ShortByDate) Len() int           { return len(a) }
 func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
@@ -258,7 +266,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-    funcMap := template.FuncMap {"prettyDate": PrettyDate, "safeHTML": SafeHTML, "imgClass": ImgClass}
+	funcMap := template.FuncMap{"prettyDate": PrettyDate, "safeHTML": SafeHTML, "imgClass": ImgClass}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
@@ -280,12 +288,12 @@ func ImgClass(s string) string {
 }
 
 func SafeHTML(s string) template.HTML {
-     return template.HTML(s)
+	return template.HTML(s)
 }
 
 func timeTrack(start time.Time, name string) {
-    elapsed := time.Since(start)
-    log.Printf("[timer] %s took %s", name, elapsed)
+	elapsed := time.Since(start)
+	log.Printf("[timer] %s took %s", name, elapsed)
 }
 
 func markdownRender(content []byte) []byte {
@@ -311,12 +319,12 @@ func markdownRender(content []byte) []byte {
 //When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
 func getScheme(r *http.Request) (scheme string) {
-	scheme = r.Header.Get("X-Forwarded-Proto")+"://"
+	scheme = r.Header.Get("X-Forwarded-Proto") + "://"
 	/*
-	scheme = "http://"
-	if r.TLS != nil {
-		scheme = "https://"
-	}
+		scheme = "http://"
+		if r.TLS != nil {
+			scheme = "https://"
+		}
 	*/
 	if scheme == "://" {
 		scheme = "http://"
@@ -346,11 +354,11 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 }
 
 func ParseBool(value string) bool {
-    boolValue, err := strconv.ParseBool(value)
-    if err != nil {
-        return false
-    }
-    return boolValue
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return false
+	}
+	return boolValue
 }
 
 func loadPage(title string, r *http.Request) (*Page, error) {
@@ -367,102 +375,97 @@ func loadMainPage(title string, r *http.Request) (interface{}, error) {
 	}
 	data := struct {
 		Page *Page
-	} {
+	}{
 		p,
 	}
 	return data, nil
 }
 
 func loadListPage(r *http.Request) (*ListPage, error) {
-    page, perr := loadPage("List", r)
-    if perr != nil {
-        log.Println(perr)
-    }
+	page, perr := loadPage("List", r)
+	if perr != nil {
+		log.Println(perr)
+	}
 
 	var files []*File
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Files"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("FILES: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var file *File
-	        err := json.Unmarshal(v, &file)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		files = append(files, file)
-	        return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Files"))
+		b.ForEach(func(k, v []byte) error {
+			//log.Println("FILES: key="+string(k)+" value="+string(v))
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var file *File
+			err := json.Unmarshal(v, &file)
+			if err != nil {
+				log.Println(err)
+			}
+			files = append(files, file)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(FileByDate(files))
 
 	var pastes []*Paste
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Pastes"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("PASTE: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var paste *Paste
-	        err := json.Unmarshal(v, &paste)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		//log.Println(paste)
-    		//log.Printf("Addr: %p\n", paste)
-    		pastes = append(pastes, paste)
-	        return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Pastes"))
+		b.ForEach(func(k, v []byte) error {
+			//log.Println("PASTE: key="+string(k)+" value="+string(v))
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var paste *Paste
+			err := json.Unmarshal(v, &paste)
+			if err != nil {
+				log.Println(err)
+			}
+			//log.Println(paste)
+			//log.Printf("Addr: %p\n", paste)
+			pastes = append(pastes, paste)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(PasteByDate(pastes))
 
 	var shorts []*Shorturl
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Shorturls"))
-	    b.ForEach(func(k, v []byte) error {
-	    	//log.Println("SHORT: key="+string(k)+" value="+string(v))
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var short *Shorturl
-	        err := json.Unmarshal(v, &short)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		shorts = append(shorts, short)
-	        return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Shorturls"))
+		b.ForEach(func(k, v []byte) error {
+			//log.Println("SHORT: key="+string(k)+" value="+string(v))
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var short *Shorturl
+			err := json.Unmarshal(v, &short)
+			if err != nil {
+				log.Println(err)
+			}
+			shorts = append(shorts, short)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(ShortByDate(shorts))
 
 	var images []*Image
 	//Lets try this with boltDB now!
 	Db.View(func(tx *bolt.Tx) error {
-	    b := tx.Bucket([]byte("Images"))
-	    b.ForEach(func(k, v []byte) error {
-	        //fmt.Printf("key=%s, value=%s\n", k, v)
-	        var image *Image
-	        err := json.Unmarshal(v, &image)
-    		if err != nil {
-    			log.Println(err)
-    		}
-    		images = append(images, image)
-    		return nil
-	    })
-	    return nil
+		b := tx.Bucket([]byte("Images"))
+		b.ForEach(func(k, v []byte) error {
+			//fmt.Printf("key=%s, value=%s\n", k, v)
+			var image *Image
+			err := json.Unmarshal(v, &image)
+			if err != nil {
+				log.Println(err)
+			}
+			images = append(images, image)
+			return nil
+		})
+		return nil
 	})
 	sort.Sort(ImageByDate(images))
 
 	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
 }
-
-
-
-
-
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	//length := r.ContentLength
@@ -495,41 +498,37 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	return nil
 }
 
-
-
 func (f *File) save() error {
-    err := Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Files"))
-        encoded, err := json.Marshal(f)
-        if err != nil {
-        	log.Println(err)
-            return err
-        }
-        return b.Put([]byte(f.Filename), encoded)
-    })
-    if err != nil {
-    	log.Println(err)
-    	return err
-    }
-	//log.Println(f)    
-    log.Println("++++FILE SAVED")
-    return nil
+	err := Db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Files"))
+		encoded, err := json.Marshal(f)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		return b.Put([]byte(f.Filename), encoded)
+	})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	//log.Println(f)
+	log.Println("++++FILE SAVED")
+	return nil
 }
-
-
 
 func (s *Shorturl) save() error {
 	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
-	    encoded, err := json.Marshal(s)
-	    if err != nil {
-	    	return err
-	    }
-	    return b.Put([]byte(s.Short), encoded)
+		encoded, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(s.Short), encoded)
 	})
-    if err != nil {
-    	return err
-    }	
+	if err != nil {
+		return err
+	}
 	log.Println("++++SHORTURL SAVED")
 	return nil
 }
@@ -537,17 +536,17 @@ func (s *Shorturl) save() error {
 func (p *Paste) save() error {
 	err := Db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
-	    encoded, err := json.Marshal(p)
-	    if err != nil {
-	    	log.Println(err)
-	    	return err
-	    }
-	    return b.Put([]byte(p.Title), encoded)
+		encoded, err := json.Marshal(p)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		return b.Put([]byte(p.Title), encoded)
 	})
-    if err != nil {
-    	log.Println(err)
-    	return err
-    }	
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	log.Println("++++PASTE SAVED")
 	return nil
 }
@@ -557,7 +556,7 @@ func makeThumb(fpath, thumbpath string) {
 	if contentType == "video/webm" {
 		log.Println("WEBM FILE DETECTED")
 		//ffmpeg -i doit.webm -vframes 1 -filter:v scale="-1:300" doit.thumb.png
-		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v","scale='-1:300'", thumbpath)
+		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
 			log.Println(err)
@@ -567,42 +566,42 @@ func makeThumb(fpath, thumbpath string) {
 
 	img, err := imaging.Open(fpath)
 	if err != nil {
-	  log.Println(err)
-	  return
+		log.Println(err)
+		return
 	}
-	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)	
+	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)
 	err = imaging.Save(thumb, thumbpath)
 	if err != nil {
-	  log.Println(err)
-	  return
+		log.Println(err)
+		return
 	}
 	return
 }
 
 func (i *Image) save() error {
-    err := Db.Update(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("Images"))
-        encoded, err := json.Marshal(i)
-        if err != nil {
-        	log.Println(err)
-            return err
-        }
-        return b.Put([]byte(i.Filename), encoded)
-    })
-    if err != nil {
-    	log.Println(err)
-    	return err
-    }    
-    //Detect what kind of image, so we can embiggen GIFs from the get-go
+	err := Db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Images"))
+		encoded, err := json.Marshal(i)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		return b.Put([]byte(i.Filename), encoded)
+	})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	//Detect what kind of image, so we can embiggen GIFs from the get-go
 
-    contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
-    if contentType == "image/gif" {
-    	log.Println("GIF detected; Running embiggen function...")
-    	go embiggenHandler(i.Filename)
-    }
-    //log.Println(contentType)
-    log.Println("++++IMAGE SAVED")
-    return nil
+	contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
+	if contentType == "image/gif" {
+		log.Println("GIF detected; Running embiggen function...")
+		go embiggenHandler(i.Filename)
+	}
+	//log.Println(contentType)
+	log.Println("++++IMAGE SAVED")
+	return nil
 }
 
 type statusWriter struct {
@@ -635,12 +634,12 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 
 //Custom Logging Middleware
 func Logger(next http.Handler) http.Handler {
-    return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var buf bytes.Buffer
-		
+
 		start := time.Now()
 		writer := statusWriter{w, 0, 0}
-		
+
 		buf.WriteString("Started ")
 		fmt.Fprintf(&buf, "%s ", r.Method)
 		fmt.Fprintf(&buf, "%q ", r.URL.String())
@@ -649,18 +648,18 @@ func Logger(next http.Handler) http.Handler {
 		buf.WriteString(r.RemoteAddr)
 
 		//Log to file
-		f, err := os.OpenFile("./req.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+		f, err := os.OpenFile("./req.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
-		    log.Fatalf("error opening file: %v", err)
+			log.Fatalf("error opening file: %v", err)
 		}
 		defer f.Close()
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 		log.Print(buf.String())
 		//Reset buffer to be reused by the end stuff
 		buf.Reset()
-		
+
 		next.ServeHTTP(&writer, r)
-		
+
 		end := time.Now()
 		latency := end.Sub(start)
 		status := writer.Status()
@@ -673,7 +672,6 @@ func Logger(next http.Handler) http.Handler {
 		log.Print(buf.String())
 	})
 }
-
 
 //Generate a random key of specific length
 func RandKey(leng int8) string {
@@ -703,18 +701,18 @@ func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
 	//How much stuff is being held, taken from BoltDB buckets
 	ds := Db.Stats()
 	dst := ds.TxStats
-	
+
 	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
 	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
 	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
 	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
 	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
-	
+
 
 
 	err := Db.View(func(tx *bolt.Tx) error {
 		p := tx.Bucket([]byte("Pastes"))
-		ps := p.Stats()		
+		ps := p.Stats()
     	f := tx.Bucket([]byte("Files"))
     	fs := f.Stats()
     	sh := tx.Bucket([]byte("Shorturls"))
@@ -727,19 +725,19 @@ func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
 		shorturl_count.Set(float64(shs.KeyN))
 		images_count.Set(float64(is.KeyN))
 
-    	
+
 		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
 		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
 		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
 		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
-		
+
 		return nil
 	})
 	if err != nil {
 		log.Println(err)
 	}
 
-	
+
 	//Runtime stats
 	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
 	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
@@ -749,7 +747,7 @@ func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
 	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
 	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
-	
+
 
 	tx_num.Set(float64(ds.TxN))
 	tx_page_count.Set(float64(dst.PageCount))
@@ -766,18 +764,32 @@ func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
 	memory_gc_num.Set(float64(memStats.NumGC))
 
 
-  
+
 }
 */
 
-func WriteJSON(w http.ResponseWriter, data interface{}) error {
+func makeJSON(w http.ResponseWriter, data interface{}) ([]byte, error) {
 	jsonData, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return nil, err
+	}
+	//log.Println(string(jsonData))
+	return jsonData, nil
+}
+
+func WriteJ(w http.ResponseWriter, name string, success bool) error {
+	j := jsonresponse{
+		Name:    name,
+		Success: success,
+	}
+	json, err := makeJSON(w, j)
 	if err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
-	w.Write(jsonData)
+	w.Write(json)
+	//log.Println(string(json))
 	return nil
 }
 
@@ -794,7 +806,6 @@ func main() {
 	//log.Println(tm)
 	//log.Println(tm.Format(timestamp))
 
-
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
 	decoder := json.NewDecoder(conf)
@@ -805,22 +816,22 @@ func main() {
 	//log.Println(cfg.Username)
 
 	//Check for essential directory existence
-   _, err = os.Stat(cfg.ImgDir)
-   if err != nil {
-      os.Mkdir(cfg.ImgDir, 0755)
-   }
-   _, err = os.Stat(cfg.FileDir)
-   if err != nil {
-      os.Mkdir(cfg.FileDir, 0755)
-   }
-   _, err = os.Stat(cfg.GifDir)
-   if err != nil {
-      os.Mkdir(cfg.GifDir, 0755)
-   }
-   _, err = os.Stat(cfg.ThumbDir)
-   if err != nil {
-      os.Mkdir(cfg.ThumbDir, 0755)
-   }
+	_, err = os.Stat(cfg.ImgDir)
+	if err != nil {
+		os.Mkdir(cfg.ImgDir, 0755)
+	}
+	_, err = os.Stat(cfg.FileDir)
+	if err != nil {
+		os.Mkdir(cfg.FileDir, 0755)
+	}
+	_, err = os.Stat(cfg.GifDir)
+	if err != nil {
+		os.Mkdir(cfg.GifDir, 0755)
+	}
+	_, err = os.Stat(cfg.ThumbDir)
+	if err != nil {
+		os.Mkdir(cfg.ThumbDir, 0755)
+	}
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
 	defer Db.Close()
@@ -841,10 +852,9 @@ func main() {
 		_, err = tx.CreateBucketIfNotExists([]byte("Images"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
-		}		
+		}
 		return nil
 	})
-
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -853,7 +863,6 @@ func main() {
 
 	new_sess := RandKey(32)
 	log.Println("Session ID: " + new_sess)
-
 
 	memStats := &runtime.MemStats{}
 
@@ -867,34 +876,33 @@ func main() {
 	ds := Db.Stats()
 	dst := ds.TxStats
 	/*
-	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
-	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
-	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
-	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
-	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
+		fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
+		fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
+		fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
+		fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
+		fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
 	*/
-
 
 	err = Db.View(func(tx *bolt.Tx) error {
 		p := tx.Bucket([]byte("Pastes"))
-		ps := p.Stats()		
-    	f := tx.Bucket([]byte("Files"))
-    	fs := f.Stats()
-    	sh := tx.Bucket([]byte("Shorturls"))
-    	shs := sh.Stats()
-    	i := tx.Bucket([]byte("Images"))
-    	is := i.Stats()
+		ps := p.Stats()
+		f := tx.Bucket([]byte("Files"))
+		fs := f.Stats()
+		sh := tx.Bucket([]byte("Shorturls"))
+		shs := sh.Stats()
+		i := tx.Bucket([]byte("Images"))
+		is := i.Stats()
 
 		paste_count.Set(float64(ps.KeyN))
 		file_count.Set(float64(fs.KeyN))
 		shorturl_count.Set(float64(shs.KeyN))
 		images_count.Set(float64(is.KeyN))
 
-    	/*
-		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
-		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
-		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
-		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
+		/*
+			fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
+			fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
+			fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
+			fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
 		*/
 		return nil
 	})
@@ -903,15 +911,15 @@ func main() {
 	}
 
 	/*
-	//Runtime stats
-	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
-	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
-	fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
-	fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
-	fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
-	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
-	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
-	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
+		//Runtime stats
+		fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
+		fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
+		fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
+		fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
+		fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
+		fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
+		fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
+		fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
 	*/
 
 	tx_num.Set(float64(ds.TxN))
@@ -923,7 +931,7 @@ func main() {
 	memory_allocated.Set(float64(memStats.Alloc))
 	memory_mallocs.Set(float64(memStats.Mallocs))
 	memory_frees.Set(float64(memStats.Frees))
-	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs)/nsInMs)
+	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs) / nsInMs)
 	memory_heap.Set(float64(memStats.HeapAlloc))
 	memory_stack.Set(float64(memStats.StackInuse))
 	memory_gc_num.Set(float64(memStats.NumGC))
@@ -945,23 +953,22 @@ func main() {
 	prometheus.MustRegister(memory_stack)
 	prometheus.MustRegister(memory_gc_num)
 
-
 	flag.Parse()
 	flag.Set("bind", ":3000")
-	
+
 	std := alice.New(Logger)
 	//stda := alice.New(Auth, Logger)
-	
+
 	r := mux.NewRouter().StrictSlash(true)
 	d := r.Host("go.jba.io").Subrouter()
 
 	if fLocal {
 		log.Println("Listening on .dev domains due to -l flag...")
-		d = r.Host("go.dev").Subrouter()	
+		d = r.Host("go.dev").Subrouter()
 	} else {
-		log.Println("Listening on "+cfg.MainTLD+" domain")
+		log.Println("Listening on " + cfg.MainTLD + " domain")
 	}
-	
+
 	d.HandleFunc("/", indexHandler).Methods("GET")
 	d.HandleFunc("/priv", Auth(Readme)).Methods("GET")
 	d.HandleFunc("/readme", Readme).Methods("GET")
@@ -988,24 +995,19 @@ func main() {
 	d.HandleFunc("/i", galleryHandler).Methods("GET")
 	d.HandleFunc("/il", galleryListHandler).Methods("GET")
 	d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-	    //j := map[string]bool{"apple": false, "lettuce": true}
-		j := struct {
-		    Filename string `json:"filename"`
-			Success  bool   `json:"success"`
-	    } {
-	    	"omg",
-			true,
-	    }
-		WriteJSON(w, j)
-	}).Methods("GET")
+		WriteJ(w, "LOL", false)
+	}).Methods("GET", "POST")
+	d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {
+		WriteJ(w, "", false)
+	}).Methods("GET", "POST")
 
 	//CLI API Functions
-	d.HandleFunc("/up/{name}", APInewFile).Methods("POST","PUT")
-	d.HandleFunc("/up", APInewFile).Methods("POST","PUT")
-	d.HandleFunc("/p/{name}", APInewPaste).Methods("POST","PUT")
-	d.HandleFunc("/p", APInewPaste).Methods("POST","PUT")
+	d.HandleFunc("/up/{name}", APInewFile).Methods("POST", "PUT")
+	d.HandleFunc("/up", APInewFile).Methods("POST", "PUT")
+	d.HandleFunc("/p/{name}", APInewPaste).Methods("POST", "PUT")
+	d.HandleFunc("/p", APInewPaste).Methods("POST", "PUT")
 	d.HandleFunc("/lg", APIlgAction).Methods("POST")
-	
+
 	//API Functions
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/delete/{type}/{name}", Auth(APIdeleteHandler)).Methods("GET")
@@ -1016,7 +1018,7 @@ func main() {
 	api.HandleFunc("/lg", APIlgAction).Methods("POST")
 	api.HandleFunc("/image/new", APInewImage).Methods("POST")
 	api.HandleFunc("/image/remote", APInewRemoteImage).Methods("POST")
-	
+
 	//Dedicated image subdomain routes
 	i := r.Host(cfg.ImageTLD).Subrouter()
 	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
@@ -1024,15 +1026,15 @@ func main() {
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
 	i.HandleFunc("/{name}", downloadImageHandler).Methods("GET")
-	
+
 	//Big GIFs
 	big := r.Host(cfg.GifTLD).Subrouter()
 	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
-	
+
 	//Dynamic subdomains
 	wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
-	
+
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe(":3000", nil)
@@ -1056,8 +1058,6 @@ func main() {
 			log.Println(c.Get("user").(string))
 		}
 	})*/
-
-
 
 	//http.Handle(cfg.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
 

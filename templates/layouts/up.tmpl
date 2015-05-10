@@ -10,7 +10,7 @@
     <div id="panel1a" class="content active">
       <h1>Upload a file</h1>
       <hr />
-      <form action="/up" method="post" enctype="multipart/form-data" class="dropzone" id="fup">
+      <form action="/up" method="post" enctype="multipart/form-data" class="dropzone" id="fileup">
       <div class="row collapse">
         <div class="small-6 columns">
           <input type="text" name="local-file-name" placeholder="Optional filename">
@@ -31,7 +31,7 @@
     <div id="panel2a" class="content">
       <h1>Upload a file from a remote URL</h1>
       <hr />
-      <form method="post" action="/up" id="rup">
+      <form method="post" action="/up" id="remotefileup">
       <div class="row collapse">
       <div class="small-6 columns">
         <input type="text" name="remote" placeholder="Enter your URL...">
@@ -47,45 +47,4 @@
     </div>
   </li>
 </ul>
-<script type="text/javascript">
-$(document).ready(function(){
-  $("#fup").submit(function(event){
-    event.preventDefault();
-    $.ajax( {
-      url: '/api/file/new',
-      type: 'POST',
-      data: new FormData( this ),
-      processData: false,
-      contentType: false,
-      success: function(data){
-        var splitdata = data.split("|");
-        var filename = encodeURIComponent(splitdata[1]);
-        if(splitdata[0]=='success'){
-          $(".alerts").append("<div class=\"alert-box success\" data-alert>File successfully uploaded! <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-external-link'></i>[File link]</a><a class=\"close\">&times;</a></div>");
-          $("#fup")[0].reset();
-        $(document).foundation('alert','reflow');
-        } else if(splitdata[0]=='fail'){
-          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
-        }
-      }
-    });
-  });
-  $("#rup").submit(function(event){
-    event.preventDefault();
-	  $.post( "/api/file/remote", $( this ).serialize(), function(data){
-        var splitdata = data.split("|");
-        var filename = encodeURIComponent(splitdata[1]);
-        if(splitdata[0]=='success'){
-          $(".alerts").append("<div class=\"alert-box success\" data-alert>File successfully uploaded! <a style='color:#fff' href=/d/"+filename+"><i class='fa fa-external-link'></i>[File link]</a><a class=\"close\">&times;</a></div>");
-          $("#rup")[0].reset();
-        $(document).foundation('alert','reflow');
-        } else if(splitdata[0]=='fail'){
-          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
-        }
-	  });
-  });  
-});
-</script>
 {{ end }}
