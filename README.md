@@ -7,9 +7,8 @@ I started out with the Golang.org Wiki guide, but after finishing that up quicke
 You can see it in action [here](http://go.jba.io).
 
 # Features
-As of now, the doodad has the following features:
-- User authentication, using [httpauth](https://github.com/apexskier/httpauth) library, with 3 user levels
-    - Currently I am only utilizing the 'admin' user and group, but may expand on this later to integrate various types of private things
+As of 05/09/2015, the doodad has the following features:
+- User authentication, using my custom authentication functions, heavily based off [this](http://mschoebel.info/2014/03/09/snippet-golang-webapp-login-logout.html) blog post
 - Shorten URLs to subdomains of my es.gy domain, so I can have things like http://ygdr.es.gy/
     - If the 'long URL' is found to point to an image uploaded to the app, the image is directly served 
 - Handle image and file uploads from local filesystem and remote URLs

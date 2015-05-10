@@ -90,24 +90,4 @@
 {{ end }}
 </tbody>
 </table>
-<script type="text/javascript">
-$(document).ready(function(){
-  $("a.delete").click(function(event){
-    event.preventDefault();
-    var link = $( this ).attr("href");
-    //console.log( link );
-	  $.get( link, function(data){
-        var splitdata = data.split("|");
-        var filename = encodeURIComponent(splitdata[1]);
-        if(splitdata[0]=='success'){
-          $(".alerts").append("<div class=\"alert-box success\" data-alert>Successfully deleted "+filename+"!<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
-        } else if(splitdata[0]=='fail'){
-          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
-        }
-	  });    
-  });  
-});
-</script>
 {{ end }}
