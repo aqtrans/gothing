@@ -58,6 +58,7 @@ var (
 	templates map[string]*template.Template
 	_24K      int64 = (1 << 20) * 24
 	fLocal    bool
+	debug 	  bool 
 	Db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = Configuration{}
 
@@ -251,6 +252,8 @@ func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 func init() {
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
+	//Flag '-d' enabled debug logging
+	flag.BoolVar(&debug, "d", false, "Enabled debug logging")
 
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
@@ -270,8 +273,16 @@ func init() {
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
-		//DEBUG TEMPLATE LOADING log.Println(files)
+		//DEBUG TEMPLATE LOADING 
+		Debugln(files)
 		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
+	}
+}
+
+func Debugln(v ...interface{}) {
+	if debug {
+		d := log.New(os.Stdout, "DEBUG: ", log.Ldate)
+		d.Println(v)
 	}
 }
 
@@ -384,7 +395,7 @@ func loadMainPage(title string, r *http.Request) (interface{}, error) {
 func loadListPage(r *http.Request) (*ListPage, error) {
 	page, perr := loadPage("List", r)
 	if perr != nil {
-		log.Println(perr)
+		return nil, perr
 	}
 
 	var files []*File
@@ -392,12 +403,11 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	Db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		b.ForEach(func(k, v []byte) error {
-			//log.Println("FILES: key="+string(k)+" value="+string(v))
-			//fmt.Printf("key=%s, value=%s\n", k, v)
+			Debugln("FILES: key="+string(k)+" value="+string(v))
 			var file *File
 			err := json.Unmarshal(v, &file)
 			if err != nil {
-				log.Println(err)
+				log.Panicln(err)
 			}
 			files = append(files, file)
 			return nil
@@ -411,15 +421,12 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	Db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		b.ForEach(func(k, v []byte) error {
-			//log.Println("PASTE: key="+string(k)+" value="+string(v))
-			//fmt.Printf("key=%s, value=%s\n", k, v)
+			Debugln("PASTE: key="+string(k)+" value="+string(v))
 			var paste *Paste
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
-				log.Println(err)
+				log.Panicln(err)
 			}
-			//log.Println(paste)
-			//log.Printf("Addr: %p\n", paste)
 			pastes = append(pastes, paste)
 			return nil
 		})
@@ -432,12 +439,11 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	Db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		b.ForEach(func(k, v []byte) error {
-			//log.Println("SHORT: key="+string(k)+" value="+string(v))
-			//fmt.Printf("key=%s, value=%s\n", k, v)
+			Debugln("SHORT: key="+string(k)+" value="+string(v))
 			var short *Shorturl
 			err := json.Unmarshal(v, &short)
 			if err != nil {
-				log.Println(err)
+				log.Panicln(err)
 			}
 			shorts = append(shorts, short)
 			return nil
@@ -451,11 +457,11 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	Db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
-			//fmt.Printf("key=%s, value=%s\n", k, v)
+			Debugln("IMAGE: key="+string(k)+" value="+string(v))
 			var image *Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
-				log.Println(err)
+				log.Panicln(err)
 			}
 			images = append(images, image)
 			return nil
@@ -503,7 +509,7 @@ func (f *File) save() error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
 		if err != nil {
-			log.Println(err)
+			log.Panicln(err)
 			return err
 		}
 		return b.Put([]byte(f.Filename), encoded)
@@ -512,7 +518,6 @@ func (f *File) save() error {
 		log.Println(err)
 		return err
 	}
-	//log.Println(f)
 	log.Println("++++FILE SAVED")
 	return nil
 }
@@ -538,13 +543,13 @@ func (p *Paste) save() error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
 		if err != nil {
-			log.Println(err)
+			log.Panicln(err)
 			return err
 		}
 		return b.Put([]byte(p.Title), encoded)
 	})
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 		return err
 	}
 	log.Println("++++PASTE SAVED")
@@ -559,20 +564,20 @@ func makeThumb(fpath, thumbpath string) {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
-			log.Println(err)
+			log.Panicln(err)
 		}
 		return
 	}
 
 	img, err := imaging.Open(fpath)
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 		return
 	}
 	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)
 	err = imaging.Save(thumb, thumbpath)
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 		return
 	}
 	return
@@ -583,13 +588,13 @@ func (i *Image) save() error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
 		if err != nil {
-			log.Println(err)
+			log.Panicln(err)
 			return err
 		}
 		return b.Put([]byte(i.Filename), encoded)
 	})
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 		return err
 	}
 	//Detect what kind of image, so we can embiggen GIFs from the get-go
@@ -599,7 +604,6 @@ func (i *Image) save() error {
 		log.Println("GIF detected; Running embiggen function...")
 		go embiggenHandler(i.Filename)
 	}
-	//log.Println(contentType)
 	log.Println("++++IMAGE SAVED")
 	return nil
 }
@@ -773,7 +777,7 @@ func makeJSON(w http.ResponseWriter, data interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//log.Println(string(jsonData))
+	Debugln(string(jsonData))
 	return jsonData, nil
 }
 
@@ -789,7 +793,7 @@ func WriteJ(w http.ResponseWriter, name string, success bool) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(200)
 	w.Write(json)
-	//log.Println(string(json))
+	Debugln(string(json))
 	return nil
 }
 
@@ -813,7 +817,6 @@ func main() {
 	if err != nil {
 		fmt.Println("error decoding config:", err)
 	}
-	//log.Println(cfg.Username)
 
 	//Check for essential directory existence
 	_, err = os.Stat(cfg.ImgDir)
@@ -907,7 +910,7 @@ func main() {
 		return nil
 	})
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
 
 	/*
