@@ -27,17 +27,17 @@ The app expects a file named 'conf.json' in the same directory as the binary, co
 I have added comments here for clarity, so if copying and pasting, remove them: 
 ```
 {
-	//What port you want the app to listen on
-	"Port": "3000",
+    //What port you want the app to listen on
+    "Port": "3000",
 
-	//Username of the initial admin user
+    //Username of the initial admin user
     "Username": "admin",
 
     //Password of the initial admin user
     "Password": "admin",
 
     //Email of the initial admin user
-    "Email": "me@me.com",
+    "Email": "admin@main.tld",
 
     //Directoy where images should be uploaded to
     "ImgDir": "./up-imgs/",
@@ -49,15 +49,15 @@ I have added comments here for clarity, so if copying and pasting, remove them:
     "GifDir": "./big-imgs/",
 
     //The domain where all functions should be
-    "MainTLD": "go.jba.io",
+    "MainTLD": "the.main.tld",
 
     //The domain where wildcard-subdomains are used for short URLs
-    "ShortTLD": "es.gy",
+    "ShortTLD": "short.tld",
 
     //The domain where a feature-limited image gallery is served
-    "ImageTLD": "i.es.gy",
+    "ImageTLD": "image.tld",
 
     //The domain where all embiggened GIFs can be linked to, for easy linking
-    "GifTLD": "big.es.gy"
+    "GifTLD": "gif.tld"
 }
 ```
