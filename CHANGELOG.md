@@ -34,3 +34,7 @@
     - Due to it's superb matching capabilities, allowing me to properly capture my *.es.gy wildcard short URLs
     - I was also not using Goji's context feature whatsoever once I switched to my homebrewed cookie-based auth, negating it's original draw for me
      
+#20150726
+- Replaced plaintext login with LDAP, powered by [github.com/mavricknz/ldap]()
+    - I need to work on pulling this into a separate library and reuse elsewhere
+    - Along with that, should make the backend configurable. Plaintext or LDAP for now.
