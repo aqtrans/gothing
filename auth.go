@@ -78,15 +78,19 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ldapAuth(un, pw string) bool {
+	//Build DN: uid=admin,ou=People,dc=example,dc=com
+	dn := cfg.LDAPun+"="+un+","+LDAPdn
 	l := ldap.NewLDAPConnection(cfg.LDAPurl, cfg.LDAPport)
 	err := l.Connect()
 	if err != nil {
+		fmt.Print(dn)
 		fmt.Printf("LDAP connectiong error: %v", err)
 		return false
 	}
 	defer l.Close()
-	err = l.Bind(un, pw)
+	err = l.Bind(dn, pw)
 	if err != nil {
+		fmt.Print(dn)
 		fmt.Printf("error: %v", err)
 		return false
 	}
