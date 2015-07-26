@@ -1,6 +1,6 @@
 {
 	"Port": "3000",
-    "Username": "admin",
+    "Username": "uid=admin,ou=People,dc=example,dc=com",
     "Password": "admin",
     "Email": "admin@example.com",
     "ImgDir": "./up-imgs/",
@@ -10,5 +10,7 @@
     "MainTLD": "go.jba.io",
     "ShortTLD": "es.gy",
     "ImageTLD": "i.es.gy",
-    "GifTLD": "big.es.gy"
+    "GifTLD": "big.es.gy",
+	"LDAPport": 389,
+	"LDAPurl": "troy.es.gy"
 }
