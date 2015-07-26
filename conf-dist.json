@@ -12,5 +12,7 @@
     "ImageTLD": "i.es.gy",
     "GifTLD": "big.es.gy",
 	"LDAPport": 389,
-	"LDAPurl": "troy.es.gy"
+	"LDAPurl": "troy.es.gy",
+    "LDAPdn": "ou=People,dc=example,dc=com",
+    "LDAPun": "uid"
 }
