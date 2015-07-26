@@ -51,6 +51,10 @@ type Configuration struct {
 	ShortTLD string
 	ImageTLD string
 	GifTLD   string
+	LDAPport uint16
+	LDAPurl  string
+	LDAPdn   string
+	LDAPun   string
 }
 
 var (
