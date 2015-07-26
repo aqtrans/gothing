@@ -4,9 +4,11 @@ package main
 
 import (
 	"github.com/gorilla/securecookie"
+	"github.com/mavricknz/ldap"
 	//"github.com/gorilla/mux"
 	"html/template"
 	"log"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -63,13 +65,33 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Referrer: " + r.Referer())
 	//log.Println(r.FormValue("username"))
 	//log.Println(r.FormValue("password"))
-	if username == cfg.Username && password == cfg.Password {
+	
+	// LDAP
+	//if username == cfg.Username && password == cfg.Password {
+	if ldapAuth(username, password) {	
 		SetSession(username, w)
 		log.Println(username + " successfully logged in.")
 		WriteJ(w, "", true)
 	} else {
 		WriteJ(w, "", false)
 	}
+}
+
+func ldapAuth(un, pw string) bool {
+	l := ldap.NewLDAPConnection(cfg.LDAPurl, cfg.LDAPport)
+	err := l.Connect()
+	if err != nil {
+		fmt.Printf("LDAP connectiong error: %v", err)
+		return false
+	}
+	defer l.Close()
+	err = l.Bind(un, pw)
+	if err != nil {
+		fmt.Printf("error: %v", err)
+		return false
+	}
+	fmt.Print("Authenticated")
+	return true			
 }
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
