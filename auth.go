@@ -79,7 +79,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func ldapAuth(un, pw string) bool {
 	//Build DN: uid=admin,ou=People,dc=example,dc=com
-	dn := cfg.LDAPun+"="+un+","+LDAPdn
+	dn := cfg.LDAPun+"="+un+","+cfg.LDAPdn
 	l := ldap.NewLDAPConnection(cfg.LDAPurl, cfg.LDAPport)
 	err := l.Connect()
 	if err != nil {
