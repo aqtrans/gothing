@@ -34,9 +34,13 @@ install-go:
 build-my-project:
   stage: build
   script:
+    - export GOPATH=$HOME/gopath
+    - export PATH=$PATH:$GOPATH/bin
     - go build
 
 test-my-project:
   stage: test
   script:
+    - export GOPATH=$HOME/gopath
+    - export PATH=$PATH:$GOPATH/bin
     - go test
