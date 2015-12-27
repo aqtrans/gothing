@@ -36,6 +36,7 @@ build-my-project:
   script:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin
+    - go get -d
     - go build
 
 test-my-project:
