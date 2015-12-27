@@ -592,89 +592,6 @@ func RandKey(leng int8) string {
 	return sess_id
 }
 
-//Generate stats, printed in format directly compatible with http://prometheus.io
-//I could use the Prometheus client library, but seeing as the runtime stats and boltdb stats provide all I need, I see no point
-/*
-func runtimeStatsHandler(w http.ResponseWriter, r *http.Request) {
-
-	memStats := &runtime.MemStats{}
-
-	nsInMs := float64(time.Millisecond)
-
-	runtime.ReadMemStats(memStats)
-
-	//now := time.Now()
-
-	//How much stuff is being held, taken from BoltDB buckets
-	ds := Db.Stats()
-	dst := ds.TxStats
-
-	fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
-	fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
-	fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
-	fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
-	fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
-
-
-
-	err := Db.View(func(tx *bolt.Tx) error {
-		p := tx.Bucket([]byte("Pastes"))
-		ps := p.Stats()
-    	f := tx.Bucket([]byte("Files"))
-    	fs := f.Stats()
-    	sh := tx.Bucket([]byte("Shorturls"))
-    	shs := sh.Stats()
-    	i := tx.Bucket([]byte("Images"))
-    	is := i.Stats()
-
-		paste_count.Set(float64(ps.KeyN))
-		file_count.Set(float64(fs.KeyN))
-		shorturl_count.Set(float64(shs.KeyN))
-		images_count.Set(float64(is.KeyN))
-
-
-		fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
-		fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
-		fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
-		fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
-
-		return nil
-	})
-	if err != nil {
-		log.Println(err)
-	}
-
-
-	//Runtime stats
-	fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
-	fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
-	fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
-	fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
-	fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
-	fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
-	fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
-	fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
-
-
-	tx_num.Set(float64(ds.TxN))
-	tx_page_count.Set(float64(dst.PageCount))
-	tx_cursor_count.Set(float64(dst.CursorCount))
-	tx_write_count.Set(float64(dst.Write))
-	tx_write_time.Set(float64(dst.WriteTime))
-	goroutine_count.Set(float64(runtime.NumGoroutine()))
-	memory_allocated.Set(float64(memStats.Alloc))
-	memory_mallocs.Set(float64(memStats.Mallocs))
-	memory_frees.Set(float64(memStats.Frees))
-	memory_gc_total_pause.Set(float64(memStats.PauseTotalNs)/nsInMs)
-	memory_heap.Set(float64(memStats.HeapAlloc))
-	memory_stack.Set(float64(memStats.StackInuse))
-	memory_gc_num.Set(float64(memStats.NumGC))
-
-
-
-}
-*/
-
 func makeJSON(w http.ResponseWriter, data interface{}) ([]byte, error) {
 	jsonData, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
@@ -769,62 +686,6 @@ func main() {
 
 	new_sess := RandKey(32)
 	log.Println("Session ID: " + new_sess)
-/*
-	memStats := &runtime.MemStats{}
-
-	nsInMs := float64(time.Millisecond)
-
-	runtime.ReadMemStats(memStats)
-*/
-	//now := time.Now()
-
-	//How much stuff is being held, taken from BoltDB buckets
-	//ds := Db.Stats()
-	//dst := ds.TxStats
-	/*
-		fmt.Fprintf(w, "tkot_bolt_tx_num %v\n", ds.TxN)
-		fmt.Fprintf(w, "tkot_bolt_tx_page_count %v\n", dst.PageCount)
-		fmt.Fprintf(w, "tkot_bolt_tx_cursor_count %v\n", dst.CursorCount)
-		fmt.Fprintf(w, "tkot_bolt_tx_write_count %v\n", dst.Write)
-		fmt.Fprintf(w, "tkot_bolt_tx_write_time %v\n", dst.WriteTime)
-	*/
-/*
-	err = Db.View(func(tx *bolt.Tx) error {
-		p := tx.Bucket([]byte("Pastes"))
-		ps := p.Stats()
-		f := tx.Bucket([]byte("Files"))
-		fs := f.Stats()
-		sh := tx.Bucket([]byte("Shorturls"))
-		shs := sh.Stats()
-		i := tx.Bucket([]byte("Images"))
-		is := i.Stats()
-
-		paste_count.Set(float64(ps.KeyN))
-		file_count.Set(float64(fs.KeyN))
-		shorturl_count.Set(float64(shs.KeyN))
-		images_count.Set(float64(is.KeyN))
-
-			//fmt.Fprintf(w, "tkot_pastes_total %v\n", ps.KeyN)
-			//fmt.Fprintf(w, "tkot_files_total %v\n", fs.KeyN)
-			//fmt.Fprintf(w, "tkot_shorturls_total %v\n", shs.KeyN)
-			//fmt.Fprintf(w, "tkot_images_total %v\n", is.KeyN)
-		return nil
-	})
-	if err != nil {
-		log.Panicln(err)
-	}
-*/
-	/*
-		//Runtime stats
-		fmt.Fprintf(w, "tkot_goroutines %v\n", float64(runtime.NumGoroutine()))
-		fmt.Fprintf(w, "tkot_memory_allocated %v\n", float64(memStats.Alloc))
-		fmt.Fprintf(w, "tkot_memory_mallocs %v \n", float64(memStats.Mallocs))
-		fmt.Fprintf(w, "tkot_memory_frees %v \n", float64(memStats.Frees))
-		fmt.Fprintf(w, "tkot_memory_gc_total_pause %v \n", float64(memStats.PauseTotalNs)/nsInMs)
-		fmt.Fprintf(w, "tkot_memory_heap %v \n", float64(memStats.HeapAlloc))
-		fmt.Fprintf(w, "tkot_memory_stack %v \n", float64(memStats.StackInuse))
-		fmt.Fprintf(w, "tkot_memory_gc_num %v \n", int(memStats.NumGC))
-	*/
 
 	flag.Parse()
 	flag.Set("bind", ":3000")
@@ -933,9 +794,5 @@ func main() {
 			log.Println(c.Get("user").(string))
 		}
 	})*/
-
-	//http.Handle(cfg.ImageTLD+"/", prometheus.InstrumentHandler("images",i))
-
-	//http.Handle(cfg.GifTLD+"/", prometheus.InstrumentHandler("big_gifs", big))
 
 }
