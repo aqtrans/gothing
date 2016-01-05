@@ -704,7 +704,7 @@ func main() {
 	d.HandleFunc("/priv", auth.Auth(Readme)).Methods("GET")
 	d.HandleFunc("/readme", Readme).Methods("GET")
 	d.HandleFunc("/changelog", Changelog).Methods("GET")
-	d.HandleFunc("/login", auth.LoginPostHandler).Methods("POST")
+	d.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) { auth.LoginPostHandler(cfg.AuthConf, w, r) }).Methods("POST")
 	d.HandleFunc("/login", loginPageHandler).Methods("GET")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
