@@ -52,7 +52,7 @@ type configuration struct {
 	ShortTLD string
 	ImageTLD string
 	GifTLD   string
-    Auth     auth.AuthConf
+    AuthConf auth.AuthConf
 }
 
 var (
