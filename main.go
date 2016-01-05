@@ -35,15 +35,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "jba.io/go/auth"
 )
 
 //const timestamp = "2006-01-02_at_03:04:05PM"
 const timestamp = "2006-01-02 at 03:04:05PM"
 
-type Configuration struct {
+type configuration struct {
 	Port     string
-	Username string
-	Password string
 	Email    string
 	ImgDir   string
 	FileDir  string
@@ -53,10 +52,7 @@ type Configuration struct {
 	ShortTLD string
 	ImageTLD string
 	GifTLD   string
-	LDAPport uint16
-	LDAPurl  string
-	LDAPdn   string
-	LDAPun   string
+    Auth     auth.AuthConf
 }
 
 var (
@@ -65,8 +61,8 @@ var (
 	_24K      int64 = (1 << 20) * 24
 	fLocal    bool
 	debug 	  bool 
-	Db, _     = bolt.Open("./bolt.db", 0600, nil)
-	cfg       = Configuration{}
+	db, _     = bolt.Open("./bolt.db", 0600, nil)
+	cfg       = configuration{}
 
 )
 
@@ -278,7 +274,7 @@ func ParseBool(value string) bool {
 
 func loadPage(title string, r *http.Request) (*Page, error) {
 	//timer.Step("loadpageFunc")
-	user := GetUsername(r)
+	user := auth.GetUsername(r)
 	return &Page{TheName: "GoThing", Title: title, UN: user}, nil
 }
 
@@ -304,7 +300,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 
 	var files []*File
 	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		b.ForEach(func(k, v []byte) error {
 			Debugln("FILES: key="+string(k)+" value="+string(v))
@@ -322,7 +318,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 
 	var pastes []*Paste
 	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		b.ForEach(func(k, v []byte) error {
 			Debugln("PASTE: key="+string(k)+" value="+string(v))
@@ -340,7 +336,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 
 	var shorts []*Shorturl
 	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		b.ForEach(func(k, v []byte) error {
 			Debugln("SHORT: key="+string(k)+" value="+string(v))
@@ -358,7 +354,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 
 	var images []*Image
 	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
 			Debugln("IMAGE: key="+string(k)+" value="+string(v))
@@ -409,7 +405,7 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 }
 
 func (f *File) save() error {
-	err := Db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
 		if err != nil {
@@ -427,7 +423,7 @@ func (f *File) save() error {
 }
 
 func (s *Shorturl) save() error {
-	err := Db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
 		if err != nil {
@@ -443,7 +439,7 @@ func (s *Shorturl) save() error {
 }
 
 func (p *Paste) save() error {
-	err := Db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
 		if err != nil {
@@ -488,7 +484,7 @@ func makeThumb(fpath, thumbpath string) {
 }
 
 func (i *Image) save() error {
-	err := Db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
 		if err != nil {
@@ -658,9 +654,9 @@ func main() {
 	}
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
-	defer Db.Close()
+	defer db.Close()
 
-	Db.Update(func(tx *bolt.Tx) error {
+	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
@@ -705,22 +701,22 @@ func main() {
 	}
 
 	d.HandleFunc("/", indexHandler).Methods("GET")
-	d.HandleFunc("/priv", Auth(Readme)).Methods("GET")
+	d.HandleFunc("/priv", auth.Auth(Readme)).Methods("GET")
 	d.HandleFunc("/readme", Readme).Methods("GET")
 	d.HandleFunc("/changelog", Changelog).Methods("GET")
-	d.HandleFunc("/login", loginHandler).Methods("POST")
+	d.HandleFunc("/login", auth.LoginPostHandler).Methods("POST")
 	d.HandleFunc("/login", loginPageHandler).Methods("GET")
-	d.HandleFunc("/logout", logoutHandler).Methods("POST")
-	d.HandleFunc("/logout", logoutHandler).Methods("GET")
-	d.HandleFunc("/list", Auth(listHandler)).Methods("GET")
-	d.HandleFunc("/s", Auth(shortenPageHandler)).Methods("GET")
-	d.HandleFunc("/short", Auth(shortenPageHandler)).Methods("GET")
+	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
+	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
+	d.HandleFunc("/list", auth.Auth(listHandler)).Methods("GET")
+	d.HandleFunc("/s", auth.Auth(shortenPageHandler)).Methods("GET")
+	d.HandleFunc("/short", auth.Auth(shortenPageHandler)).Methods("GET")
 	d.HandleFunc("/lg", lgHandler).Methods("GET")
 	d.HandleFunc("/p", pastePageHandler).Methods("GET")
 	d.HandleFunc("/p/{name}", pasteHandler).Methods("GET")
 	d.HandleFunc("/up", uploadPageHandler).Methods("GET")
 	d.HandleFunc("/iup", uploadImagePageHandler).Methods("GET")
-	d.HandleFunc("/search/{name}", Auth(searchHandler)).Methods("GET")
+	d.HandleFunc("/search/{name}", auth.Auth(searchHandler)).Methods("GET")
 	d.HandleFunc("/d/{name}", downloadHandler).Methods("GET")
 	d.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
 	d.HandleFunc("/i/{name}", downloadImageHandler).Methods("GET")
@@ -745,7 +741,7 @@ func main() {
 
 	//API Functions
 	api := r.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/delete/{type}/{name}", Auth(APIdeleteHandler)).Methods("GET")
+	api.HandleFunc("/delete/{type}/{name}", auth.Auth(APIdeleteHandler)).Methods("GET")
 	api.HandleFunc("/paste/new", APInewPasteForm).Methods("POST")
 	api.HandleFunc("/file/new", APInewFile).Methods("POST")
 	api.HandleFunc("/file/remote", APInewRemoteFile).Methods("POST")

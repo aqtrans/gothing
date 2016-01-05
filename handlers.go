@@ -45,7 +45,7 @@ func loadGalleryPage(r *http.Request) (*GalleryPage, error) {
 
 	var images []*Image
 	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
@@ -131,7 +131,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	paste := &Paste{}
 
 	//Lets try this with boltDB now!
-	Db.View(func(tx *bolt.Tx) error {
+	db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte("Pastes"))
 		c.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
@@ -259,7 +259,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		    //in a new array
 		    subdomain = string(host_parts[0])
 		}*/
-	err := Db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		v := b.Get([]byte(title))
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
@@ -269,52 +269,51 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 			err := errors.New(title + "No Such Short URL")
 			return err
 			//log.Println(err)
-		} else {
-			err := json.Unmarshal(v, &shorturl)
-			if err != nil {
-				log.Println(err)
-			}
-			count := (shorturl.Hits + 1)
-			//If the shorturl is local, just serve whatever file being requested
-			if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
-				log.Println("LONG URL CONTAINS ShortTLD")
-				if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
-					u, err := url.Parse(shorturl.Long)
-					if err != nil {
-						log.Println(err)
-					}
-					segments := strings.Split(u.Path, "/")
-					fileName := segments[len(segments)-1]
-					log.Println("Serving " + shorturl.Long + " file directly")
-					http.ServeFile(w, r, cfg.ImgDir+fileName)
-				}
-			}
-			if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
-				log.Println("LONG URL CONTAINS MainTLD")
-				if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
-					u, err := url.Parse(shorturl.Long)
-					if err != nil {
-						log.Println(err)
-					}
-					segments := strings.Split(u.Path, "/")
-					fileName := segments[len(segments)-1]
-					log.Println("Serving " + shorturl.Long + " file directly")
-					http.ServeFile(w, r, cfg.ImgDir+fileName)
-				}
-			}
-			http.Redirect(w, r, shorturl.Long, 302)
-
-			s := &Shorturl{
-				Created: shorturl.Created,
-				Short:   shorturl.Short,
-				Long:    shorturl.Long,
-				Hits:    count,
-			}
-			encoded, err := json.Marshal(s)
-
-			//return nil
-			return b.Put([]byte(title), encoded)
 		}
+        err := json.Unmarshal(v, &shorturl)
+        if err != nil {
+            log.Println(err)
+        }
+        count := (shorturl.Hits + 1)
+        //If the shorturl is local, just serve whatever file being requested
+        if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
+            log.Println("LONG URL CONTAINS ShortTLD")
+            if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
+                u, err := url.Parse(shorturl.Long)
+                if err != nil {
+                    log.Println(err)
+                }
+                segments := strings.Split(u.Path, "/")
+                fileName := segments[len(segments)-1]
+                log.Println("Serving " + shorturl.Long + " file directly")
+                http.ServeFile(w, r, cfg.ImgDir+fileName)
+            }
+        }
+        if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
+            log.Println("LONG URL CONTAINS MainTLD")
+            if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
+                u, err := url.Parse(shorturl.Long)
+                if err != nil {
+                    log.Println(err)
+                }
+                segments := strings.Split(u.Path, "/")
+                fileName := segments[len(segments)-1]
+                log.Println("Serving " + shorturl.Long + " file directly")
+                http.ServeFile(w, r, cfg.ImgDir+fileName)
+            }
+        }
+        http.Redirect(w, r, shorturl.Long, 302)
+
+        s := &Shorturl{
+            Created: shorturl.Created,
+            Short:   shorturl.Short,
+            Long:    shorturl.Long,
+            Hits:    count,
+        }
+        encoded, err := json.Marshal(s)
+
+        //return nil
+        return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
 		log.Println(err)
@@ -326,7 +325,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	title := vars["name"]
 	paste := &Paste{}
-	err := Db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
@@ -354,7 +353,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Attempt to increment paste hit counter...
-	err = Db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		v := b.Get([]byte(title))
 		//If there is no existing key, do not do a thing
@@ -389,7 +388,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Attempt to increment file hit counter...
 	file := &File{}
-	Db.Update(func(tx *bolt.Tx) error {
+	db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		v := b.Get([]byte(name))
 		//If there is no existing key, do not do a thing
@@ -435,7 +434,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Attempt to increment file hit counter...
 	image := &Image{}
-	Db.Update(func(tx *bolt.Tx) error {
+	db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		v := b.Get([]byte(name))
 		//If there is no existing key, do not do a thing
@@ -562,22 +561,21 @@ func embiggenHandler(i string) {
 	if _, err := os.Stat(bigPath); err == nil {
 		log.Println("Pre-existing BIG gif already found, serving it...")
 		return
-	} else {
-		log.Println("BIG gif not found. Running gifsicle...")
-		file, err := os.Open(smallPath)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		file.Close()
-		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
-		err = resize.Run()
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println(name + " BIG GIF has been saved.")
 	}
+    log.Println("BIG gif not found. Running gifsicle...")
+    file, err := os.Open(smallPath)
+    if err != nil {
+        log.Println(err)
+        return
+    }
+    file.Close()
+    //gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
+    resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
+    err = resize.Run()
+    if err != nil {
+        log.Println(err)
+    }
+    log.Println(name + " BIG GIF has been saved.")
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
@@ -644,8 +642,8 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		panic(err)
-		WriteJ(w, "", false)
+        WriteJ(w, "", false)
+		panic(err)		
 	}
 	defer file.Close()
 	check := http.Client{
@@ -657,16 +655,16 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
+        WriteJ(w, "", false)
 		panic(err)
-		WriteJ(w, "", false)
 	}
 	defer resp.Body.Close()
 	fmt.Println(resp.Status)
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
+        WriteJ(w, "", false)
 		panic(err)
-		WriteJ(w, "", false)
 	}
 
 	//BoltDB stuff
@@ -742,9 +740,9 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
+            WriteJ(w, "", false)
 			fmt.Println(err)
 			panic(err)
-			WriteJ(w, "", false)
 		}
 		defer file.Close()
 		check := http.Client{
@@ -755,17 +753,17 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
+            WriteJ(w, "", false)
 			fmt.Println(err)
 			panic(err)
-			WriteJ(w, "", false)
 		}
 		defer resp.Body.Close()
 		fmt.Println(resp.Status)
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
+            WriteJ(w, "", false)
 			panic(err)
-			WriteJ(w, "", false)
 		}
 
 		//BoltDB stuff
@@ -1013,7 +1011,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	ftype := vars["type"]
 	fname := vars["name"]
 	if ftype == "file" {
-		err := Db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
 			return tx.Bucket([]byte("Files")).Delete([]byte(fname))
 		})
@@ -1029,7 +1027,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		WriteJ(w, fname, true)
 	} else if ftype == "image" {
-		err := Db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
 			return tx.Bucket([]byte("Images")).Delete([]byte(fname))
 		})
@@ -1045,7 +1043,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		WriteJ(w, fname, true)
 	} else if ftype == "paste" {
-		err := Db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
 			return tx.Bucket([]byte("Pastes")).Delete([]byte(fname))
 		})
@@ -1054,7 +1052,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		WriteJ(w, fname, true)
 	} else if ftype == "shorturl" {
-		err := Db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
 			return tx.Bucket([]byte("Shorturls")).Delete([]byte(fname))
 		})
