@@ -420,12 +420,12 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	fpath := cfg.ImgDir + path.Base(name)
     
     if name == "favicon.ico" {
-        log.Println("omg1")
+        //log.Println("omg1")
         http.NotFound(w, r)
         return
     }
     if name == "favicon.png" {
-        log.Println("omg2")
+        //log.Println("omg2")
         http.NotFound(w, r)
         return
     }
@@ -453,8 +453,8 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 		v := b.Get([]byte(name))
 		//If there is no existing key, do not do a thing
 		if v == nil {
-			http.NotFound(w, r)
-            log.Println("omg3")
+			//http.NotFound(w, r)
+            //log.Println("omg3")
 			return nil
 		}
 		err := json.Unmarshal(v, &image)
