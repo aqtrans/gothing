@@ -614,6 +614,13 @@ func WriteJ(w http.ResponseWriter, name string, success bool) error {
 	return nil
 }
 
+func defaultHandler(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+      log.Println(r.Host)
+      next.ServeHTTP(w, r)
+    })
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -731,7 +738,6 @@ func main() {
 	d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {
 		WriteJ(w, "", false)
 	}).Methods("GET", "POST")
-    d.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 
 	//CLI API Functions
 	d.HandleFunc("/up/{name}", APInewFile).Methods("POST", "PUT")
@@ -760,7 +766,6 @@ func main() {
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
 	i.HandleFunc("/{name}", downloadImageHandler).Methods("GET")
-    i.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 
 	//Big GIFs
 	big := r.Host(cfg.GifTLD).Subrouter()
@@ -768,9 +773,11 @@ func main() {
 
 	//Dynamic subdomains
 	wild := r.Host("{name}.es.gy").Subrouter()
-	wild.HandleFunc("/.*", shortUrlHandler).Methods("GET")
+	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
+    
+    static := http.Handler(http.FileServer(http.Dir("./public/")))
 
-	//r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
+	r.PathPrefix("/").Handler(defaultHandler(static))
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe(":3000", nil)
 
