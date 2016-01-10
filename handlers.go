@@ -421,9 +421,11 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
     
     if name == "favicon.ico" {
         http.NotFound(w, r)
+        return
     }
     if name == "favicon.png" {
         http.NotFound(w, r)
+        return
     }
     
 	extensions := []string{".webm", ".gif", ".jpg", ".jpeg", ".png"}
