@@ -768,7 +768,7 @@ func main() {
 
 	//Dynamic subdomains
 	wild := r.Host("{name}.es.gy").Subrouter()
-	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
+	wild.HandleFunc("/.*", shortUrlHandler).Methods("GET")
 
 	//r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 	http.Handle("/", std.Then(r))
