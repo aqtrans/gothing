@@ -731,6 +731,7 @@ func main() {
 	d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {
 		WriteJ(w, "", false)
 	}).Methods("GET", "POST")
+    d.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 
 	//CLI API Functions
 	d.HandleFunc("/up/{name}", APInewFile).Methods("POST", "PUT")
@@ -759,6 +760,7 @@ func main() {
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
 	i.HandleFunc("/{name}", downloadImageHandler).Methods("GET")
+    i.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 
 	//Big GIFs
 	big := r.Host(cfg.GifTLD).Subrouter()
@@ -768,7 +770,7 @@ func main() {
 	wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
+	//r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe(":3000", nil)
 
