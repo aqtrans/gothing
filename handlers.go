@@ -418,11 +418,18 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(name)
-
+    
+    if name == "favicon.ico" {
+        http.NotFound(w, r)
+    }
+    if name == "favicon.png" {
+        http.NotFound(w, r)
+    }
+    
 	extensions := []string{".webm", ".gif", ".jpg", ".jpeg", ".png"}
 	//If this is extensionless, search for the proper file with the extension
 	if filepath.Ext(name) == "" {
-		log.Println("NO EXTENSION FOUND OMG")
+		//log.Println("NO EXTENSION FOUND OMG")
 		for _, ext := range extensions {
 			if _, err := os.Stat(fpath + ext); err == nil {
 				name = name + ext
