@@ -767,6 +767,8 @@ func main() {
 	//Dedicated image subdomain routes
 	i := r.Host(cfg.ImageTLD).Subrouter()
 	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
+    i.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
+    i.HandleFunc("/favicon.png", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
 	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
