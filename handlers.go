@@ -436,8 +436,11 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 			if _, err := os.Stat(fpath + ext); err == nil {
 				name = name + ext
 				fpath = cfg.ImgDir + path.Base(name)
+                log.Println(name + fpath)
 				break
-			}
+			} else {
+                log.Println(err)
+            }
 		}
 	}
 
