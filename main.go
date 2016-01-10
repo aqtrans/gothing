@@ -616,8 +616,13 @@ func WriteJ(w http.ResponseWriter, name string, success bool) error {
 
 func defaultHandler(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-      log.Println(r.Host)
-      next.ServeHTTP(w, r)
+      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD {
+          next.ServeHTTP(w, r)
+      } else {
+          log.Println("Not serving anything, because this request belongs to: " + r.Host)
+          http.Error(w, http.StatusText(400), 400)
+          return
+      }
     })
 }
 
