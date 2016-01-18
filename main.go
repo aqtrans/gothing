@@ -497,7 +497,7 @@ func main() {
 	//log.Println(tm.Format(timestamp))
     
     // Stats
-    grCount.Set(int64(runtime.NumGoroutine()))
+    //grCount.Set(int64(runtime.NumGoroutine()))
 
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
