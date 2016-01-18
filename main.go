@@ -56,7 +56,7 @@ var (
 	debug 	  bool 
 	db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = configuration{}
-    grCount = expvar.NewString("Goroutines")
+    grCount = expvar.NewInt("Goroutines")
 )
 
 //Flags
@@ -138,7 +138,7 @@ func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
-    grCount.Set(string(runtime.NumGoroutine()))
+    grCount.Set(int64(runtime.NumGoroutine()))
     
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
@@ -497,7 +497,7 @@ func main() {
 	//log.Println(tm.Format(timestamp))
     
     // Stats
-    grCount.Set(string(runtime.NumGoroutine()))
+    grCount.Set(int64(runtime.NumGoroutine()))
 
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
