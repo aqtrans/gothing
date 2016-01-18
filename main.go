@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-  _ "expvar"
+    "expvar"
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
@@ -27,6 +27,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+    "runtime"
 	"sort"
 	"strconv"
     "jba.io/go/auth"
@@ -55,6 +56,7 @@ var (
 	debug 	  bool 
 	db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = configuration{}
+    grCount = expvar.NewString("Goroutines")
 )
 
 //Flags
@@ -136,6 +138,8 @@ func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
+    grCount.Set(string(runtime.NumGoroutine()))
+    
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	//Flag '-d' enabled debug logging
@@ -491,6 +495,9 @@ func main() {
 	//log.Println(t)
 	//log.Println(tm)
 	//log.Println(tm.Format(timestamp))
+    
+    // Stats
+    grCount.Set(string(runtime.NumGoroutine()))
 
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
