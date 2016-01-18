@@ -138,7 +138,7 @@ func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
-    grCount.Set(int64(runtime.NumGoroutine()))
+    expvar.Publish("ex",expvar.Func(stats))
     
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
@@ -167,6 +167,14 @@ func init() {
 		utils.Debugln(files)
 		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
+}
+
+func stats() interface{} {
+    numGR := runtime.NumGoroutine()
+
+	return map[string]interface{}{
+		"goroutines":  numGR,
+	}    
 }
 
 func markdownRender(content []byte) []byte {
