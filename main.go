@@ -11,7 +11,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-    "expvar"
+    //"expvar"
+    //"runtime"
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
@@ -27,7 +28,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-    "runtime"
+
 	"sort"
 	"strconv"
     "jba.io/go/auth"
@@ -56,7 +57,7 @@ var (
 	debug 	  bool 
 	db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = configuration{}
-    grCount = expvar.NewInt("Goroutines")
+    //startTime = time.Now().UTC()
 )
 
 //Flags
@@ -138,7 +139,10 @@ func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
-    expvar.Publish("ex",expvar.Func(stats))
+    
+    // Additional expvars
+    //expvar.Publish("Goroutines",expvar.Func(expGoroutines))
+    //expvar.Publish("Uptime", expvar.Func(expUptime))
     
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
@@ -169,13 +173,15 @@ func init() {
 	}
 }
 
-func stats() interface{} {
-    numGR := runtime.NumGoroutine()
-
-	return map[string]interface{}{
-		"goroutines":  numGR,
-	}    
+/*func expGoroutines() interface{} {
+	return runtime.NumGoroutine()
 }
+
+// uptime is an expvar.Func compliant wrapper for uptime info.
+func expUptime() interface{} {
+	uptime := time.Since(startTime)
+	return int64(uptime)
+}*/
 
 func markdownRender(content []byte) []byte {
 	htmlFlags := 0
@@ -503,9 +509,6 @@ func main() {
 	//log.Println(t)
 	//log.Println(tm)
 	//log.Println(tm.Format(timestamp))
-    
-    // Stats
-    //grCount.Set(int64(runtime.NumGoroutine()))
 
 	//Load conf.json
 	conf, _ := os.Open("conf.json")
