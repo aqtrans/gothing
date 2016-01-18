@@ -12,6 +12,7 @@
 <form method="post" action="/login" id="login">
 <input type="text" id="username" name="username" placeholder="Username" size="12">
 <input type="password" id="password" name="password" placeholder="Password" size="12">
+<input type="hidden" name="token" value="{{.Page.Token}}">
 <button type="submit" class="button">Login</button>
 </form>
 </div>

@@ -24,21 +24,23 @@ import (
 	"sort"
 	"strings"
 	"time"
+    "jba.io/go/utils"
+    "jba.io/go/auth"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "indexHandler")
+	defer utils.TimeTrack(time.Now(), "indexHandler")
 	title := "index"
-	p, _ := loadMainPage(title, r)
+	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "index.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func loadGalleryPage(r *http.Request) (*GalleryPage, error) {
-	defer timeTrack(time.Now(), "loadGalleryPage")
-	page, perr := loadPage("Gallery", r)
+func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
+	defer utils.TimeTrack(time.Now(), "loadGalleryPage")
+	page, perr := loadPage("Gallery", w, r)
 	if perr != nil {
 		log.Println(perr)
 	}
@@ -64,8 +66,8 @@ func loadGalleryPage(r *http.Request) (*GalleryPage, error) {
 }
 
 func galleryHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "galleryHandler")
-	l, err := loadGalleryPage(r)
+	defer utils.TimeTrack(time.Now(), "galleryHandler")
+	l, err := loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
@@ -77,8 +79,8 @@ func galleryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "galleryEsgyHandler")
-	l, err := loadGalleryPage(r)
+	defer utils.TimeTrack(time.Now(), "galleryEsgyHandler")
+	l, err := loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
@@ -90,8 +92,8 @@ func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func galleryListHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "galleryListHandler")
-	l, err := loadGalleryPage(r)
+	defer utils.TimeTrack(time.Now(), "galleryListHandler")
+	l, err := loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
@@ -103,9 +105,9 @@ func galleryListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func lgHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "lgHandler")
+	defer utils.TimeTrack(time.Now(), "lgHandler")
 	title := "lg"
-	p, err := loadPage(title, r)
+	p, err := loadPage(title, w, r)
 	data := struct {
 		Page    *Page
 		Title   string
@@ -122,7 +124,7 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "searchHandler")
+	defer utils.TimeTrack(time.Now(), "searchHandler")
 	vars := mux.Vars(r)
 	term := vars["name"]
 	sterm := regexp.MustCompile(term)
@@ -165,9 +167,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "uploadPageHandler")
+	defer utils.TimeTrack(time.Now(), "uploadPageHandler")
 	title := "up"
-	p, _ := loadMainPage(title, r)
+	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "up.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -175,9 +177,9 @@ func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "uploadImagePageHandler")
+	defer utils.TimeTrack(time.Now(), "uploadImagePageHandler")
 	title := "upimg"
-	p, _ := loadMainPage(title, r)
+	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "upimg.tmpl", p)
 	if err != nil {
 		log.Println(err)
@@ -185,9 +187,9 @@ func uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func pastePageHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "pastePageHandler")
+	defer utils.TimeTrack(time.Now(), "pastePageHandler")
 	title := "paste"
-	p, _ := loadMainPage(title, r)
+	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "paste.tmpl", p)
 	r.ParseForm()
 	//log.Println(r.Form)
@@ -197,9 +199,9 @@ func pastePageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "shortenPageHandler")
+	defer utils.TimeTrack(time.Now(), "shortenPageHandler")
 	title := "shorten"
-	p, _ := loadMainPage(title, r)
+	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "shorten.tmpl", p)
 	r.ParseForm()
 	//log.Println(r.Form)
@@ -209,9 +211,9 @@ func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "loginPageHandler")
+	defer utils.TimeTrack(time.Now(), "loginPageHandler")
 	title := "login"
-	p, err := loadPage(title, r)
+	p, err := loadPage(title, w, r)
 	data := struct {
 		Page  *Page
 		Title string
@@ -227,8 +229,8 @@ func loginPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "listHandler")
-	l, err := loadListPage(r)
+	defer utils.TimeTrack(time.Now(), "listHandler")
+	l, err := loadListPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
@@ -240,9 +242,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 
 //Short URL Handlers
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
-
-	defer timeTrack(time.Now(), "shortUrlHandler")
-
+	defer utils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
 	vars := mux.Vars(r)
 	title := vars["name"]
@@ -265,7 +265,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
-			http.Error(w, "Error 400 - No such domain at this address", 400)
+			http.Error(w, "Error 400 - No such domain at this address", http.StatusBadRequest)
 			err := errors.New(title + "No Such Short URL")
 			return err
 			//log.Println(err)
@@ -321,7 +321,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func pasteHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "pasteHandler")
+	defer utils.TimeTrack(time.Now(), "pasteHandler")
 	vars := mux.Vars(r)
 	title := vars["name"]
 	paste := &Paste{}
@@ -381,7 +381,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "downloadHandler")
+	defer utils.TimeTrack(time.Now(), "downloadHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.FileDir + path.Base(name)
@@ -414,7 +414,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "downloadImageHandler")
+	defer utils.TimeTrack(time.Now(), "downloadImageHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(name)
@@ -596,7 +596,7 @@ func embiggenHandler(i string) {
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
-	p, err := loadPage(name, r)
+	p, err := loadPage(name, w, r)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -630,6 +630,10 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
+
+    // Check for CSRF token
+    auth.CheckToken(w, r)
+    
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
 	if !strings.HasPrefix(remoteURL, "http") {
@@ -657,7 +661,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-        WriteJ(w, "", false)
+        utils.WriteJ(w, "", false)
 		panic(err)		
 	}
 	defer file.Close()
@@ -670,7 +674,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-        WriteJ(w, "", false)
+        utils.WriteJ(w, "", false)
 		panic(err)
 	}
 	defer resp.Body.Close()
@@ -678,7 +682,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-        WriteJ(w, "", false)
+        utils.WriteJ(w, "", false)
 		panic(err)
 	}
 
@@ -691,14 +695,14 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	err = fi.save()
 	if err != nil {
 		log.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
 
 	//fmt.Printf("%s with %v bytes downloaded", fileName, size)
 	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
 
-	WriteJ(w, fileName, true)
+	utils.WriteJ(w, fileName, true)
 }
 
 func APInewFile(w http.ResponseWriter, r *http.Request) {
@@ -726,6 +730,11 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		uptype = "form"
 	}
 	//log.Println(uptype)
+
+    // Check for CSRF token on non-cli uploads
+    if uptype != "cli" {
+        auth.CheckToken(w, r)
+    }
 
 	//Remote File Uploads
 	if uptype == "remote" {
@@ -755,7 +764,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-            WriteJ(w, "", false)
+            utils.WriteJ(w, "", false)
 			fmt.Println(err)
 			panic(err)
 		}
@@ -768,7 +777,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-            WriteJ(w, "", false)
+            utils.WriteJ(w, "", false)
 			fmt.Println(err)
 			panic(err)
 		}
@@ -777,7 +786,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-            WriteJ(w, "", false)
+            utils.WriteJ(w, "", false)
 			panic(err)
 		}
 
@@ -866,7 +875,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("ParseMultiform reader error")
 			log.Println(err)
-			WriteJ(w, "", false)
+			utils.WriteJ(w, "", false)
 			return
 		}
 		file, handler, err := r.FormFile("file")
@@ -874,7 +883,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 		if err != nil {
 			fmt.Println(err)
-			WriteJ(w, "", false)
+			utils.WriteJ(w, "", false)
 		}
 		if r.FormValue("local-file-name") != "" {
 			filename = sanitize.Name(r.FormValue("local-file-name"))
@@ -884,7 +893,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
-			WriteJ(w, "", false)
+			utils.WriteJ(w, "", false)
 			return
 		}
 		defer f.Close()
@@ -900,23 +909,26 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	err = fi.save()
 	if err != nil {
 		log.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
 
 	if uptype == "cli" {
 		fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
 	} else {
-		WriteJ(w, filename, true)
+		utils.WriteJ(w, filename, true)
 	}
 }
 
 func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewShortUrlForm")
+	defer utils.TimeTrack(time.Now(), "APInewShortUrlForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
+    // Check for CSRF token
+    auth.CheckToken(w, r)
+    
 	short := r.PostFormValue("short")
 	if short != "" {
 		short = short
@@ -945,18 +957,18 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 	err = s.save()
 	if err != nil {
 		log.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
 	//log.Println("Short: " + s.Short)
 	//log.Println("Long: " + s.Long)
 
-	WriteJ(w, s.Short, true)
+	utils.WriteJ(w, s.Short, true)
 
 }
 
 //Pastebin handlers
 func APInewPaste(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewPaste")
+	defer utils.TimeTrack(time.Now(), "APInewPaste")
 	log.Println("Paste request...")
 	paste := r.Body
 	buf := new(bytes.Buffer)
@@ -989,11 +1001,14 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "APInewPasteForm")
+	defer utils.TimeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
+    // Check for CSRF token
+    auth.CheckToken(w, r)
+        
 	title := r.PostFormValue("title")
 	if title != "" {
 		title = title
@@ -1040,7 +1055,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		WriteJ(w, fname, true)
+		utils.WriteJ(w, fname, true)
 	} else if ftype == "image" {
 		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -1056,7 +1071,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		WriteJ(w, fname, true)
+		utils.WriteJ(w, fname, true)
 	} else if ftype == "paste" {
 		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -1065,7 +1080,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		WriteJ(w, fname, true)
+		utils.WriteJ(w, fname, true)
 	} else if ftype == "shorturl" {
 		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(ftype + " " + fname + " has been deleted")
@@ -1074,9 +1089,9 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		WriteJ(w, fname, true)
+		utils.WriteJ(w, fname, true)
 	} else {
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
 }
 
@@ -1086,6 +1101,9 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+    // Check for CSRF token
+    auth.CheckToken(w, r)
+        
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff
 		out, err := exec.Command("ping", "-c10", url).Output()
@@ -1094,7 +1112,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "Pinging " + url
-		p, err := loadPage(title, r)
+		p, err := loadPage(title, w, r)
 		data := struct {
 			Page    *Page
 			Title   string
@@ -1116,7 +1134,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "MTR to " + url
-		p, err := loadPage(title, r)
+		p, err := loadPage(title, w, r)
 		data := struct {
 			Page    *Page
 			Title   string
@@ -1138,7 +1156,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "Traceroute to " + url
-		p, err := loadPage(title, r)
+		p, err := loadPage(title, w, r)
 		data := struct {
 			Page    *Page
 			Title   string
@@ -1162,6 +1180,10 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
+    
+    // Check for CSRF token
+    auth.CheckToken(w, r)
+    
 	if !strings.HasPrefix(remoteURL, "http") {
 		log.Println("remoteURL does not contain a URL prefix, so adding http")
 		log.Println(remoteURL)
@@ -1188,7 +1210,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 		panic(err)
 	}
 	defer file.Close()
@@ -1201,7 +1223,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 		panic(err)
 	}
 	defer resp.Body.Close()
@@ -1209,7 +1231,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 		panic(err)
 	}
 
@@ -1222,10 +1244,10 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	err = imi.save()
 	if err != nil {
 		log.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
 
-	WriteJ(w, fileName, true)
+	utils.WriteJ(w, fileName, true)
 }
 
 func APInewImage(w http.ResponseWriter, r *http.Request) {
@@ -1238,6 +1260,12 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	formfilename := vars["filename"]
 	contentType := r.Header.Get("Content-Type")
+    
+    // Check for CSRF token, if not a CLI upload
+    if contentType != "" {
+      auth.CheckToken(w, r)        
+    }
+
 	if contentType == "" {
 		log.Println("Content-type blank, so this should be a CLI upload...")
 		//Then this should be an upload from the command line...
@@ -1379,14 +1407,14 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	err = imi.save()
 	if err != nil {
 		log.Println(err)
-		WriteJ(w, "", false)
+		utils.WriteJ(w, "", false)
 	}
-	WriteJ(w, filename, true)
+	utils.WriteJ(w, filename, true)
 }
 
 func Readme(w http.ResponseWriter, r *http.Request) {
 	name := "README"
-	p, err := loadPage(name, r)
+	p, err := loadPage(name, w, r)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -1418,7 +1446,7 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 
 func Changelog(w http.ResponseWriter, r *http.Request) {
 	name := "CHANGELOG"
-	p, err := loadPage(name, r)
+	p, err := loadPage(name, w, r)
 	if err != nil {
 		http.NotFound(w, r)
 		return

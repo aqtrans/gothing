@@ -9,6 +9,7 @@
 <form action="/api/shorten/new" method="POST" id="shorturl">
 Short URL:<input type="text" name="short"><br>
 Long URL:<input type="text" name="long"><br>
+<input type="hidden" name="token" value="{{.Page.Token}}">
 <input type="submit" class="button success" value="Submit">
 </form>
 {{ end }}

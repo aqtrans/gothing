@@ -8,21 +8,18 @@ package main
 //blah
 
 import (
-	"bytes"
-	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"fmt"
+  _ "expvar"
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
-	//"github.com/prometheus/client_golang/prometheus"
     "github.com/fukata/golang-stats-api-handler"
 	"github.com/russross/blackfriday"
 	"html/template"
-	"io"
 	"log"
 	"mime"
 	"net/http"
@@ -30,16 +27,11 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	//"runtime"
 	"sort"
 	"strconv"
-	"strings"
-	"time"
     "jba.io/go/auth"
+    "jba.io/go/utils"
 )
-
-//const timestamp = "2006-01-02_at_03:04:05PM"
-const timestamp = "2006-01-02 at 03:04:05PM"
 
 type configuration struct {
 	Port     string
@@ -63,7 +55,6 @@ var (
 	debug 	  bool 
 	db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = configuration{}
-
 )
 
 //Flags
@@ -74,6 +65,7 @@ type Page struct {
 	TheName string
 	Title   string
 	UN      string
+    Token   string
 }
 
 type ListPage struct {
@@ -118,13 +110,7 @@ type Shorturl struct {
 	Hits    int64
 }
 
-//JSON Response
-type jsonresponse struct {
-	Name    string `json:"name,omitempty"`
-	Success bool   `json:"success"`
-}
-
-//Sorting functions
+// Sorting functions
 type ImageByDate []*Image
 
 func (a ImageByDate) Len() int           { return len(a) }
@@ -153,7 +139,7 @@ func init() {
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	//Flag '-d' enabled debug logging
-	flag.BoolVar(&debug, "d", false, "Enabled debug logging")
+	flag.BoolVar(&utils.Debug, "d", false, "Enabled debug logging")
 
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
@@ -169,42 +155,14 @@ func init() {
 		log.Fatal(err)
 	}
 
-	funcMap := template.FuncMap{"prettyDate": PrettyDate, "safeHTML": SafeHTML, "imgClass": ImgClass}
+	funcMap := template.FuncMap{"prettyDate": utils.PrettyDate, "safeHTML": utils.SafeHTML, "imgClass": utils.ImgClass}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
 		//DEBUG TEMPLATE LOADING 
-		Debugln(files)
+		utils.Debugln(files)
 		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
-}
-
-func Debugln(v ...interface{}) {
-	if debug {
-		d := log.New(os.Stdout, "DEBUG: ", log.Ldate)
-		d.Println(v)
-	}
-}
-
-func PrettyDate(date int64) string {
-	t := time.Unix(date, 0)
-	return t.Format(timestamp)
-}
-
-func ImgClass(s string) string {
-	if strings.HasSuffix(s, ".gif") {
-		return "gifs"
-	}
-	return "imgs"
-}
-
-func SafeHTML(s string) template.HTML {
-	return template.HTML(s)
-}
-
-func timeTrack(start time.Time, name string) {
-	elapsed := time.Since(start)
-	log.Printf("[timer] %s took %s", name, elapsed)
 }
 
 func markdownRender(content []byte) []byte {
@@ -272,15 +230,16 @@ func ParseBool(value string) bool {
 	return boolValue
 }
 
-func loadPage(title string, r *http.Request) (*Page, error) {
+func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
 	//timer.Step("loadpageFunc")
 	user := auth.GetUsername(r)
-	return &Page{TheName: "GoThing", Title: title, UN: user}, nil
+    token := auth.SetToken(w, r)
+	return &Page{TheName: "GoThing", Title: title, UN: user, Token: token}, nil
 }
 
-func loadMainPage(title string, r *http.Request) (interface{}, error) {
+func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	//timer.Step("loadpageFunc")
-	p, err := loadPage(title, r)
+	p, err := loadPage(title, w, r)
 	if err != nil {
 		return nil, err
 	}
@@ -292,8 +251,8 @@ func loadMainPage(title string, r *http.Request) (interface{}, error) {
 	return data, nil
 }
 
-func loadListPage(r *http.Request) (*ListPage, error) {
-	page, perr := loadPage("List", r)
+func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
+	page, perr := loadPage("List", w, r)
 	if perr != nil {
 		return nil, perr
 	}
@@ -303,7 +262,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		b.ForEach(func(k, v []byte) error {
-			Debugln("FILES: key="+string(k)+" value="+string(v))
+			utils.Debugln("FILES: key="+string(k)+" value="+string(v))
 			var file *File
 			err := json.Unmarshal(v, &file)
 			if err != nil {
@@ -321,7 +280,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		b.ForEach(func(k, v []byte) error {
-			Debugln("PASTE: key="+string(k)+" value="+string(v))
+			utils.Debugln("PASTE: key="+string(k)+" value="+string(v))
 			var paste *Paste
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
@@ -339,7 +298,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		b.ForEach(func(k, v []byte) error {
-			Debugln("SHORT: key="+string(k)+" value="+string(v))
+			utils.Debugln("SHORT: key="+string(k)+" value="+string(v))
 			var short *Shorturl
 			err := json.Unmarshal(v, &short)
 			if err != nil {
@@ -357,7 +316,7 @@ func loadListPage(r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
-			Debugln("IMAGE: key="+string(k)+" value="+string(v))
+			utils.Debugln("IMAGE: key="+string(k)+" value="+string(v))
 			var image *Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
@@ -508,112 +467,6 @@ func (i *Image) save() error {
 	return nil
 }
 
-type statusWriter struct {
-	http.ResponseWriter
-	status int
-	size   int
-}
-
-func (w *statusWriter) WriteHeader(status int) {
-	w.status = status
-	w.ResponseWriter.WriteHeader(status)
-}
-
-func (w *statusWriter) Status() int {
-	return w.status
-}
-
-func (w *statusWriter) Size() int {
-	return w.size
-}
-
-func (w *statusWriter) Write(b []byte) (int, error) {
-	if w.status == 0 {
-		w.status = 200
-	}
-	written, err := w.ResponseWriter.Write(b)
-	w.size += written
-	return written, err
-}
-
-//Custom Logging Middleware
-func Logger(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var buf bytes.Buffer
-
-		start := time.Now()
-		writer := statusWriter{w, 0, 0}
-
-		buf.WriteString("Started ")
-		fmt.Fprintf(&buf, "%s ", r.Method)
-		fmt.Fprintf(&buf, "%q ", r.URL.String())
-		fmt.Fprintf(&buf, "|Host: %s |RawURL: %s |UserAgent: %s |Scheme: %s |IP: %s ", r.Host, r.Header.Get("X-Raw-URL"), r.Header.Get("User-Agent"), getScheme(r), r.Header.Get("X-Forwarded-For"))
-		buf.WriteString("from ")
-		buf.WriteString(r.RemoteAddr)
-
-		//Log to file
-		f, err := os.OpenFile("./req.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			log.Fatalf("error opening file: %v", err)
-		}
-		defer f.Close()
-		log.SetOutput(io.MultiWriter(os.Stdout, f))
-		log.Print(buf.String())
-		//Reset buffer to be reused by the end stuff
-		buf.Reset()
-
-		next.ServeHTTP(&writer, r)
-
-		end := time.Now()
-		latency := end.Sub(start)
-		status := writer.Status()
-
-		buf.WriteString("Returning ")
-		fmt.Fprintf(&buf, "%v", status)
-		buf.WriteString(" in ")
-		fmt.Fprintf(&buf, "%s", latency)
-		//log.SetOutput(io.MultiWriter(os.Stdout, f))
-		log.Print(buf.String())
-	})
-}
-
-//Generate a random key of specific length
-func RandKey(leng int8) string {
-	dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	rb := make([]byte, leng)
-	rand.Read(rb)
-	for k, v := range rb {
-		rb[k] = dictionary[v%byte(len(dictionary))]
-	}
-	sess_id := string(rb)
-	return sess_id
-}
-
-func makeJSON(w http.ResponseWriter, data interface{}) ([]byte, error) {
-	jsonData, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		return nil, err
-	}
-	Debugln(string(jsonData))
-	return jsonData, nil
-}
-
-func WriteJ(w http.ResponseWriter, name string, success bool) error {
-	j := jsonresponse{
-		Name:    name,
-		Success: success,
-	}
-	json, err := makeJSON(w, j)
-	if err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(200)
-	w.Write(json)
-	Debugln(string(json))
-	return nil
-}
-
 func defaultHandler(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
       if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD {
@@ -693,13 +546,13 @@ func main() {
 		port = cfg.Port
 	}
 
-	new_sess := RandKey(32)
+	new_sess := utils.RandKey(32)
 	log.Println("Session ID: " + new_sess)
 
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	std := alice.New(Logger)
+	std := alice.New(utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
@@ -737,12 +590,8 @@ func main() {
 	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	d.HandleFunc("/i", galleryHandler).Methods("GET")
 	d.HandleFunc("/il", galleryListHandler).Methods("GET")
-	d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
-		WriteJ(w, "LOL", false)
-	}).Methods("GET", "POST")
-	d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {
-		WriteJ(w, "", false)
-	}).Methods("GET", "POST")
+	//d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "LOL", false)}).Methods("GET", "POST")
+	//d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "", false)}).Methods("GET", "POST")
 
 	//CLI API Functions
 	d.HandleFunc("/up/{name}", APInewFile).Methods("POST", "PUT")
