@@ -16,6 +16,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
+    "github.com/gorilla/handlers"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
     "github.com/fukata/golang-stats-api-handler"
@@ -570,7 +571,7 @@ func main() {
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	std := alice.New(utils.Logger)
+	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
@@ -584,22 +585,22 @@ func main() {
 	}
 
 	d.HandleFunc("/", indexHandler).Methods("GET")
-	d.HandleFunc("/priv", auth.Auth(Readme)).Methods("GET")
+	d.HandleFunc("/priv", auth.AuthMiddle(Readme)).Methods("GET")
 	d.HandleFunc("/readme", Readme).Methods("GET")
 	d.HandleFunc("/changelog", Changelog).Methods("GET")
 	d.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) { auth.LoginPostHandler(cfg.AuthConf, w, r) }).Methods("POST")
 	d.HandleFunc("/login", loginPageHandler).Methods("GET")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
-	d.HandleFunc("/list", auth.Auth(listHandler)).Methods("GET")
-	d.HandleFunc("/s", auth.Auth(shortenPageHandler)).Methods("GET")
-	d.HandleFunc("/short", auth.Auth(shortenPageHandler)).Methods("GET")
+	d.HandleFunc("/list", auth.AuthMiddle(listHandler)).Methods("GET")
+	d.HandleFunc("/s", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
+	d.HandleFunc("/short", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
 	d.HandleFunc("/lg", lgHandler).Methods("GET")
 	d.HandleFunc("/p", pastePageHandler).Methods("GET")
 	d.HandleFunc("/p/{name}", pasteHandler).Methods("GET")
 	d.HandleFunc("/up", uploadPageHandler).Methods("GET")
 	d.HandleFunc("/iup", uploadImagePageHandler).Methods("GET")
-	d.HandleFunc("/search/{name}", auth.Auth(searchHandler)).Methods("GET")
+	d.HandleFunc("/search/{name}", auth.AuthMiddle(searchHandler)).Methods("GET")
 	d.HandleFunc("/d/{name}", downloadHandler).Methods("GET")
 	d.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
 	d.HandleFunc("/i/{name}", downloadImageHandler).Methods("GET")
@@ -620,7 +621,7 @@ func main() {
 
 	//API Functions
 	api := r.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/delete/{type}/{name}", auth.Auth(APIdeleteHandler)).Methods("GET")
+	api.HandleFunc("/delete/{type}/{name}", auth.AuthMiddle(APIdeleteHandler)).Methods("GET")
 	api.HandleFunc("/paste/new", APInewPasteForm).Methods("POST")
 	api.HandleFunc("/file/new", APInewFile).Methods("POST")
 	api.HandleFunc("/file/remote", APInewRemoteFile).Methods("POST")
