@@ -288,8 +288,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
                 log.Println("Serving " + shorturl.Long + " file directly")
                 http.ServeFile(w, r, cfg.ImgDir+fileName)
             }
-        }
-        if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
+        } else if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
             log.Println("LONG URL CONTAINS MainTLD")
             if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
                 u, err := url.Parse(shorturl.Long)
@@ -301,9 +300,10 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
                 log.Println("Serving " + shorturl.Long + " file directly")
                 http.ServeFile(w, r, cfg.ImgDir+fileName)
             }
+        } else {
+            http.Redirect(w, r, shorturl.Long, 302)
         }
-        http.Redirect(w, r, shorturl.Long, 302)
-
+        
         s := &Shorturl{
             Created: shorturl.Created,
             Short:   shorturl.Short,
