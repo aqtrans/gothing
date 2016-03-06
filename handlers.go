@@ -302,7 +302,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
                 http.ServeFile(w, r, cfg.ImgDir+fileName)
             }
         }
-        http.Redirect(w, r, shorturl.FullURL, 302)
+        http.Redirect(w, r, shorturl.Long, 302)
 
         s := &Shorturl{
             Created: shorturl.Created,
