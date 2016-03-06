@@ -50,4 +50,4 @@ test-my-project:
 deploy-it:
   stage: deploy
   script:
-    - rsync -av $CURRENT_BUILD_PATH aqtrans@frink.es.gy:/home/aqtrans/tmp/
+    - rsync -av $CURRENT_BUILD_PATH aqtrans@localhost:/home/aqtrans/tmp/
