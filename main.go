@@ -565,13 +565,13 @@ func main() {
 		port = cfg.Port
 	}
 
-	new_sess := utils.RandKey(32)
-	log.Println("Session ID: " + new_sess)
+	//new_sess := utils.RandKey(32)
+	//log.Println("Session ID: " + new_sess)
 
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, utils.Logger)
+	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
