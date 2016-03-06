@@ -16,6 +16,7 @@ stages:
   - install-environment
   - build
   - test
+  - deploy
 
 install-go:
   stage: install-environment
@@ -45,3 +46,8 @@ test-my-project:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin
     - go test
+
+deploy-it:
+  stage: deploy
+  script:
+    - rsync -av $CURRENT_BUILD_PATH aqtrans@frink.es.gy:/home/aqtrans/tmp/
