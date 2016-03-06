@@ -1,0 +1,13 @@
+[Unit]
+Description=Golang thing daemon
+After=network.target
+After=nginx.service
+
+[Service]
+WorkingDirectory=/home/aqtrans/production_apps/thing
+ExecStart=/home/aqtrans/production_apps/thing/thing
+User=aqtrans
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
