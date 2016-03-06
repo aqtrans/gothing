@@ -38,6 +38,16 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func helpHandler(w http.ResponseWriter, r *http.Request) {
+	defer utils.TimeTrack(time.Now(), "helpHandler")
+	title := "Help"
+	p, _ := loadPage(title, w, r)
+	err := renderTemplate(w, "help.tmpl", p)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
 	defer utils.TimeTrack(time.Now(), "loadGalleryPage")
 	page, perr := loadPage("Gallery", w, r)

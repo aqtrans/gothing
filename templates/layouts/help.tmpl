@@ -1,0 +1,34 @@
+{{ define "title" }}<title>Help - {{.Page.TheName}}</title>{{ end }}
+{{ define "sidebar" }}
+    {{ template "sidebar_nav" . }}
+{{ end }}
+{{ define "content" }}       
+<h1>{{.Page.TheName}}</h1>
+<hr />
+<h3 class="subheader">Paste stuff from CLI</h3>
+<div class="panel callout">
+curl --data "STUFF" http://go.jba.io/p(/ID)
+</div>
+<h3 class="subheader">Upload file from CLI</h3>
+<div class="panel callout">	
+curl -T "file-to-upload" http://go.jba.io/up/
+</div>
+<h3 class="subheader">Fish Shell function to upload files, based on <a href="http://transfer.sh">transfer.sh</a> function</h3>
+<div class="panel callout">	
+function transfer -d "Transfer files"
+  if test (count $argv) -lt 1
+    echo -e "No arguments specified. Usage:\necho transfer /tmp/test.md\ncat /tmp/test.md | transfer test.md"
+  else
+    set -l tmpfile ( mktemp -t transferXXX )
+    command tty -s
+    if test $status = 0
+      set -l basefile (basename "$argv[1]" | sed -e 's/[^a-zA-Z0-9._-]/-/g')
+      curl --progress-bar --upload-file "$argv[1]" "http://go.jba.io/up/$basefile" >> $tmpfile
+    else
+      curl --progress-bar --upload-file "$argv[1]" "http://go.jba.io/up/$argv[1]" >> $tmpfile
+    end
+    cat $tmpfile; rm -f $tmpfile;
+  end
+end
+</div>
+{{ end }}

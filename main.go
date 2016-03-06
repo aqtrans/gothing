@@ -504,7 +504,7 @@ func (i *Image) save() error {
 func defaultHandler(next http.Handler) http.Handler {
     defer utils.TimeTrack(time.Now(), "defaultHandler")
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" {
+      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www." + cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" {
           next.ServeHTTP(w, r)
       } else {
           log.Println("Not serving anything, because this request belongs to: " + r.Host)
@@ -672,12 +672,14 @@ func main() {
     wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 	//Main Short URL page
-	short := r.Host(cfg.ShortTLD).Subrouter()
-	short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
+    // Collapsing this into main TLD
+	//short := r.Host(cfg.ShortTLD).Subrouter()
+	//short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
     
     static := http.Handler(http.FileServer(http.Dir("./public/")))
 
 	r.PathPrefix("/").Handler(defaultHandler(static))
+    d.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe(":3000", nil)
 
