@@ -595,7 +595,7 @@ func main() {
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host("(cfg.MainTLD|cfg.ShortTLD)").Subrouter()
+	d := r.Host(cfg.MainTLD).Subrouter()
 
 	if fLocal {
 		log.Println("Listening on .dev domains due to -l flag...")
@@ -667,8 +667,9 @@ func main() {
 	big := r.Host(cfg.GifTLD).Subrouter()
 	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
 
-	//Dynamic subdomains
-	wild := r.Host("{name}.es.gy").Subrouter()
+	//Dynamic subdomains | try to avoid taking www.es.gy
+	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
+    wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 	//Main Short URL page
 	short := r.Host(cfg.ShortTLD).Subrouter()
