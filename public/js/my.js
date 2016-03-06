@@ -103,11 +103,33 @@ $(document).ready(function(){
     //console.log( link );
     $.get( link, function(data){
         if(data.success){
-          $(".alerts").append("<div class=\"alert-box success\" data-alert>Successfully deleted "+data.name+"!<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
+          //<div class=\"alert-box success\" data-alert>Successfully deleted "+data.name+"!<a class=\"close\">&times;</a></div>");
+          //$(document).foundation('alert','reflow');
+            $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
+	           <h2 id=\"modalTitle\">Successfully deleted "+data.name+"!</h2>\
+	           <p class=\"lead\">"+data.name+" has been successfully deleted.</p>\
+	           <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
+                </div>");
+            $('#alertModal').foundation('reveal', 'open');
+            $(document).foundation('reveal', 'reflow');
+            $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
+              //var modal = $(this);
+              location.reload();
+            });
         } else {
-          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to delete<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
+          //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to delete<a class=\"close\">&times;</a></div>");
+          //$(document).foundation('alert','reflow');
+            $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
+	           <h2 id=\"modalTitle\">Failed to delete "+data.name+"!</h2>\
+	           <p class=\"lead\">"+data.name+" was unable to be deleted for some reason :( </p>\
+	           <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
+                </div>");
+            $('#alertModal').foundation('reveal', 'open');
+            $(document).foundation('reveal', 'reflow');
+            $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
+              //var modal = $(this);
+              location.reload();
+            });          
         }
     });    
   });
