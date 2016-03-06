@@ -252,7 +252,7 @@ func ParseBool(value string) bool {
 func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
 	//timer.Step("loadpageFunc")
 	user := auth.GetUsername(r)
-    token := auth.SetToken(w, r)
+    token := auth.GetToken(r)
 	return &Page{TheName: "GoThing", Title: title, UN: user, Token: token}, nil
 }
 
