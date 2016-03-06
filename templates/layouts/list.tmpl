@@ -61,7 +61,7 @@
 <tbody>
 {{range .Shorturls}}
 <tr>
-<td><a href=http://{{.Short}}.es.gy>{{.Short}}</a></td>
+<td><a href={{.FullURL}}>{{.FullURL}}</a></td>
 <td><a href={{.Long}}>{{.Long}}</a></td>
 <td>{{.Created | prettyDate}}</td>
 <td>{{.Hits}}</td>

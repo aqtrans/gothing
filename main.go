@@ -110,6 +110,7 @@ type Image struct {
 type Shorturl struct {
 	Created int64
 	Short   string
+    FullURL string
 	Long    string
 	Hits    int64
 }
@@ -559,6 +560,10 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
+        _, err = tx.CreateBucketIfNotExists([]byte("SubShorturl"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
 		return nil
 	})
 
@@ -650,7 +655,7 @@ func main() {
 
 	//Dynamic subdomains
 	wild := r.Host("{name}.es.gy").Subrouter()
-	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
+	wild.HandleFunc("/", subShortUrlHandler).Methods("GET")
 	//Dynamic subdomains
 	short := r.Host("es.gy").Subrouter()
 	short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")

@@ -80,7 +80,22 @@ $(document).ready(function(){
         $(document).foundation('alert','reflow');
         }
       });
-  });  
+  }); 
+
+  $("#shorturl2").submit(function(event){
+    event.preventDefault();  
+    console.log( $( this ).serialize() ); 
+    $.post( "/api/shorten/new", $( this ).serialize(), function(data){
+        if(data.success){
+          $(".alerts").append("<div class=\"alert-box success\" data-alert>Link successfully shortened! <a style='color:#fff' href="+data.name+"><i class='fa fa-external-link'></i>[Short URL]</a><a class=\"close\">&times;</a></div>");
+          $("#shorturl")[0].reset();
+        $(document).foundation('alert','reflow');
+        } else {
+          $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to shorten URL<a class=\"close\">&times;</a></div>");
+        $(document).foundation('alert','reflow');
+        }
+      });
+  });   
 
   $("a.delete").click(function(event){
     event.preventDefault();

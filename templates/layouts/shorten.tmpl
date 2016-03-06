@@ -5,11 +5,66 @@
 {{ end }}
 {{ define "content" }}  
 <h1>New Short URL</h1>
-<hr />
-<form action="/api/shorten/new" method="POST" id="shorturl">
-Short URL:<input type="text" name="short"><br>
-Long URL:<input type="text" name="long"><br>
-<input type="hidden" name="token" value="{{.Page.Token}}">
-<input type="submit" class="button success" value="Submit">
-</form>
+<ul class="accordion" data-accordion>
+  <li class="accordion-navigation">
+    <a href="#panel1a">Shorten URL to a subdomain</a>
+    <div id="panel1a" class="content active">
+      <h3>Shorten URL to [name].es.gy</h3>
+      <hr />
+        <form action="/api/shorten/new" method="POST" id="shorturl">
+        <div class="row collapse">
+            <div class="small-3 large-2 columns">
+            <span class="prefix">http://</span>
+            </div>  
+            <div class="small-6 large-8 columns">
+            <input type="text" name="shortSub" placeholder="Enter your short URL...">
+            </div>
+            <div class="small-3 large-2 columns">
+            <span class="postfix">.es.gy</span>
+            </div>    
+        </div>
+        <div class="row collapse">
+            <div class="small-3 large-2 columns">
+            <span class="prefix">http://</span>
+            </div>  
+            <div class="small-9 large-10 columns">
+            <input type="text" name="long" placeholder="Enter the destination URL...">
+            </div>
+        </div>
+        <div class="row collapse">
+            <input type="hidden" name="token" value="{{.Page.Token}}">
+            <input type="submit" class="button success" value="Submit">
+        </div>
+        </form>
+    </div>
+  </li>
+  <li class="accordion-navigation">
+    <a href="#panel2a">Shorten URL normally</a>
+    <div id="panel2a" class="content">
+      <h3>Shorten URL to es.gy/[name]</h3>  
+      <hr />
+        <form action="/api/shorten/new" method="POST" id="shorturl2">
+        <div class="row collapse">
+            <div class="small-3 large-2 columns">
+            <span class="prefix">http://es.gy/</span>
+            </div>  
+            <div class="small-9 large-10 columns">
+            <input type="text" name="short" placeholder="Enter your short URL...">
+            </div>
+        </div>
+        <div class="row collapse">
+            <div class="small-3 large-2 columns">
+            <span class="prefix">http://</span>
+            </div>  
+            <div class="small-9 large-10 columns">
+            <input type="text" name="long" placeholder="Enter the destination URL...">
+            </div>
+        </div>
+        <div class="row collapse">
+            <input type="hidden" name="token" value="{{.Page.Token}}">
+            <input type="submit" class="button success" value="Submit">
+        </div>
+        </form>
+    </div>
+  </li>      
 {{ end }}

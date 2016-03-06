@@ -4,11 +4,12 @@
     {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}
+<h1>Upload a file</h1>
 <ul class="accordion" data-accordion>
   <li class="accordion-navigation">
     <a href="#panel1a">Upload a local file</a>
     <div id="panel1a" class="content active">
-      <h1>Upload a file</h1>
+      <h3>Upload a local file</h3>
       <hr />
       <form action="/up" method="post" enctype="multipart/form-data" class="dropzone" id="fileup">
       <div class="row collapse">
@@ -30,7 +31,7 @@
   <li class="accordion-navigation">
     <a href="#panel2a">Upload a remote file</a>
     <div id="panel2a" class="content">
-      <h1>Upload a file from a remote URL</h1>
+      <h3>Upload a file from a remote URL</h3>
       <hr />
       <form method="post" action="/up" id="remotefileup">
       <div class="row collapse">
