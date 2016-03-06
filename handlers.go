@@ -240,8 +240,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Short URL Handlers
-// regular one, for es.gy/[key] URLs
+//Short URL Handler
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
@@ -303,92 +302,13 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
                 http.ServeFile(w, r, cfg.ImgDir+fileName)
             }
         }
-        http.Redirect(w, r, shorturl.Long, 302)
+        http.Redirect(w, r, shorturl.FullURL, 302)
 
         s := &Shorturl{
             Created: shorturl.Created,
             Short:   shorturl.Short,
             Long:    shorturl.Long,
-            Hits:    count,
-        }
-        encoded, err := json.Marshal(s)
-
-        //return nil
-        return b.Put([]byte(title), encoded)
-	})
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-//ShortURL handler for subdomain, *.es.gy
-func subShortUrlHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "subShortUrlHandler")
-	shorturl := &Shorturl{}
-	vars := mux.Vars(r)
-	title := vars["name"]
-	/*
-		//The Host that the user queried.
-		host := r.Host
-		host = strings.TrimSpace(host)
-		//Figure out if a subdomain exists in the host given.
-		host_parts := strings.Split(host, ".")
-		subdomain := ""
-		log.Println("Received Short URL request for "+host)
-		if len(host_parts) > 2 {
-		    //The subdomain exists, we store it as the first element
-		    //in a new array
-		    subdomain = string(host_parts[0])
-		}*/
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Shorturls"))
-		v := b.Get([]byte(title))
-		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-		//After JSON Unmarshal, Content should be in paste.Content field
-		if v == nil {
-			http.Error(w, "Error 400 - No such domain at this address", http.StatusBadRequest)
-			err := errors.New(title + ": No Such Short URL")
-			return err
-			//log.Println(err)
-		}
-        err := json.Unmarshal(v, &shorturl)
-        if err != nil {
-            log.Println(err)
-        }
-        count := (shorturl.Hits + 1)
-        //If the shorturl is local, just serve whatever file being requested
-        if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
-            log.Println("LONG URL CONTAINS ShortTLD")
-            if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
-                u, err := url.Parse(shorturl.Long)
-                if err != nil {
-                    log.Println(err)
-                }
-                segments := strings.Split(u.Path, "/")
-                fileName := segments[len(segments)-1]
-                log.Println("Serving " + shorturl.Long + " file directly")
-                http.ServeFile(w, r, cfg.ImgDir+fileName)
-            }
-        }
-        if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
-            log.Println("LONG URL CONTAINS MainTLD")
-            if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
-                u, err := url.Parse(shorturl.Long)
-                if err != nil {
-                    log.Println(err)
-                }
-                segments := strings.Split(u.Path, "/")
-                fileName := segments[len(segments)-1]
-                log.Println("Serving " + shorturl.Long + " file directly")
-                http.ServeFile(w, r, cfg.ImgDir+fileName)
-            }
-        }
-        http.Redirect(w, r, shorturl.Long, 302)
-
-        s := &Shorturl{
-            Created: shorturl.Created,
-            Short:   shorturl.Short,
-            Long:    shorturl.Long,
+            FullURL: shorturl.FullURL,
             Hits:    count,
         }
         encoded, err := json.Marshal(s)
