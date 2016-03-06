@@ -476,19 +476,21 @@ func (i *Image) save() error {
 		return err
 	}
 	//Detect what kind of image, so we can embiggen GIFs from the get-go
-
+    // No longer needed as of 03/06/2016
+    /*
 	contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
 	if contentType == "image/gif" {
 		log.Println("GIF detected; Running embiggen function...")
 		go embiggenHandler(i.Filename)
 	}
+    */
 	log.Println("++++IMAGE SAVED")
 	return nil
 }
 
 func defaultHandler(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD {
+      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" {
           next.ServeHTTP(w, r)
       } else {
           log.Println("Not serving anything, because this request belongs to: " + r.Host)

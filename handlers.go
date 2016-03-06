@@ -540,6 +540,26 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 	smallPath := cfg.ImgDir + path.Base(name)
+    //Check if small image exists:
+    _, err := os.Stat(smallPath)
+	if err != nil {
+		log.Println("Small image not found; serving large version...")
+		http.Error(w, "Image not found", 404)
+    }
+    
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title>
+                    <style>
+                    body{
+                        background-image:url('/imagedirect/` + name + `');
+                        background-position: 0px 30%;
+                        background-size: cover;
+                        background-repeat: no-repeat;
+                        width: 100%;
+                        height: 100%;
+                    }</head><body></body></html>`))
+    
+    /*
 	bigPath := cfg.GifDir + path.Base(name)
 
 	//Check to see if the large image already exists
@@ -563,6 +583,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		http.ServeFile(w, r, cfg.GifDir+name)
 	}
+    */
 }
 
 //Separate function to resize GIFs in a goroutine
