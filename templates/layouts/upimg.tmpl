@@ -3,11 +3,12 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}
+<h1>Upload an image</h1>
 <ul class="accordion" data-accordion>
   <li class="accordion-navigation">
     <a href="#panel1a">Upload a local image</a>
     <div id="panel1a" class="content active">
-        <h1>Upload an image</h1>
+        <h3>Upload a local image</h3>
         <hr />
         <form action="/api/image/new" method="post" enctype="multipart/form-data" class="dropzone" id="imageup">
         <div class="row collapse">
@@ -29,7 +30,7 @@
   <li class="accordion-navigation">
     <a href="#panel2a">Upload a remote image</a>
     <div id="panel2a" class="content">
-        <h1>Upload an image from a remote URL</h1>
+        <h3>Upload an image from a remote URL</h3>
         <hr />
         <form method="post" action="/api/image/remote" id="remoteimageup">
         <div class="row collapse">
