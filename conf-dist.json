@@ -1,8 +1,6 @@
 {
     "Port": "3000",
-    "Username": "uid=admin,ou=People,dc=example,dc=com",
-    "Password": "admin",
-    "Email": "admin@example.com",
+    "Email": "me@jba.io",
     "ImgDir": "./up-imgs/",
     "FileDir": "./up-files/",
     "ThumbDir": "./thumbs/",
@@ -11,8 +9,15 @@
     "ShortTLD": "es.gy",
     "ImageTLD": "i.es.gy",
     "GifTLD": "big.es.gy",
-    "LDAPport": 389,
-    "LDAPurl": "troy.es.gy",
-    "LDAPdn": "ou=People,dc=example,dc=com",
-    "LDAPun": "uid"
+    "AuthConf": {
+            "Username": "guest",
+            "Password": "1337",
+            "LdapEnabled": true,
+            "LdapPort": 389,
+            "LdapUrl": "frink.es.gy",
+            "LdapUn": "uid",
+            "LdapOu": "People",
+            "LdapDn": "dc=jba,dc=io"
+    }
 }
+
