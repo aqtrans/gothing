@@ -595,7 +595,7 @@ func main() {
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host("go.jba.io").Subrouter()
+	d := r.Host("(cfg.MainTLD|cfg.ShortTLD)").Subrouter()
 
 	if fLocal {
 		log.Println("Listening on .dev domains due to -l flag...")
@@ -612,6 +612,7 @@ func main() {
 	d.HandleFunc("/login", loginPageHandler).Methods("GET")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
+    
 	d.HandleFunc("/list", auth.AuthMiddle(listHandler)).Methods("GET")
 	d.HandleFunc("/s", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
 	d.HandleFunc("/short", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
@@ -669,7 +670,7 @@ func main() {
 	//Dynamic subdomains
 	wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
-	//Dynamic subdomains
+	//Main Short URL page
 	short := r.Host(cfg.ShortTLD).Subrouter()
 	short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
     

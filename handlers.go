@@ -245,7 +245,11 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
 	vars := mux.Vars(r)
-	title := vars["name"]
+	title := strings.ToLower(vars["name"])
+    
+    if title == "www" {
+        indexHandler(w, r)
+    }
 	/*
 		//The Host that the user queried.
 		host := r.Host
