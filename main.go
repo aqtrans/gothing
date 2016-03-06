@@ -29,7 +29,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-
+    "time"
 	"sort"
 	"strconv"
     "jba.io/go/auth"
@@ -208,6 +208,7 @@ func markdownRender(content []byte) []byte {
 //When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
 func getScheme(r *http.Request) (scheme string) {
+    defer utils.TimeTrack(time.Now(), "getScheme")
 	scheme = r.Header.Get("X-Forwarded-Proto") + "://"
 	/*
 		scheme = "http://"
@@ -222,6 +223,7 @@ func getScheme(r *http.Request) (scheme string) {
 }
 
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
+    defer utils.TimeTrack(time.Now(), "renderTemplate")
 	tmpl, ok := templates[name]
 	if !ok {
 		return fmt.Errorf("The template %s does not exist", name)
@@ -243,6 +245,7 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 }
 
 func ParseBool(value string) bool {
+    defer utils.TimeTrack(time.Now(), "ParseBool")
 	boolValue, err := strconv.ParseBool(value)
 	if err != nil {
 		return false
@@ -251,6 +254,7 @@ func ParseBool(value string) bool {
 }
 
 func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
+    defer utils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
 	user := auth.GetUsername(r)
     token := auth.GetToken(r)
@@ -258,6 +262,7 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 }
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+    defer utils.TimeTrack(time.Now(), "loadMainPage")
 	//timer.Step("loadpageFunc")
 	p, err := loadPage(title, w, r)
 	if err != nil {
@@ -272,6 +277,7 @@ func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interfa
 }
 
 func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
+    defer utils.TimeTrack(time.Now(), "loadListPage")
 	page, perr := loadPage("List", w, r)
 	if perr != nil {
 		return nil, perr
@@ -353,6 +359,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 }
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
+    defer utils.TimeTrack(time.Now(), "ParseMultipartFormProg")
 	//length := r.ContentLength
 	//ticker := time.Tick(time.Millisecond)
 
@@ -384,6 +391,7 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 }
 
 func (f *File) save() error {
+    defer utils.TimeTrack(time.Now(), "File.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
@@ -402,6 +410,7 @@ func (f *File) save() error {
 }
 
 func (s *Shorturl) save() error {
+    defer utils.TimeTrack(time.Now(), "Shorturl.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
@@ -418,6 +427,7 @@ func (s *Shorturl) save() error {
 }
 
 func (p *Paste) save() error {
+    defer utils.TimeTrack(time.Now(), "Paste.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
@@ -436,6 +446,7 @@ func (p *Paste) save() error {
 }
 
 func makeThumb(fpath, thumbpath string) {
+    defer utils.TimeTrack(time.Now(), "makeThumb")
 	contentType := mime.TypeByExtension(filepath.Ext(path.Base(fpath)))
 	if contentType == "video/webm" {
 		log.Println("WEBM FILE DETECTED")
@@ -463,6 +474,7 @@ func makeThumb(fpath, thumbpath string) {
 }
 
 func (i *Image) save() error {
+    defer utils.TimeTrack(time.Now(), "Image.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
@@ -490,6 +502,7 @@ func (i *Image) save() error {
 }
 
 func defaultHandler(next http.Handler) http.Handler {
+    defer utils.TimeTrack(time.Now(), "defaultHandler")
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
       if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" {
           next.ServeHTTP(w, r)

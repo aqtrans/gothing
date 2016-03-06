@@ -567,6 +567,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "imageThumbHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
@@ -609,6 +610,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "imageDirectHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(name)
@@ -618,6 +620,7 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "imageBigHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	smallPath := cfg.ImgDir + path.Base(name)
@@ -669,6 +672,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 
 //Separate function to resize GIFs in a goroutine
 func embiggenHandler(i string) {
+    defer utils.TimeTrack(time.Now(), "embiggenHandler")
 	name := i
 	smallPath := cfg.ImgDir + path.Base(name)
 	bigPath := cfg.GifDir + path.Base(name)
@@ -696,6 +700,7 @@ func embiggenHandler(i string) {
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "viewMarkdownHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	p, err := loadPage(name, w, r)
@@ -732,7 +737,7 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
-
+    defer utils.TimeTrack(time.Now(), "APInewRemoteFile")
     // Check for CSRF token
     err := auth.CheckToken(w, r)
     if err != nil {
@@ -813,6 +818,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewFile(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "APInewFile")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	contentLength := r.ContentLength
@@ -1196,6 +1202,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 
 //Delete stuff
 func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
 	vars := mux.Vars(r)
 	ftype := vars["type"]
@@ -1256,6 +1263,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APIlgAction(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "APIlgAction")
 	url := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
@@ -1343,6 +1351,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "APInewRemoteImage")
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
     
@@ -1421,6 +1430,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewImage(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "APInewImage")
 	contentLength := r.ContentLength
 	var reader io.Reader
 	var f io.WriteCloser
@@ -1588,6 +1598,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Readme(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "Readme")
 	name := "README"
 	p, err := loadPage(name, w, r)
 	if err != nil {
@@ -1620,6 +1631,7 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 }
 
 func Changelog(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "Changelog")
 	name := "CHANGELOG"
 	p, err := loadPage(name, w, r)
 	if err != nil {
