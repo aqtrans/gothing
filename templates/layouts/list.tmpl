@@ -1,7 +1,6 @@
 {{ define "title" }}<title>List - {{.Page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
-    {{ template "login_form" . }}
 {{ end }}
 {{ define "content" }}
 {{$user := .Page.UN}}

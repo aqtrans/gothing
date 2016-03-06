@@ -11,5 +11,11 @@
           <li><a href="/short"><span>Shorten URL</span></a></li>
           <li><a href="/readme"><span>Readme</span></a></li>
           <li><a href="/changelog"><span>Changelog</span></a></li>
+          {{ if .Page.UN }}
+              <br>
+              <p>Hello, {{ .Page.UN }}<p>
+              <li><a href="/logout"><span>Logout</span></a></li>
+              <li><a href="/admin"><span>Admin</span></a></li>
+          {{ end }}
         </ul>
 {{ end }}
