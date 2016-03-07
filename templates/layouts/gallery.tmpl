@@ -7,10 +7,17 @@
 <div class="row">
 	<ul class="inline-list"> 
 	{{range .Images}}
+    {{$imgext := .Filename|imgExt}}
 	<li>
 	<div class="thumbspacer">
 	<a class="th" href="/i/{{.Filename}}">
-	<img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+    {{if $imgext eq "gif"}}
+      <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+    {{else if $imgext eq "webm"}}
+      <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-mode="video" data-webm="/imagedirect/{{.Filename}}">
+    {{else}}
+      <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+    {{end}}
 	</a>
 	</div>
 	</li> 
