@@ -605,6 +605,7 @@ func main() {
 	}
 
 	d.HandleFunc("/", indexHandler).Methods("GET")
+    d.HandleFunc("/help", helpHandler).Methods("GET")
 	d.HandleFunc("/priv", auth.AuthMiddle(Readme)).Methods("GET")
 	d.HandleFunc("/readme", Readme).Methods("GET")
 	d.HandleFunc("/changelog", Changelog).Methods("GET")

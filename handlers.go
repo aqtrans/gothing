@@ -41,7 +41,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func helpHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "helpHandler")
 	title := "Help"
-	p, _ := loadPage(title, w, r)
+	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "help.tmpl", p)
 	if err != nil {
 		log.Println(err)
