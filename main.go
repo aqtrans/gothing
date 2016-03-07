@@ -492,7 +492,7 @@ func (i *Image) save() error {
 func defaultHandler(next http.Handler) http.Handler {
     defer utils.TimeTrack(time.Now(), "defaultHandler")
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www." + cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" {
+      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www." + cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" || r.Host == "go.jba.io" {
           next.ServeHTTP(w, r)
       } else {
           log.Println("Not serving anything, because this request belongs to: " + r.Host)
