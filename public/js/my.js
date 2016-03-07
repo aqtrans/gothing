@@ -129,7 +129,7 @@ $(document).ready(function(){
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
               //var modal = $(this);
               location.reload();
-            });          
+            });
         }
     });    
   });
@@ -138,13 +138,28 @@ $(document).ready(function(){
     event.preventDefault();   
     $.post( "login", $( this ).serialize(), function(data){
       if(data.success){
-        $(location).attr('href', data.name);
-        //$(".alerts").append("<div class=\"alert-box success\" data-alert>Successful login<a class=\"close\">&times;</a></div>");
-        //$("#login-form").remove();
-        //$(document).foundation('alert','reflow');
+        $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
+            <h2 id=\"modalTitle\">Successfully logged in!</h2>\
+            <p class=\"lead\">Close this box to be redirected to your previously scheduled program.</p>\
+            <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
+            </div>");
+        $('#alertModal').foundation('reveal', 'open');
+        $(document).foundation('reveal', 'reflow');          
+        setTimeout(function() {
+           window.location.href = data.name;
+        }, 2000);  
+        //$(location).attr('href', data.name);
       } else {
-        $(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed login<a class=\"close\">&times;</a></div>");
-        $(document).foundation('alert','reflow');
+        //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed login<a class=\"close\">&times;</a></div>");
+        //$(document).foundation('alert','reflow');
+        $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
+            <h2 id=\"modalTitle\">Login failure!</h2>\
+            <p class=\"lead\">Please check your credentials and try again.</p>\
+            <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
+            </div>");
+        $('#alertModal').foundation('reveal', 'open');
+        $(document).foundation('reveal', 'reflow'); 
+        //$(location).attr('href', data.name);        
       }
     });
   });
