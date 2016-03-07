@@ -630,7 +630,7 @@ func main() {
 	d.HandleFunc("/lg", APIlgAction).Methods("POST")
 
 	//API Functions
-	api := r.PathPrefix("/api").Subrouter()
+	api := d.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/delete/{type}/{name}", auth.AuthMiddle(APIdeleteHandler)).Methods("GET")
 	api.HandleFunc("/paste/new", APInewPasteForm).Methods("POST")
 	api.HandleFunc("/file/new", APInewFile).Methods("POST")
