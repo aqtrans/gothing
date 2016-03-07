@@ -583,7 +583,7 @@ func main() {
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host("(cfg.MainTLD|go.jba.io)").Subrouter()
+	d := r.Host(cfg.MainTLD).Subrouter()
 
 	if fLocal {
 		log.Println("Listening on .dev domains due to -l flag...")
