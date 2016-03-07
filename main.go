@@ -19,7 +19,7 @@ import (
     "github.com/gorilla/handlers"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
-    "github.com/fukata/golang-stats-api-handler"
+    //"github.com/fukata/golang-stats-api-handler"
 	"github.com/russross/blackfriday"
 	"html/template"
 	"log"
@@ -58,7 +58,7 @@ var (
 	debug 	  bool 
 	db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = configuration{}
-    //startTime = time.Now().UTC()
+
 )
 
 //Flags
@@ -142,10 +142,6 @@ func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
     
-    // Additional expvars
-    //expvar.Publish("Goroutines",expvar.Func(expGoroutines))
-    //expvar.Publish("Uptime", expvar.Func(expUptime))
-    
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	//Flag '-d' enabled debug logging
@@ -166,7 +162,7 @@ func init() {
 	}
 
 	funcMap := template.FuncMap{"prettyDate": utils.PrettyDate, "safeHTML": utils.SafeHTML, "imgClass": utils.ImgClass, "imgExt": utils.ImgExt}
-
+    
 	for _, layout := range layouts {
 		files := append(includes, layout)
 		//DEBUG TEMPLATE LOADING 
@@ -175,15 +171,7 @@ func init() {
 	}
 }
 
-/*func expGoroutines() interface{} {
-	return runtime.NumGoroutine()
-}
 
-// uptime is an expvar.Func compliant wrapper for uptime info.
-func expUptime() interface{} {
-	uptime := time.Since(startTime)
-	return int64(uptime)
-}*/
 
 func markdownRender(content []byte) []byte {
 	htmlFlags := 0
@@ -652,7 +640,8 @@ func main() {
 	api.HandleFunc("/image/new", APInewImage).Methods("POST")
 	api.HandleFunc("/image/remote", APInewRemoteImage).Methods("POST")
     //Golang-Stats-API
-    api.HandleFunc("/stats", stats_api.Handler)
+    //api.HandleFunc("/stats", stats_api.Handler)
+    api.HandleFunc("/vars", utils.HandleExpvars)
 
 	//Dedicated image subdomain routes
 	i := r.Host(cfg.ImageTLD).Subrouter()
