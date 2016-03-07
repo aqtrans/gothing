@@ -570,12 +570,9 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title>
                     <style>
                     body{
-                        background-image:url('/imagedirect/` + name + `');
-                        background-position: 0px 30%;
-                        background-size: cover;
-                        background-repeat: no-repeat;
-                        width: 100%;
-                        height: 100%;
+                        background: url('/imagedirect/` + name + `') no-repeat center center fixed;
+                        background-size: contain;
+                        background-clip: content-box;
                     }</head><body></body></html>`))
     
     /*
