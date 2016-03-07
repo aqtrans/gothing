@@ -14,7 +14,7 @@ $(document).ready(function(){
           //$(document).foundation('alert','reflow');
             $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
                 <h2 id=\"modalTitle\">Image successfully uploaded!</h2>\
-                <p class=\"lead\">Here is the link to your newly uploaded <a style='color:#fff' href=/i/"+data.name+"><i class='fa fa-external-link'></i>image</a>.</p>\
+                <p class=\"lead\">Here is the link to your newly uploaded <a href=/i/"+data.name+"><i class='fa fa-external-link'></i>image</a>.</p>\
                 <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
                 </div>");
             $('#alertModal').foundation('reveal', 'open');
@@ -50,7 +50,7 @@ $(document).ready(function(){
           //$(document).foundation('alert','reflow');
             $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
                 <h2 id=\"modalTitle\">Image successfully uploaded!</h2>\
-                <p class=\"lead\">Here is the link to your newly uploaded <a style='color:#fff' href=/i/"+data.name+"><i class='fa fa-external-link'></i>image</a>.</p>\
+                <p class=\"lead\">Here is the link to your newly uploaded <a href=/i/"+data.name+"><i class='fa fa-external-link'></i>image</a>.</p>\
                 <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
                 </div>");
             $('#alertModal').foundation('reveal', 'open');
@@ -90,7 +90,7 @@ $(document).ready(function(){
           //$(".alerts").append("<div class=\"alert-box success\" data-alert>File successfully uploaded! <a style='color:#fff' href=/d/"+data.name+"><i class='fa fa-external-link'></i>[File link]</a><a class=\"close\">&times;</a></div>");
             $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
                 <h2 id=\"modalTitle\">File successfully uploaded!</h2>\
-                <p class=\"lead\">Here is the link to your <a style='color:#fff' href=/d/"+data.name+"><i class='fa fa-external-link'></i>new file</a>.</p>\
+                <p class=\"lead\">Here is the link to your <a href=/d/"+data.name+"><i class='fa fa-external-link'></i>new file</a>.</p>\
                 <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
                 </div>");
             $('#alertModal').foundation('reveal', 'open');
@@ -125,7 +125,7 @@ $(document).ready(function(){
           //$(".alerts").append("<div class=\"alert-box success\" data-alert>File successfully uploaded! <a style='color:#fff' href=/d/"+data.name+"><i class='fa fa-external-link'></i>[File link]</a><a class=\"close\">&times;</a></div>");
             $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
                 <h2 id=\"modalTitle\">File successfully uploaded!</h2>\
-                <p class=\"lead\">Here is the link to your <a style='color:#fff' href=/d/"+data.name+"><i class='fa fa-external-link'></i>new file</a>.</p>\
+                <p class=\"lead\">Here is the link to your <a href=/d/"+data.name+"><i class='fa fa-external-link'></i>new file</a>.</p>\
                 <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
                 </div>");
             $('#alertModal').foundation('reveal', 'open');
@@ -160,7 +160,7 @@ $(document).ready(function(){
           //$(".alerts").append("<div class=\"alert-box success\" data-alert>Link successfully shortened! <a style='color:#fff' href="+data.name+"><i class='fa fa-external-link'></i>[Short URL]</a><a class=\"close\">&times;</a></div>");
             $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
                 <h2 id=\"modalTitle\">Successfully shortened link!</h2>\
-                <p class=\"lead\">Here is your new <a style='color:#fff' href="+data.name+"><i class='fa fa-external-link'></i>short URL</a>.</p>\
+                <p class=\"lead\">Here is your new <a href="+data.name+"><i class='fa fa-external-link'></i>short URL</a>.</p>\
                 <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
                 </div>");
             $('#alertModal').foundation('reveal', 'open');
@@ -191,7 +191,7 @@ $(document).ready(function(){
           //$(".alerts").append("<div class=\"alert-box success\" data-alert>Link successfully shortened! <a style='color:#fff' href="+data.name+"><i class='fa fa-external-link'></i>[Short URL]</a><a class=\"close\">&times;</a></div>");
             $(".alerts").append("<div id=\"alertModal\" class=\"reveal-modal\" data-reveal aria-labelledby=\"modalTitle\" aria-hidden=\"true\" role=\"dialog\">\
                 <h2 id=\"modalTitle\">Successfully shortened link!</h2>\
-                <p class=\"lead\">Here is your new <a style='color:#fff' href="+data.name+"><i class='fa fa-external-link'></i>short URL</a>.</p>\
+                <p class=\"lead\">Here is your new <a href="+data.name+"><i class='fa fa-external-link'></i>short URL</a>.</p>\
                 <a class=\"close-reveal-modal\" aria-label=\"Close\">&#215;</a>\
                 </div>");
             $('#alertModal').foundation('reveal', 'open');

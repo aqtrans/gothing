@@ -18,6 +18,12 @@ button.tiny, .button.tiny {
   max-width:12rem;
 }
 
+/*
+.image-wrapper {
+    border: solid 1px #000;
+}
+*/
+
 textarea {
   height: 20rem;
 }

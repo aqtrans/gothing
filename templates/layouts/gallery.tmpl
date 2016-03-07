@@ -9,17 +9,23 @@
 	{{range .Images}}
     {{$imgext := .Filename|imgExt}}
 	<li>
-	<div class="thumbspacer">
-	<a class="th" href="/i/{{.Filename}}">
-    {{if $imgext eq "gif"}}
-      <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
-    {{else if $imgext eq "webm"}}
-      <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-mode="video" data-webm="/imagedirect/{{.Filename}}">
-    {{else}}
-      <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
-    {{end}}
-	</a>
-	</div>
+    <div class="image-wrapper">
+        <div class="thumbspacer">
+        <a class="th" href="#">
+        {{if eq $imgext "gif"}}
+        <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+        {{else if eq $imgext "webm"}}
+        <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-mode="video" data-webm="/imagedirect/{{.Filename}}">
+        {{else}}
+        <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+        {{end}}
+        </a>
+        </div>
+        <ul class="button-group">
+            <li><a href="/i/{{.Filename}}" class="button tiny"><i class='fa fa-external-link'></i>Link</a></li>
+            <li><a href="/big/{{.Filename}}" class="button tiny"><i class='fa fa-arrows-alt'></i>Embiggen</a></li>
+        </ul>
+    </div>
 	</li> 
 	{{ end }}
 	</ul>
