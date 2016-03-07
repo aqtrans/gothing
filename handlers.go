@@ -1141,9 +1141,10 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ftype := vars["type"]
 	fname := vars["name"]
+    jmsg := ftype + " " + fname
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
+			log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Files")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1156,10 +1157,10 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		utils.WriteJ(w, fname, true)
+		utils.WriteJ(w, jmsg, true)
 	} else if ftype == "image" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
+			log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Images")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1172,25 +1173,25 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		utils.WriteJ(w, fname, true)
+		utils.WriteJ(w, jmsg, true)
 	} else if ftype == "paste" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
+			log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Pastes")).Delete([]byte(fname))
 		})
 		if err != nil {
 			log.Println(err)
 		}
-		utils.WriteJ(w, fname, true)
+		utils.WriteJ(w, jmsg, true)
 	} else if ftype == "shorturl" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(ftype + " " + fname + " has been deleted")
+			log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Shorturls")).Delete([]byte(fname))
 		})
 		if err != nil {
 			log.Println(err)
 		}
-		utils.WriteJ(w, fname, true)
+		utils.WriteJ(w, jmsg, true)
 	} else {
 		utils.WriteJ(w, "", false)
 	}
