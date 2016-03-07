@@ -563,6 +563,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Small image not found; serving large version...")
 		http.Error(w, "Image not found", 404)
+        return
     }
     
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
