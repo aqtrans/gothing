@@ -1,10 +1,10 @@
-{{ define "title" }}<title>{{ .page.Title }} - {{.page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>{{ .Page.Title }} - {{.Page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}     
-<h1>{{ .page.Title }}</h1>
-{{$title := .page.Title}}
+<h1>{{ .Page.Title }}</h1>
+{{$title := .Page.Title}}
 <hr />
 <div>
 {{.MD}}

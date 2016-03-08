@@ -12,8 +12,6 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"jba.io/go/auth"
-	"jba.io/go/utils"
 	"log"
 	"mime"
 	"net/http"
@@ -26,6 +24,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+    "jba.io/go/utils"
+    "jba.io/go/auth"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,31 +48,31 @@ func helpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*galleryPage, error) {
+func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
 	defer utils.TimeTrack(time.Now(), "loadGalleryPage")
-	p, perr := loadPage("Gallery", w, r)
+	page, perr := loadPage("Gallery", w, r)
 	if perr != nil {
 		log.Println(perr)
 	}
 
-	var theimages []*image
+	var images []*Image
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
-			var theimage *image
-			err := json.Unmarshal(v, &theimage)
+			var image *Image
+			err := json.Unmarshal(v, &image)
 			if err != nil {
 				log.Println(err)
 			}
-			theimages = append(theimages, theimage)
+			images = append(images, image)
 			return nil
 		})
 		return nil
 	})
-	sort.Sort(ImageByDate(theimages))
-	return &galleryPage{page: p, Images: theimages}, nil
+	sort.Sort(ImageByDate(images))
+	return &GalleryPage{Page: page, Images: images}, nil
 }
 
 func galleryHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +119,7 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 	title := "lg"
 	p, err := loadPage(title, w, r)
 	data := struct {
-		Page    *page
+		Page    *Page
 		Title   string
 		Message string
 	}{
@@ -139,20 +139,20 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	term := vars["name"]
 	sterm := regexp.MustCompile(term)
 
-	thefile := &file{}
-	thepaste := &paste{}
+	file := &File{}
+	paste := &Paste{}
 
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte("Pastes"))
 		c.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
-			err := json.Unmarshal(v, &thepaste)
+			err := json.Unmarshal(v, &paste)
 			if err != nil {
 				log.Println(err)
 			}
-			plink := thepaste.Title
-			pfull := thepaste.Title + thepaste.Content
+			plink := paste.Title
+			pfull := paste.Title + paste.Content
 			if sterm.MatchString(pfull) {
 				fmt.Fprintln(w, plink)
 			}
@@ -161,11 +161,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		d := tx.Bucket([]byte("Files"))
 		d.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
-			err := json.Unmarshal(v, &thefile)
+			err := json.Unmarshal(v, &file)
 			if err != nil {
 				log.Println(err)
 			}
-			flink := thefile.Filename
+			flink := file.Filename
 			if sterm.MatchString(flink) {
 				fmt.Fprintln(w, flink)
 			}
@@ -225,7 +225,7 @@ func loginPageHandler(w http.ResponseWriter, r *http.Request) {
 	title := "login"
 	p, err := loadPage(title, w, r)
 	data := struct {
-		Page  *page
+		Page  *Page
 		Title string
 	}{
 		p,
@@ -253,13 +253,13 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 //Short URL Handler
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "shortUrlHandler")
-	theshorturl := &shorturl{}
+	shorturl := &Shorturl{}
 	vars := mux.Vars(r)
 	title := strings.ToLower(vars["name"])
-
-	if title == "www" {
-		indexHandler(w, r)
-	}
+    
+    if title == "www" {
+        indexHandler(w, r)
+    }
 	/*
 		//The Host that the user queried.
 		host := r.Host
@@ -284,51 +284,51 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 			//log.Println(err)
 		}
-		err := json.Unmarshal(v, &theshorturl)
-		if err != nil {
-			log.Println(err)
-		}
-		count := (theshorturl.Hits + 1)
-		//If the shorturl is local, just serve whatever file being requested
-		if strings.Contains(theshorturl.Long, cfg.ShortTLD+"/") {
-			log.Println("LONG URL CONTAINS ShortTLD")
-			if strings.HasPrefix(theshorturl.Long, "http://"+cfg.ImageTLD) {
-				u, err := url.Parse(theshorturl.Long)
-				if err != nil {
-					log.Println(err)
-				}
-				segments := strings.Split(u.Path, "/")
-				fileName := segments[len(segments)-1]
-				log.Println("Serving " + theshorturl.Long + " file directly")
-				http.ServeFile(w, r, cfg.ImgDir+fileName)
-			}
-		} else if strings.Contains(theshorturl.Long, cfg.MainTLD+"/i/") {
-			log.Println("LONG URL CONTAINS MainTLD")
-			if strings.HasPrefix(theshorturl.Long, "http://"+cfg.MainTLD+"/i/") {
-				u, err := url.Parse(theshorturl.Long)
-				if err != nil {
-					log.Println(err)
-				}
-				segments := strings.Split(u.Path, "/")
-				fileName := segments[len(segments)-1]
-				log.Println("Serving " + theshorturl.Long + " file directly")
-				http.ServeFile(w, r, cfg.ImgDir+fileName)
-			}
-		} else {
-			http.Redirect(w, r, theshorturl.Long, 302)
-		}
+        err := json.Unmarshal(v, &shorturl)
+        if err != nil {
+            log.Println(err)
+        }
+        count := (shorturl.Hits + 1)
+        //If the shorturl is local, just serve whatever file being requested
+        if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
+            log.Println("LONG URL CONTAINS ShortTLD")
+            if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
+                u, err := url.Parse(shorturl.Long)
+                if err != nil {
+                    log.Println(err)
+                }
+                segments := strings.Split(u.Path, "/")
+                fileName := segments[len(segments)-1]
+                log.Println("Serving " + shorturl.Long + " file directly")
+                http.ServeFile(w, r, cfg.ImgDir+fileName)
+            }
+        } else if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
+            log.Println("LONG URL CONTAINS MainTLD")
+            if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
+                u, err := url.Parse(shorturl.Long)
+                if err != nil {
+                    log.Println(err)
+                }
+                segments := strings.Split(u.Path, "/")
+                fileName := segments[len(segments)-1]
+                log.Println("Serving " + shorturl.Long + " file directly")
+                http.ServeFile(w, r, cfg.ImgDir+fileName)
+            }
+        } else {
+            http.Redirect(w, r, shorturl.Long, 302)
+        }
+        
+        s := &Shorturl{
+            Created: shorturl.Created,
+            Short:   shorturl.Short,
+            Long:    shorturl.Long,
+            FullURL: shorturl.FullURL,
+            Hits:    count,
+        }
+        encoded, err := json.Marshal(s)
 
-		s := &shorturl{
-			Created: theshorturl.Created,
-			Short:   theshorturl.Short,
-			Long:    theshorturl.Long,
-			FullURL: theshorturl.FullURL,
-			Hits:    count,
-		}
-		encoded, err := json.Marshal(s)
-
-		//return nil
-		return b.Put([]byte(title), encoded)
+        //return nil
+        return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
 		log.Println(err)
@@ -339,7 +339,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "pasteHandler")
 	vars := mux.Vars(r)
 	title := vars["name"]
-	thepaste := &paste{}
+	paste := &Paste{}
 	err := db.View(func(tx *bolt.Tx) error {
 		v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
@@ -348,7 +348,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return nil
 		}
-		err := json.Unmarshal(v, &thepaste)
+		err := json.Unmarshal(v, &paste)
 		if err != nil {
 			log.Println(err)
 		}
@@ -358,7 +358,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 		//safe := template.HTMLEscapeString(paste.Content)
 		//safe := sanitize.HTML(paste.Content)
 
-		safe := strings.Replace(thepaste.Content, "<script>", "< script >", -1)
+		safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
 		//safe := paste.Content
 		fmt.Fprintf(w, "%s", safe)
 		return nil
@@ -376,15 +376,15 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return nil
 		}
-		err := json.Unmarshal(v, &thepaste)
+		err := json.Unmarshal(v, &paste)
 		if err != nil {
 			log.Println(err)
 		}
-		count := (thepaste.Hits + 1)
-		p := &paste{
-			Created: thepaste.Created,
-			Title:   thepaste.Title,
-			Content: thepaste.Content,
+		count := (paste.Hits + 1)
+		p := &Paste{
+			Created: paste.Created,
+			Title:   paste.Title,
+			Content: paste.Content,
 			Hits:    count,
 		}
 		encoded, err := json.Marshal(p)
@@ -402,7 +402,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	fpath := cfg.FileDir + path.Base(name)
 
 	//Attempt to increment file hit counter...
-	thefile := &file{}
+	file := &File{}
 	db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		v := b.Get([]byte(name))
@@ -411,14 +411,14 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return nil
 		}
-		err := json.Unmarshal(v, &thefile)
+		err := json.Unmarshal(v, &file)
 		if err != nil {
 			log.Println(err)
 		}
-		count := (thefile.Hits + 1)
-		fi := &file{
-			Created:  thefile.Created,
-			Filename: thefile.Filename,
+		count := (file.Hits + 1)
+		fi := &File{
+			Created:  file.Created,
+			Filename: file.Filename,
 			Hits:     count,
 		}
 		encoded, err := json.Marshal(fi)
@@ -433,18 +433,18 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(name)
-
-	if name == "favicon.ico" {
-		//log.Println("omg1")
-		http.NotFound(w, r)
-		return
-	}
-	if name == "favicon.png" {
-		//log.Println("omg2")
-		http.NotFound(w, r)
-		return
-	}
-
+    
+    if name == "favicon.ico" {
+        //log.Println("omg1")
+        http.NotFound(w, r)
+        return
+    }
+    if name == "favicon.png" {
+        //log.Println("omg2")
+        http.NotFound(w, r)
+        return
+    }
+    
 	extensions := []string{".webm", ".gif", ".jpg", ".jpeg", ".png"}
 	//If this is extensionless, search for the proper file with the extension
 	if filepath.Ext(name) == "" {
@@ -453,33 +453,33 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 			if _, err := os.Stat(fpath + ext); err == nil {
 				name = name + ext
 				fpath = cfg.ImgDir + path.Base(name)
-				log.Println(name + fpath)
+                log.Println(name + fpath)
 				break
 			} else {
-				log.Println(err)
-			}
+                log.Println(err)
+            }
 		}
 	}
 
 	//Attempt to increment file hit counter...
-	theimage := &image{}
+	image := &Image{}
 	db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		v := b.Get([]byte(name))
 		//If there is no existing key, do not do a thing
 		if v == nil {
 			//http.NotFound(w, r)
-			//log.Println("omg3")
+            //log.Println("omg3")
 			return nil
 		}
-		err := json.Unmarshal(v, &theimage)
+		err := json.Unmarshal(v, &image)
 		if err != nil {
 			log.Println(err)
 		}
-		count := (theimage.Hits + 1)
-		imi := &image{
-			Created:  theimage.Created,
-			Filename: theimage.Filename,
+		count := (image.Hits + 1)
+		imi := &Image{
+			Created:  image.Created,
+			Filename: image.Filename,
 			Hits:     count,
 		}
 		encoded, err := json.Marshal(imi)
@@ -501,7 +501,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "imageThumbHandler")
+    defer utils.TimeTrack(time.Now(), "imageThumbHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
@@ -544,7 +544,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "imageDirectHandler")
+    defer utils.TimeTrack(time.Now(), "imageDirectHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	fpath := cfg.ImgDir + path.Base(name)
@@ -554,19 +554,19 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "imageBigHandler")
+    defer utils.TimeTrack(time.Now(), "imageBigHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	smallPath := cfg.ImgDir + path.Base(name)
-	//Check if small image exists:
-	_, err := os.Stat(smallPath)
+    //Check if small image exists:
+    _, err := os.Stat(smallPath)
 	if err != nil {
 		log.Println("Small image not found; serving large version...")
 		http.Error(w, "Image not found", 404)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        return
+    }
+    
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title>
                     <style>
                     body{
@@ -574,37 +574,37 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
                         background-size: contain;
                         background-clip: content-box;
                     }</head><body></body></html>`))
+    
+    /*
+	bigPath := cfg.GifDir + path.Base(name)
 
-	/*
-		bigPath := cfg.GifDir + path.Base(name)
-
-		//Check to see if the large image already exists
-		//If so, serve it directly
-		if _, err := os.Stat(bigPath); err == nil {
-			log.Println("Pre-existing BIG gif already found, serving it...")
-			http.ServeFile(w, r, cfg.GifDir+path.Base(name))
-		} else {
-			log.Println("BIG gif not found. Running gifsicle...")
-			file, err := os.Open(smallPath)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			file.Close()
-			//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-			resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
-			err = resize.Run()
-			if err != nil {
-				log.Println(err)
-			}
-			http.ServeFile(w, r, cfg.GifDir+name)
+	//Check to see if the large image already exists
+	//If so, serve it directly
+	if _, err := os.Stat(bigPath); err == nil {
+		log.Println("Pre-existing BIG gif already found, serving it...")
+		http.ServeFile(w, r, cfg.GifDir+path.Base(name))
+	} else {
+		log.Println("BIG gif not found. Running gifsicle...")
+		file, err := os.Open(smallPath)
+		if err != nil {
+			log.Println(err)
+			return
 		}
-	*/
+		file.Close()
+		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
+		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
+		err = resize.Run()
+		if err != nil {
+			log.Println(err)
+		}
+		http.ServeFile(w, r, cfg.GifDir+name)
+	}
+    */
 }
 
 //Separate function to resize GIFs in a goroutine
 func embiggenHandler(i string) {
-	defer utils.TimeTrack(time.Now(), "embiggenHandler")
+    defer utils.TimeTrack(time.Now(), "embiggenHandler")
 	name := i
 	smallPath := cfg.ImgDir + path.Base(name)
 	bigPath := cfg.GifDir + path.Base(name)
@@ -615,24 +615,24 @@ func embiggenHandler(i string) {
 		log.Println("Pre-existing BIG gif already found, serving it...")
 		return
 	}
-	log.Println("BIG gif not found. Running gifsicle...")
-	file, err := os.Open(smallPath)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	file.Close()
-	//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-	resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
-	err = resize.Run()
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println(name + " BIG GIF has been saved.")
+    log.Println("BIG gif not found. Running gifsicle...")
+    file, err := os.Open(smallPath)
+    if err != nil {
+        log.Println(err)
+        return
+    }
+    file.Close()
+    //gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
+    resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
+    err = resize.Run()
+    if err != nil {
+        log.Println(err)
+    }
+    log.Println(name + " BIG GIF has been saved.")
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "viewMarkdownHandler")
+    defer utils.TimeTrack(time.Now(), "viewMarkdownHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	p, err := loadPage(name, w, r)
@@ -653,7 +653,7 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 
 	data := struct {
-		Page  *page
+		Page  *Page
 		Title string
 		MD    template.HTML
 	}{
@@ -669,15 +669,15 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewRemoteFile")
-	// Check for CSRF token
-	err := auth.CheckToken(w, r)
-	if err != nil {
-		log.Printf("%s", err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
+    defer utils.TimeTrack(time.Now(), "APInewRemoteFile")
+    // Check for CSRF token
+    err := auth.CheckToken(w, r)
+    if err != nil {
+        log.Printf("%s", err.Error())
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
 	if !strings.HasPrefix(remoteURL, "http") {
@@ -702,13 +702,13 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 		fileName = sanitize.Name(r.FormValue("remote-file-name"))
 		log.Println("custom remote file name: " + fileName)
 	}
-	thefile, err := os.Create(filepath.Join(dlpath, fileName))
+	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		utils.WriteJ(w, "", false)
-		panic(err)
+        utils.WriteJ(w, "", false)
+		panic(err)		
 	}
-	defer thefile.Close()
+	defer file.Close()
 	check := http.Client{
 		CheckRedirect: func(r *http.Request, via []*http.Request) error {
 			r.URL.Opaque = r.URL.Path
@@ -718,20 +718,20 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		utils.WriteJ(w, "", false)
+        utils.WriteJ(w, "", false)
 		panic(err)
 	}
 	defer resp.Body.Close()
 	fmt.Println(resp.Status)
 
-	size, err := io.Copy(thefile, resp.Body)
+	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		utils.WriteJ(w, "", false)
+        utils.WriteJ(w, "", false)
 		panic(err)
 	}
 
 	//BoltDB stuff
-	fi := &file{
+	fi := &File{
 		Created:   time.Now().Unix(),
 		Filename:  fileName,
 		RemoteURL: finURL,
@@ -750,7 +750,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewFile(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewFile")
+    defer utils.TimeTrack(time.Now(), "APInewFile")
 	vars := mux.Vars(r)
 	name := vars["name"]
 	contentLength := r.ContentLength
@@ -761,7 +761,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	//var cli bool
 	//var remote bool
 	var uptype string
-	var fi *file
+	var fi *File
 	//fi := &File{}
 	path := cfg.FileDir
 	contentType := r.Header.Get("Content-Type")
@@ -776,15 +776,15 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	}
 	//log.Println(uptype)
 
-	// Check for CSRF token on non-cli uploads
-	if uptype != "cli" {
-		err = auth.CheckToken(w, r)
-		if err != nil {
-			log.Printf("%s", err.Error())
-			http.Error(w, err.Error(), 500)
-			return
-		}
-	}
+    // Check for CSRF token on non-cli uploads
+    if uptype != "cli" {
+        err = auth.CheckToken(w, r)
+        if err != nil {
+            log.Printf("%s", err.Error())
+            http.Error(w, err.Error(), 500)
+            return
+        }
+    }
 
 	//Remote File Uploads
 	if uptype == "remote" {
@@ -812,13 +812,13 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 			filename = sanitize.Name(r.FormValue("remote-file-name"))
 			log.Println("custom remote file name: " + filename)
 		}
-		thefile, err := os.Create(filepath.Join(path, filename))
+		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-			utils.WriteJ(w, "", false)
+            utils.WriteJ(w, "", false)
 			fmt.Println(err)
 			panic(err)
 		}
-		defer thefile.Close()
+		defer file.Close()
 		check := http.Client{
 			CheckRedirect: func(r *http.Request, via []*http.Request) error {
 				r.URL.Opaque = r.URL.Path
@@ -827,21 +827,21 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-			utils.WriteJ(w, "", false)
+            utils.WriteJ(w, "", false)
 			fmt.Println(err)
 			panic(err)
 		}
 		defer resp.Body.Close()
 		fmt.Println(resp.Status)
 
-		size, err := io.Copy(thefile, resp.Body)
+		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-			utils.WriteJ(w, "", false)
+            utils.WriteJ(w, "", false)
 			panic(err)
 		}
 
 		//BoltDB stuff
-		fi = &file{
+		fi = &File{
 			Created:   time.Now().Unix(),
 			Filename:  filename,
 			RemoteURL: finURL,
@@ -915,7 +915,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		contentType = mime.TypeByExtension(filepath.Ext(name))
 		//BoltDB stuff
-		fi = &file{
+		fi = &File{
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
@@ -928,9 +928,9 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 			utils.WriteJ(w, "", false)
 			return
 		}
-		thefile, handler, err := r.FormFile("file")
+		file, handler, err := r.FormFile("file")
 		filename = handler.Filename
-		defer thefile.Close()
+		defer file.Close()
 		if err != nil {
 			fmt.Println(err)
 			utils.WriteJ(w, "", false)
@@ -947,10 +947,10 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer f.Close()
-		io.Copy(f, thefile)
+		io.Copy(f, file)
 
 		//BoltDB stuff
-		fi = &file{
+		fi = &File{
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
@@ -963,7 +963,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uptype == "cli" {
-		fmt.Fprintf(w, cfg.MainTLD+"/d/"+filename)
+		fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
 	} else {
 		utils.WriteJ(w, filename, true)
 	}
@@ -976,85 +976,86 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		utils.WriteJ(w, "", false)
 	}
-	// Check for CSRF token
-	err = auth.CheckToken(w, r)
-	if err != nil {
-		log.Printf("%s", err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	subdomain := r.PostFormValue("shortSub")
-	log.Println(subdomain)
-
+    // Check for CSRF token
+    err = auth.CheckToken(w, r)
+    if err != nil {
+        log.Printf("%s", err.Error())
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    
+    subdomain := r.PostFormValue("shortSub")
+    log.Println(subdomain)
+    
 	short := r.PostFormValue("short")
 	long := r.PostFormValue("long")
+    
+    if subdomain == "" {
+        if short != "" {
+            short = short
+        } else {
+            dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            var bytes = make([]byte, 4)
+            rand.Read(bytes)
+            for k, v := range bytes {
+                bytes[k] = dictionary[v%byte(len(dictionary))]
+            }
+            short = string(bytes)
+        }
+        full := "https://" + cfg.ShortTLD + "/" + short 
+        log.Println("Subdomain is blank, creating a regular short URL.")
+        log.Println(full)
+        s := &Shorturl{
+            Created: time.Now().Unix(),
+            Short:   short,
+            Long:    long,
+            FullURL: full,
+        }
 
-	if subdomain == "" {
-		if short != "" {
-			short = short
-		} else {
-			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			var bytes = make([]byte, 4)
-			rand.Read(bytes)
-			for k, v := range bytes {
-				bytes[k] = dictionary[v%byte(len(dictionary))]
-			}
-			short = string(bytes)
-		}
-		full := "https://" + cfg.ShortTLD + "/" + short
-		log.Println("Subdomain is blank, creating a regular short URL.")
-		log.Println(full)
-		s := &shorturl{
-			Created: time.Now().Unix(),
-			Short:   short,
-			Long:    long,
-			FullURL: full,
-		}
+        /*
+            Created string
+            Short 	string
+            Long 	string
+        */
 
-		/*
-		   Created string
-		   Short 	string
-		   Long 	string
-		*/
+        err = s.save()
+        if err != nil {
+            log.Println(err)
+            utils.WriteJ(w, "", false)
+        }
+        //log.Println("Short: " + s.Short)
+        //log.Println("Long: " + s.Long)
 
-		err = s.save()
-		if err != nil {
-			log.Println(err)
-			utils.WriteJ(w, "", false)
-		}
-		//log.Println("Short: " + s.Short)
-		//log.Println("Long: " + s.Long)
+        utils.WriteJ(w, s.FullURL, true)
+        return
+    }
+        full := "http://" + subdomain + "." + cfg.ShortTLD
+        log.Println(full)
+        log.Println("Subdomain is not blank, creating a subdomain short URL.")
+        s := &Shorturl{
+            Created: time.Now().Unix(),
+            Short:   subdomain,
+            Long:    long,
+            FullURL: full,
+        }
 
-		utils.WriteJ(w, s.FullURL, true)
-		return
-	}
-	full := "http://" + subdomain + "." + cfg.ShortTLD
-	log.Println(full)
-	log.Println("Subdomain is not blank, creating a subdomain short URL.")
-	s := &shorturl{
-		Created: time.Now().Unix(),
-		Short:   subdomain,
-		Long:    long,
-		FullURL: full,
-	}
+        /*
+            Created string
+            Short 	string
+            Long 	string
+        */
 
-	/*
-	   Created string
-	   Short 	string
-	   Long 	string
-	*/
+        err = s.save()
+        if err != nil {
+            log.Println(err)
+            utils.WriteJ(w, "", false)
+        }
+        //log.Println("Short: " + s.Short)
+        //log.Println("Long: " + s.Long)
 
-	err = s.save()
-	if err != nil {
-		log.Println(err)
-		utils.WriteJ(w, "", false)
-	}
-	//log.Println("Short: " + s.Short)
-	//log.Println("Long: " + s.Long)
+        utils.WriteJ(w, s.FullURL, true)
+        return        
 
-	utils.WriteJ(w, s.FullURL, true)
-	return
 
 }
 
@@ -1062,9 +1063,9 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 func APInewPaste(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "APInewPaste")
 	log.Println("Paste request...")
-	thepaste := r.Body
+	paste := r.Body
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(thepaste)
+	buf.ReadFrom(paste)
 	bpaste := buf.String()
 	var name = ""
 	vars := mux.Vars(r)
@@ -1080,7 +1081,7 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 		}
 		name = string(bytes)
 	}
-	p := &paste{
+	p := &Paste{
 		Created: time.Now().Unix(),
 		Title:   name,
 		Content: bpaste,
@@ -1098,14 +1099,14 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	// Check for CSRF token
-	err = auth.CheckToken(w, r)
-	if err != nil {
-		log.Printf("%s", err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
+    // Check for CSRF token
+    err = auth.CheckToken(w, r)
+    if err != nil {
+        log.Printf("%s", err.Error())
+        http.Error(w, err.Error(), 500)
+        return
+    }
+        
 	title := r.PostFormValue("title")
 	if title != "" {
 		title = title
@@ -1118,11 +1119,11 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		}
 		title = string(bytes)
 	}
-	thepaste := r.PostFormValue("paste")
-	p := &paste{
+	paste := r.PostFormValue("paste")
+	p := &Paste{
 		Created: time.Now().Unix(),
 		Title:   title,
-		Content: thepaste,
+		Content: paste,
 	}
 	err = p.save()
 	if err != nil {
@@ -1133,12 +1134,12 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 
 //Delete stuff
 func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APIdeleteHandler")
+    defer utils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
 	vars := mux.Vars(r)
 	ftype := vars["type"]
 	fname := vars["name"]
-	jmsg := ftype + " " + fname
+    jmsg := ftype + " " + fname
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(jmsg + " has been deleted")
@@ -1195,20 +1196,20 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APIlgAction(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APIlgAction")
+    defer utils.TimeTrack(time.Now(), "APIlgAction")
 	url := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
-	// Check for CSRF token
-	err = auth.CheckToken(w, r)
-	if err != nil {
-		log.Printf("%s", err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
+    // Check for CSRF token
+    err = auth.CheckToken(w, r)
+    if err != nil {
+        log.Printf("%s", err.Error())
+        http.Error(w, err.Error(), 500)
+        return
+    }
+        
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff
 		out, err := exec.Command("ping", "-c10", url).Output()
@@ -1219,7 +1220,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 		title := "Pinging " + url
 		p, err := loadPage(title, w, r)
 		data := struct {
-			Page    *page
+			Page    *Page
 			Title   string
 			Message string
 		}{
@@ -1241,7 +1242,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 		title := "MTR to " + url
 		p, err := loadPage(title, w, r)
 		data := struct {
-			Page    *page
+			Page    *Page
 			Title   string
 			Message string
 		}{
@@ -1263,7 +1264,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 		title := "Traceroute to " + url
 		p, err := loadPage(title, w, r)
 		data := struct {
-			Page    *page
+			Page    *Page
 			Title   string
 			Message string
 		}{
@@ -1283,18 +1284,18 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewRemoteImage")
+    defer utils.TimeTrack(time.Now(), "APInewRemoteImage")
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
-
-	// Check for CSRF token
-	err := auth.CheckToken(w, r)
-	if err != nil {
-		log.Printf("%s", err.Error())
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
+    
+    // Check for CSRF token
+    err := auth.CheckToken(w, r)
+    if err != nil {
+        log.Printf("%s", err.Error())
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    
 	if !strings.HasPrefix(remoteURL, "http") {
 		log.Println("remoteURL does not contain a URL prefix, so adding http")
 		log.Println(remoteURL)
@@ -1347,7 +1348,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//BoltDB stuff
-	imi := &image{
+	imi := &Image{
 		Created:   time.Now().Unix(),
 		Filename:  fileName,
 		RemoteURL: finURL,
@@ -1362,7 +1363,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewImage(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewImage")
+    defer utils.TimeTrack(time.Now(), "APInewImage")
 	contentLength := r.ContentLength
 	var reader io.Reader
 	var f io.WriteCloser
@@ -1372,16 +1373,16 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	formfilename := vars["filename"]
 	contentType := r.Header.Get("Content-Type")
-
-	// Check for CSRF token, if not a CLI upload
-	if contentType != "" {
-		err = auth.CheckToken(w, r)
-		if err != nil {
-			log.Printf("%s", err.Error())
-			http.Error(w, err.Error(), 500)
-			return
-		}
-	}
+    
+    // Check for CSRF token, if not a CLI upload
+    if contentType != "" {
+        err = auth.CheckToken(w, r)
+        if err != nil {
+            log.Printf("%s", err.Error())
+            http.Error(w, err.Error(), 500)
+            return
+        }
+    }
 
 	if contentType == "" {
 		log.Println("Content-type blank, so this should be a CLI upload...")
@@ -1517,7 +1518,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	// w.Statuscode = 200
 
 	//BoltDB stuff
-	imi := &image{
+	imi := &Image{
 		Created:  time.Now().Unix(),
 		Filename: filename,
 	}
@@ -1530,7 +1531,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Readme(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "Readme")
+    defer utils.TimeTrack(time.Now(), "Readme")
 	name := "README"
 	p, err := loadPage(name, w, r)
 	if err != nil {
@@ -1547,7 +1548,7 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 	mdhtml := template.HTML(md)
 	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 	data := struct {
-		Page  *page
+		Page  *Page
 		Title string
 		MD    template.HTML
 	}{
@@ -1563,7 +1564,7 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 }
 
 func Changelog(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "Changelog")
+    defer utils.TimeTrack(time.Now(), "Changelog")
 	name := "CHANGELOG"
 	p, err := loadPage(name, w, r)
 	if err != nil {
@@ -1580,7 +1581,7 @@ func Changelog(w http.ResponseWriter, r *http.Request) {
 	mdhtml := template.HTML(md)
 	//html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
 	data := struct {
-		Page  *page
+		Page  *Page
 		Title string
 		MD    template.HTML
 	}{

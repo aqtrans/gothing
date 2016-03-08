@@ -1,4 +1,4 @@
-{{ define "title" }}<title>Upload Images - {{.page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>Upload Images - {{.Page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
@@ -18,7 +18,7 @@
           <div class="small-4 columns">
             <label for="file">Filename:</label>
             <input type="file" name="file" id="file">
-            <input type="hidden" name="token" value="{{.page.Token}}">
+            <input type="hidden" name="token" value="{{.Page.Token}}">
           </div>
           <div class="small-2 columns">
             <input type="submit" name="submit" value="Submit" class="button success">
@@ -39,7 +39,7 @@
           </div>
           <div class="small-4 columns">
             <input type="text" name="remote-image-name" placeholder="Optional filename">
-            <input type="hidden" name="token" value="{{.page.Token}}">
+            <input type="hidden" name="token" value="{{.Page.Token}}">
           </div>    
           <div class="small-2 columns">
             <input type="submit" name="submit" value="Submit" class="button success postfix">
