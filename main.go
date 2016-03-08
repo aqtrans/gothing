@@ -22,6 +22,7 @@ import (
     //"github.com/fukata/golang-stats-api-handler"
 	"github.com/russross/blackfriday"
 	"html/template"
+    "io"
 	"log"
 	"mime"
 	"net/http"
@@ -502,6 +503,57 @@ func defaultHandler(next http.Handler) http.Handler {
     })
 }
 
+// Taken from http://reinbach.com/golang-webapps-1.html
+func staticHandler(w http.ResponseWriter, r *http.Request) {
+    staticFile := r.URL.Path[len("/assets/"):]
+    //log.Println(staticFile)
+    if len(staticFile) != 0 {
+        f, err := http.Dir("assets/").Open(staticFile)
+        if err == nil {
+            content := io.ReadSeeker(f)
+            http.ServeContent(w, r, staticFile, time.Now(), content)
+            return
+        }
+    }
+    http.NotFound(w, r)
+}
+
+func favicon(w http.ResponseWriter, r *http.Request) {
+    //log.Println(r.URL.Path)
+    if r.URL.Path == "/favicon.ico" {
+        f, err := os.Open("assets/favicon.ico")
+        if err == nil {
+            content := io.ReadSeeker(f)
+            http.ServeContent(w, r, "/favicon.ico", time.Now(), content)
+            return
+        }        
+    } else if r.URL.Path == "/favicon.png" {
+        f, err := os.Open("assets/favicon.png")
+        if err == nil {
+            content := io.ReadSeeker(f)
+            http.ServeContent(w, r, "/favicon.png", time.Now(), content)
+            return
+        }        
+    } else {
+        http.NotFound(w, r)
+    }
+
+}
+func robots(w http.ResponseWriter, r *http.Request) {
+    //log.Println(r.URL.Path)
+    if r.URL.Path == "/robots.txt" {
+        f, err := os.Open("assets/robots.txt")
+        if err == nil {
+            content := io.ReadSeeker(f)
+            http.ServeContent(w, r, "/robots.txt", time.Now(), content)
+            return
+        }        
+    }
+    http.NotFound(w, r)
+
+}
+//http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { http.ServeContent(w, r, staticFile, time.Now(), content) http.ServeFile(w, r, "./assets/favicon.ico") })
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -646,8 +698,8 @@ func main() {
 	//Dedicated image subdomain routes
 	i := r.Host(cfg.ImageTLD).Subrouter()
 	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
-    i.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
-    i.HandleFunc("/favicon.png", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
+    //i.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
+    //i.HandleFunc("/favicon.png", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
 	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
@@ -666,10 +718,14 @@ func main() {
 	//short := r.Host(cfg.ShortTLD).Subrouter()
 	//short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
     
-    static := http.Handler(http.FileServer(http.Dir("./public/")))
-
-	r.PathPrefix("/").Handler(defaultHandler(static))
+    //static := http.Handler(http.FileServer(http.Dir("./public/")))
+	//r.PathPrefix("/").Handler(defaultHandler(static))
+    
+    r.PathPrefix("/assets/").HandlerFunc(staticHandler)
     d.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
+    http.HandleFunc("/favicon.ico", favicon)
+    http.HandleFunc("/favicon.png", favicon)
+    http.HandleFunc("/robots.txt", robots)    
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe(":3000", nil)
 
