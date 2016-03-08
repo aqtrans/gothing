@@ -1,9 +1,9 @@
-{{ define "title" }}<title>List - {{.Page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>List - {{.page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}
-{{$user := .Page.UN}}
+{{$user := .page.UN}}
 <h1>List of things</h1>
 <hr />
 <h2>Pastes</h2>

@@ -1,4 +1,4 @@
-{{ define "title" }}<title>New Short URL - {{.Page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>New Short URL - {{.page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
@@ -31,7 +31,7 @@
             </div>
         </div>
         <div class="row collapse">
-            <input type="hidden" name="token" value="{{.Page.Token}}">
+            <input type="hidden" name="token" value="{{.page.Token}}">
             <input type="submit" class="button success" value="Submit">
         </div>
         </form>
@@ -60,7 +60,7 @@
             </div>
         </div>
         <div class="row collapse">
-            <input type="hidden" name="token" value="{{.Page.Token}}">
+            <input type="hidden" name="token" value="{{.page.Token}}">
             <input type="submit" class="button success" value="Submit">
         </div>
         </form>

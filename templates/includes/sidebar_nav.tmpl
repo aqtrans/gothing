@@ -12,9 +12,9 @@
           <li><a href="/readme"><span>Readme</span></a></li>
           <li><a href="/changelog"><span>Changelog</span></a></li>
           <li><a href="/help"><span>Help</span></a></li>
-          {{ if .Page.UN }}
+          {{ if .page.UN }}
               <br>
-              <p>Hello, {{ .Page.UN }}<p>
+              <p>Hello, {{ .page.UN }}<p>
               <li><a href="/logout"><span>Logout</span></a></li>
               <li><a href="/admin"><span>Admin</span></a></li>
           {{ end }}

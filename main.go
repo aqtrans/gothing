@@ -11,17 +11,19 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-    //"expvar"
-    //"runtime"
+	//"expvar"
+	//"runtime"
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-    "github.com/gorilla/handlers"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
-    //"github.com/fukata/golang-stats-api-handler"
+	//"github.com/fukata/golang-stats-api-handler"
 	"github.com/russross/blackfriday"
 	"html/template"
+	"jba.io/go/auth"
+	"jba.io/go/utils"
 	"log"
 	"mime"
 	"net/http"
@@ -29,11 +31,9 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-    "time"
 	"sort"
 	"strconv"
-    "jba.io/go/auth"
-    "jba.io/go/utils"
+	"time"
 )
 
 type configuration struct {
@@ -47,7 +47,7 @@ type configuration struct {
 	ShortTLD string
 	ImageTLD string
 	GifTLD   string
-    AuthConf auth.AuthConf
+	AuthConf auth.AuthConf
 }
 
 var (
@@ -55,93 +55,99 @@ var (
 	templates map[string]*template.Template
 	_24K      int64 = (1 << 20) * 24
 	fLocal    bool
-	debug 	  bool 
+	debug     bool
 	db, _     = bolt.Open("./bolt.db", 0600, nil)
 	cfg       = configuration{}
-
 )
 
 //Flags
 //var fLocal = flag.Bool("l", false, "Turn on localhost resolving for Handlers")
 
-//Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
-type Page struct {
+//Page has to be wrapped in a data {} strut for consistency reasons
+type page struct {
 	TheName string
 	Title   string
 	UN      string
-    Token   string
+	Token   string
 }
 
-type ListPage struct {
-	*Page
-	Pastes    []*Paste
-	Files     []*File
-	Shorturls []*Shorturl
-	Images    []*Image
+type listPage struct {
+	*page
+	Pastes    []*paste
+	Files     []*file
+	Shorturls []*shorturl
+	Images    []*image
 }
 
-type GalleryPage struct {
-	*Page
-	Images []*Image
+type galleryPage struct {
+	*page
+	Images []*image
 }
 
 //BoltDB structs:
-type Paste struct {
+type paste struct {
 	Created int64
 	Title   string
 	Content string
 	Hits    int64
 }
 
-type File struct {
+type file struct {
 	Created   int64
 	Filename  string
 	Hits      int64
 	RemoteURL string
 }
 
-type Image struct {
+type image struct {
 	Created   int64
 	Filename  string
 	Hits      int64
 	RemoteURL string
 }
 
-type Shorturl struct {
+type screenshots struct {
+	Created   int64
+	Filename  string
+	Hits      int64
+	RemoteURL string
+}
+
+type shorturl struct {
 	Created int64
 	Short   string
-    FullURL string
+	FullURL string
 	Long    string
 	Hits    int64
 }
 
 // Sorting functions
-type ImageByDate []*Image
+type ImageByDate []*image
 
 func (a ImageByDate) Len() int           { return len(a) }
 func (a ImageByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ImageByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
-type PasteByDate []*Paste
+type PasteByDate []*paste
 
 func (a PasteByDate) Len() int           { return len(a) }
 func (a PasteByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a PasteByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
-type FileByDate []*File
+type FileByDate []*file
 
 func (a FileByDate) Len() int           { return len(a) }
 func (a FileByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a FileByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
-type ShortByDate []*Shorturl
+type ShortByDate []*shorturl
 
 func (a ShortByDate) Len() int           { return len(a) }
 func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
 
 func init() {
-    
+
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	//Flag '-d' enabled debug logging
@@ -162,16 +168,14 @@ func init() {
 	}
 
 	funcMap := template.FuncMap{"prettyDate": utils.PrettyDate, "safeHTML": utils.SafeHTML, "imgClass": utils.ImgClass, "imgExt": utils.ImgExt}
-    
+
 	for _, layout := range layouts {
 		files := append(includes, layout)
-		//DEBUG TEMPLATE LOADING 
+		//DEBUG TEMPLATE LOADING
 		utils.Debugln(files)
 		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
 }
-
-
 
 func markdownRender(content []byte) []byte {
 	htmlFlags := 0
@@ -196,7 +200,7 @@ func markdownRender(content []byte) []byte {
 //When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
 func getScheme(r *http.Request) (scheme string) {
-    defer utils.TimeTrack(time.Now(), "getScheme")
+	defer utils.TimeTrack(time.Now(), "getScheme")
 	scheme = r.Header.Get("X-Forwarded-Proto") + "://"
 	/*
 		scheme = "http://"
@@ -211,7 +215,7 @@ func getScheme(r *http.Request) (scheme string) {
 }
 
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
-    defer utils.TimeTrack(time.Now(), "renderTemplate")
+	defer utils.TimeTrack(time.Now(), "renderTemplate")
 	tmpl, ok := templates[name]
 	if !ok {
 		return fmt.Errorf("The template %s does not exist", name)
@@ -233,7 +237,7 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 }
 
 func ParseBool(value string) bool {
-    defer utils.TimeTrack(time.Now(), "ParseBool")
+	defer utils.TimeTrack(time.Now(), "ParseBool")
 	boolValue, err := strconv.ParseBool(value)
 	if err != nil {
 		return false
@@ -241,113 +245,113 @@ func ParseBool(value string) bool {
 	return boolValue
 }
 
-func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
-    defer utils.TimeTrack(time.Now(), "loadPage")
+func loadPage(title string, w http.ResponseWriter, r *http.Request) (*page, error) {
+	defer utils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
 	user := auth.GetUsername(r)
-    token := auth.GetToken(r)
-	return &Page{TheName: "GoThing", Title: title, UN: user, Token: token}, nil
+	token := auth.GetToken(r)
+	return &page{TheName: "GoThing", Title: title, UN: user, Token: token}, nil
 }
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
-    defer utils.TimeTrack(time.Now(), "loadMainPage")
+	defer utils.TimeTrack(time.Now(), "loadMainPage")
 	//timer.Step("loadpageFunc")
 	p, err := loadPage(title, w, r)
 	if err != nil {
 		return nil, err
 	}
 	data := struct {
-		Page *Page
+		Page *page
 	}{
 		p,
 	}
 	return data, nil
 }
 
-func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
-    defer utils.TimeTrack(time.Now(), "loadListPage")
-	page, perr := loadPage("List", w, r)
+func loadListPage(w http.ResponseWriter, r *http.Request) (*listPage, error) {
+	defer utils.TimeTrack(time.Now(), "loadListPage")
+	p, perr := loadPage("List", w, r)
 	if perr != nil {
 		return nil, perr
 	}
 
-	var files []*File
+	var thefiles []*file
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("FILES: key="+string(k)+" value="+string(v))
-			var file *File
-			err := json.Unmarshal(v, &file)
+			utils.Debugln("FILES: key=" + string(k) + " value=" + string(v))
+			var thefile *file
+			err := json.Unmarshal(v, &thefile)
 			if err != nil {
 				log.Panicln(err)
 			}
-			files = append(files, file)
+			thefiles = append(thefiles, thefile)
 			return nil
 		})
 		return nil
 	})
-	sort.Sort(FileByDate(files))
+	sort.Sort(FileByDate(thefiles))
 
-	var pastes []*Paste
+	var thepastes []*paste
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("PASTE: key="+string(k)+" value="+string(v))
-			var paste *Paste
-			err := json.Unmarshal(v, &paste)
+			utils.Debugln("PASTE: key=" + string(k) + " value=" + string(v))
+			var thepaste *paste
+			err := json.Unmarshal(v, &thepaste)
 			if err != nil {
 				log.Panicln(err)
 			}
-			pastes = append(pastes, paste)
+			thepastes = append(thepastes, thepaste)
 			return nil
 		})
 		return nil
 	})
-	sort.Sort(PasteByDate(pastes))
+	sort.Sort(PasteByDate(thepastes))
 
-	var shorts []*Shorturl
+	var theshorts []*shorturl
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("SHORT: key="+string(k)+" value="+string(v))
-			var short *Shorturl
-			err := json.Unmarshal(v, &short)
+			utils.Debugln("SHORT: key=" + string(k) + " value=" + string(v))
+			var theshort *shorturl
+			err := json.Unmarshal(v, &theshort)
 			if err != nil {
 				log.Panicln(err)
 			}
-			shorts = append(shorts, short)
+			theshorts = append(theshorts, theshort)
 			return nil
 		})
 		return nil
 	})
-	sort.Sort(ShortByDate(shorts))
+	sort.Sort(ShortByDate(theshorts))
 
-	var images []*Image
+	var theimages []*image
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("IMAGE: key="+string(k)+" value="+string(v))
-			var image *Image
-			err := json.Unmarshal(v, &image)
+			utils.Debugln("IMAGE: key=" + string(k) + " value=" + string(v))
+			var theimage *image
+			err := json.Unmarshal(v, &theimage)
 			if err != nil {
 				log.Panicln(err)
 			}
-			images = append(images, image)
+			theimages = append(theimages, theimage)
 			return nil
 		})
 		return nil
 	})
-	sort.Sort(ImageByDate(images))
+	sort.Sort(ImageByDate(theimages))
 
-	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
+	return &listPage{page: p, Pastes: thepastes, Files: thefiles, Shorturls: theshorts, Images: theimages}, nil
 }
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
-    defer utils.TimeTrack(time.Now(), "ParseMultipartFormProg")
+	defer utils.TimeTrack(time.Now(), "ParseMultipartFormProg")
 	//length := r.ContentLength
 	//ticker := time.Tick(time.Millisecond)
 
@@ -378,8 +382,8 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	return nil
 }
 
-func (f *File) save() error {
-    defer utils.TimeTrack(time.Now(), "File.save()")
+func (f *file) save() error {
+	defer utils.TimeTrack(time.Now(), "File.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
@@ -397,8 +401,8 @@ func (f *File) save() error {
 	return nil
 }
 
-func (s *Shorturl) save() error {
-    defer utils.TimeTrack(time.Now(), "Shorturl.save()")
+func (s *shorturl) save() error {
+	defer utils.TimeTrack(time.Now(), "Shorturl.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
@@ -414,8 +418,8 @@ func (s *Shorturl) save() error {
 	return nil
 }
 
-func (p *Paste) save() error {
-    defer utils.TimeTrack(time.Now(), "Paste.save()")
+func (p *paste) save() error {
+	defer utils.TimeTrack(time.Now(), "Paste.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
@@ -434,7 +438,7 @@ func (p *Paste) save() error {
 }
 
 func makeThumb(fpath, thumbpath string) {
-    defer utils.TimeTrack(time.Now(), "makeThumb")
+	defer utils.TimeTrack(time.Now(), "makeThumb")
 	contentType := mime.TypeByExtension(filepath.Ext(path.Base(fpath)))
 	if contentType == "video/webm" {
 		log.Println("WEBM FILE DETECTED")
@@ -461,8 +465,8 @@ func makeThumb(fpath, thumbpath string) {
 	return
 }
 
-func (i *Image) save() error {
-    defer utils.TimeTrack(time.Now(), "Image.save()")
+func (i *image) save() error {
+	defer utils.TimeTrack(time.Now(), "Image.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
@@ -477,29 +481,29 @@ func (i *Image) save() error {
 		return err
 	}
 	//Detect what kind of image, so we can embiggen GIFs from the get-go
-    // No longer needed as of 03/06/2016
-    /*
-	contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
-	if contentType == "image/gif" {
-		log.Println("GIF detected; Running embiggen function...")
-		go embiggenHandler(i.Filename)
-	}
-    */
+	// No longer needed as of 03/06/2016
+	/*
+		contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
+		if contentType == "image/gif" {
+			log.Println("GIF detected; Running embiggen function...")
+			go embiggenHandler(i.Filename)
+		}
+	*/
 	log.Println("++++IMAGE SAVED")
 	return nil
 }
 
 func defaultHandler(next http.Handler) http.Handler {
-    defer utils.TimeTrack(time.Now(), "defaultHandler")
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-      if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www." + cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" || r.Host == "go.jba.io" {
-          next.ServeHTTP(w, r)
-      } else {
-          log.Println("Not serving anything, because this request belongs to: " + r.Host)
-          http.Error(w, http.StatusText(400), 400)
-          return
-      }
-    })
+	defer utils.TimeTrack(time.Now(), "defaultHandler")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www."+cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" || r.Host == "go.jba.io" {
+			next.ServeHTTP(w, r)
+		} else {
+			log.Println("Not serving anything, because this request belongs to: " + r.Host)
+			http.Error(w, http.StatusText(400), 400)
+			return
+		}
+	})
 }
 
 func main() {
@@ -561,7 +565,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
-        _, err = tx.CreateBucketIfNotExists([]byte("SubShorturl"))
+		_, err = tx.CreateBucketIfNotExists([]byte("SubShorturl"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
@@ -593,7 +597,7 @@ func main() {
 	}
 
 	d.HandleFunc("/", indexHandler).Methods("GET")
-    d.HandleFunc("/help", helpHandler).Methods("GET")
+	d.HandleFunc("/help", helpHandler).Methods("GET")
 	d.HandleFunc("/priv", auth.AuthMiddle(Readme)).Methods("GET")
 	d.HandleFunc("/readme", Readme).Methods("GET")
 	d.HandleFunc("/changelog", Changelog).Methods("GET")
@@ -601,7 +605,7 @@ func main() {
 	d.HandleFunc("/login", loginPageHandler).Methods("GET")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
-    
+
 	d.HandleFunc("/list", auth.AuthMiddle(listHandler)).Methods("GET")
 	d.HandleFunc("/s", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
 	d.HandleFunc("/short", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
@@ -639,15 +643,15 @@ func main() {
 	api.HandleFunc("/lg", APIlgAction).Methods("POST")
 	api.HandleFunc("/image/new", APInewImage).Methods("POST")
 	api.HandleFunc("/image/remote", APInewRemoteImage).Methods("POST")
-    //Golang-Stats-API
-    //api.HandleFunc("/stats", stats_api.Handler)
-    api.HandleFunc("/vars", utils.HandleExpvars)
+	//Golang-Stats-API
+	//api.HandleFunc("/stats", stats_api.Handler)
+	api.HandleFunc("/vars", utils.HandleExpvars)
 
 	//Dedicated image subdomain routes
 	i := r.Host(cfg.ImageTLD).Subrouter()
 	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
-    i.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
-    i.HandleFunc("/favicon.png", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
+	i.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
+	i.HandleFunc("/favicon.png", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
 	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
@@ -659,18 +663,20 @@ func main() {
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
-    wild := r.Host("{name}.es.gy").Subrouter()
+	wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 	//Main Short URL page
-    // Collapsing this into main TLD
+	// Collapsing this into main TLD
 	//short := r.Host(cfg.ShortTLD).Subrouter()
 	//short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
-    
-    static := http.Handler(http.FileServer(http.Dir("./public/")))
 
-	r.PathPrefix("/").Handler(defaultHandler(static))
-    d.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
+	//static := http.Handler(http.FileServer(http.Dir("./public/")))
+
+	//r.PathPrefix("/assets/").Handler(defaultHandler(static))
+    r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/"))))
+	d.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
 	http.Handle("/", std.Then(r))
+    http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "./assets/favicon.ico") })
 	http.ListenAndServe(":3000", nil)
 
 	//Runtime stats

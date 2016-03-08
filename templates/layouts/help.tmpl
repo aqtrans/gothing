@@ -1,9 +1,9 @@
-{{ define "title" }}<title>Help - {{.Page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>Help - {{.page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}       
-<h1>{{.Page.TheName}}</h1>
+<h1>{{.page.TheName}}</h1>
 <hr />
 <h3 class="subheader">Paste stuff from CLI</h3>
 <div class="panel callout">

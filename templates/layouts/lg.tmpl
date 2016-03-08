@@ -1,4 +1,4 @@
-{{ define "title" }}<title>Network Tools - {{.Page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>Network Tools - {{.page.TheName}}</title>{{ end }}
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
@@ -20,7 +20,7 @@
     <div class="small-9 columns">
       <label>IP or Domain
         <input type="text" name="url" placeholder="IP or domain" />
-        <input type="hidden" name="token" value="{{.Page.Token}}">
+        <input type="hidden" name="token" value="{{.page.Token}}">
       </label>
     </div>    
   </div>
