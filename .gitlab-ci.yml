@@ -39,7 +39,7 @@ build-my-project:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin
     - cd $CI_PROJECT_DIR
-    - go get -d -u
+    - go get -d
     - go build
 
 test-my-project:
@@ -55,6 +55,6 @@ deploy-it:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin
     - cd $CI_PROJECT_DIR
-    - go get -d -u 
+    - go get -d
     - go build -o ./thing
     - rsync -av $CI_PROJECT_DIR aqtrans@localhost:/home/aqtrans/production_apps/
