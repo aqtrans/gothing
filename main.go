@@ -508,12 +508,15 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
     staticFile := r.URL.Path[len("/assets/"):]
     //log.Println(staticFile)
     if len(staticFile) != 0 {
+        /*
         f, err := http.Dir("assets/").Open(staticFile)
         if err == nil {
             content := io.ReadSeeker(f)
             http.ServeContent(w, r, staticFile, time.Now(), content)
             return
-        }
+        }*/
+        serveContent(w, r, "assets/", staticFile)
+        return
     }
     http.NotFound(w, r)
 }
@@ -521,36 +524,24 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 func favicon(w http.ResponseWriter, r *http.Request) {
     //log.Println(r.URL.Path)
     if r.URL.Path == "/favicon.ico" {
-        f, err := os.Open("assets/favicon.ico")
-        if err == nil {
-            content := io.ReadSeeker(f)
-            http.ServeContent(w, r, "/favicon.ico", time.Now(), content)
-            return
-        }        
+        serveContent(w, r, "assets/", "/favicon.ico")
+        return
     } else if r.URL.Path == "/favicon.png" {
-        f, err := os.Open("assets/favicon.png")
-        if err == nil {
-            content := io.ReadSeeker(f)
-            http.ServeContent(w, r, "/favicon.png", time.Now(), content)
-            return
-        }        
+        serveContent(w, r, "assets/", "/favicon.png")
+        return
     } else {
         http.NotFound(w, r)
+        return
     }
 
 }
 func robots(w http.ResponseWriter, r *http.Request) {
     //log.Println(r.URL.Path)
     if r.URL.Path == "/robots.txt" {
-        f, err := os.Open("assets/robots.txt")
-        if err == nil {
-            content := io.ReadSeeker(f)
-            http.ServeContent(w, r, "/robots.txt", time.Now(), content)
-            return
-        }        
+        serveContent(w, r, "assets/", "/robots.txt")
+        return
     }
     http.NotFound(w, r)
-
 }
 //http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { http.ServeContent(w, r, staticFile, time.Now(), content) http.ServeFile(w, r, "./assets/favicon.ico") })
 
@@ -707,6 +698,7 @@ func main() {
 
 	//Big GIFs
 	big := r.Host(cfg.GifTLD).Subrouter()
+	big.HandleFunc("/i/{name}", imageDirectHandler).Methods("GET")    
 	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
 
 	//Dynamic subdomains | try to avoid taking www.es.gy

@@ -543,12 +543,23 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
+    f, err := http.Dir(dir).Open(file)
+    if err != nil {
+        http.NotFound(w, r)
+        return
+    }
+    content := io.ReadSeeker(f)
+    http.ServeContent(w, r, file, time.Now(), content)
+    return
+}
+
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageDirectHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
-	fpath := cfg.ImgDir + path.Base(name)
-	http.ServeFile(w, r, fpath)
+    serveContent(w, r, cfg.ImgDir, name)
+    
 }
 
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
@@ -561,8 +572,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
     //Check if small image exists:
     _, err := os.Stat(smallPath)
 	if err != nil {
-		log.Println("Small image not found; serving large version...")
-		http.Error(w, "Image not found", 404)
+		http.NotFound(w, r)
         return
     }
     
@@ -570,65 +580,10 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title>
                     <style>
                     body{
-                        background: url('/imagedirect/` + name + `') no-repeat center center fixed;
+                        background: url('/i/` + name + `') no-repeat center center fixed;
                         background-size: contain;
                         background-clip: content-box;
                     }</style></head><body></body></html>`))
-    
-    /*
-	bigPath := cfg.GifDir + path.Base(name)
-
-	//Check to see if the large image already exists
-	//If so, serve it directly
-	if _, err := os.Stat(bigPath); err == nil {
-		log.Println("Pre-existing BIG gif already found, serving it...")
-		http.ServeFile(w, r, cfg.GifDir+path.Base(name))
-	} else {
-		log.Println("BIG gif not found. Running gifsicle...")
-		file, err := os.Open(smallPath)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		file.Close()
-		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-		resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
-		err = resize.Run()
-		if err != nil {
-			log.Println(err)
-		}
-		http.ServeFile(w, r, cfg.GifDir+name)
-	}
-    */
-}
-
-//Separate function to resize GIFs in a goroutine
-func embiggenHandler(i string) {
-    defer utils.TimeTrack(time.Now(), "embiggenHandler")
-	name := i
-	smallPath := cfg.ImgDir + path.Base(name)
-	bigPath := cfg.GifDir + path.Base(name)
-
-	//Check to see if the large image already exists
-	//If so, serve it directly
-	if _, err := os.Stat(bigPath); err == nil {
-		log.Println("Pre-existing BIG gif already found, serving it...")
-		return
-	}
-    log.Println("BIG gif not found. Running gifsicle...")
-    file, err := os.Open(smallPath)
-    if err != nil {
-        log.Println(err)
-        return
-    }
-    file.Close()
-    //gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
-    resize := exec.Command("/usr/bin/gifsicle", "--conserve-memory", "--colors", "256", "--resize", "2000x_", smallPath, "-o", bigPath)
-    err = resize.Run()
-    if err != nil {
-        log.Println(err)
-    }
-    log.Println(name + " BIG GIF has been saved.")
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
