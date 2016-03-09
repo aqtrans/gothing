@@ -29,6 +29,7 @@ install-go:
     - export PATH=$PATH:$GOPATH/bin
     - go version
     - echo $PATH
+    - echo $(pwd)
     - go env
     - which go
 
@@ -37,6 +38,7 @@ build-my-project:
   script:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin
+    - cd $CI_PROJECT_DIR
     - go get -d -u
     - go build
 
