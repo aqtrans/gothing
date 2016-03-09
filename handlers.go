@@ -573,7 +573,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
                         background: url('/imagedirect/` + name + `') no-repeat center center fixed;
                         background-size: contain;
                         background-clip: content-box;
-                    }</head><body></body></html>`))
+                    }</style></head><body></body></html>`))
     
     /*
 	bigPath := cfg.GifDir + path.Base(name)
