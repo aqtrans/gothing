@@ -58,3 +58,4 @@ deploy-it:
     - go get -d
     - go build -o ./thing
     - rsync -av $CI_PROJECT_DIR aqtrans@localhost:/home/aqtrans/production_apps/
+    - ssh aqtrans@localhost /home/aqtrans/production_apps/finish_thing.sh
