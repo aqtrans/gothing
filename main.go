@@ -22,7 +22,7 @@ import (
     //"github.com/fukata/golang-stats-api-handler"
 	"github.com/russross/blackfriday"
 	"html/template"
-    "io"
+    //"io"
 	"log"
 	"mime"
 	"net/http"
