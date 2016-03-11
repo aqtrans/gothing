@@ -21,7 +21,9 @@ $(document).ready(function(){
             $(document).foundation('reveal', 'reflow');
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
                 //var modal = $(this);
-                $("#imageup")[0].reset();
+                //$("#imageup")[0].reset();
+                // Need to refresh page entirely to get new token:
+                location.reload();                
             });          
         } else {
           //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
@@ -57,7 +59,9 @@ $(document).ready(function(){
             $(document).foundation('reveal', 'reflow');
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
                 //var modal = $(this);
-                $("#remoteimageup")[0].reset();
+                //$("#remoteimageup")[0].reset();
+                // Need to refresh page entirely to get new token:
+                location.reload();                
             });          
         } else {
           //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
@@ -97,7 +101,9 @@ $(document).ready(function(){
             $(document).foundation('reveal', 'reflow');
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
                 //var modal = $(this);
-                $("#fileup")[0].reset();
+                //$("#fileup")[0].reset();
+                // Need to refresh page entirely to get new token:
+                location.reload();                
             });
           //$(document).foundation('alert','reflow');
         } else {
@@ -132,7 +138,9 @@ $(document).ready(function(){
             $(document).foundation('reveal', 'reflow');
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
                 //var modal = $(this);
-                $("#remotefileup")[0].reset();
+                //$("#remotefileup")[0].reset();
+                // Need to refresh page entirely to get new token:
+                location.reload();                
             });
         } else {
           //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed upload<a class=\"close\">&times;</a></div>");
@@ -167,7 +175,9 @@ $(document).ready(function(){
             $(document).foundation('reveal', 'reflow');
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
                 //var modal = $(this);
-                $("#shorturl")[0].reset();
+                //$("#shorturl")[0].reset();
+                // Need to refresh page entirely to get new token:
+                location.reload();                
             });
         } else {
           //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to shorten URL<a class=\"close\">&times;</a></div>");
@@ -198,7 +208,9 @@ $(document).ready(function(){
             $(document).foundation('reveal', 'reflow');
             $(document).on('closed.fndtn.reveal', '[data-reveal]', function () {
                 //var modal = $(this);
-                $("#shorturl2")[0].reset();
+                //$("#shorturl2")[0].reset();
+                // Need to refresh page entirely to get new token:
+                location.reload();
             });
         } else {
           //$(".alerts").append("<div class=\"alert-box alert\" data-alert>Failed to shorten URL<a class=\"close\">&times;</a></div>");
