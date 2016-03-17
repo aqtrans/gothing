@@ -510,6 +510,7 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
     // If this is a short URL, do not do anything
     if strings.HasSuffix(r.Host, cfg.ShortTLD) && r.Host != cfg.MainTLD && r.Host != cfg.ImageTLD && r.Host != cfg.GifTLD {
         http.NotFound(w, r)
+        return
     }
     staticFile := r.URL.Path[len("/assets/"):]
     //log.Println(staticFile)
