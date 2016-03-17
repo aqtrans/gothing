@@ -16,7 +16,7 @@
 <tr>
 <td>
 <a class="th" href="/i/{{.Filename}}">
-<img class="freezeframe" src="/thumbs/{{.Filename}}">
+<img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
 </a>
 </td>
 <td>{{.Created | prettyDate}}}</td>
@@ -24,13 +24,12 @@
 {{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
 {{ end }}
 </table>
-Using <a href="http://freezeframe.chrisantonellis.com">FreezeFrame</a>
- by <a href="http://www.chrisantonellis.com">Chris Antonellis</a>
 {{ end }}
 {{ define "extra_scripts" }}
-<script src="/assets/js/freezeframe.js" type="text/javascript">
-freezeframe_options = {
-	loading_background_color: "white"
-}
+<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
+<script type="text/javascript" charset="utf-8">
+$(function() {
+    $('.gifs').gifplayer();
+});
 </script>
 {{ end }}
