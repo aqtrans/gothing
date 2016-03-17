@@ -32,6 +32,7 @@ import (
 	"path/filepath"
     "time"
 	"sort"
+    "strings"
 	"strconv"
     "jba.io/go/auth"
     "jba.io/go/utils"
@@ -505,6 +506,11 @@ func defaultHandler(next http.Handler) http.Handler {
 
 // Taken from http://reinbach.com/golang-webapps-1.html
 func staticHandler(w http.ResponseWriter, r *http.Request) {
+    defer utils.TimeTrack(time.Now(), "staticHandler")
+    // If this is a short URL, do not do anything
+    if strings.HasSuffix(r.Host, cfg.ShortTLD) && r.Host != cfg.MainTLD && r.Host != cfg.ImageTLD && r.Host != cfg.GifTLD {
+        http.NotFound(w, r)
+    }
     staticFile := r.URL.Path[len("/assets/"):]
     //log.Println(staticFile)
     if len(staticFile) != 0 {
@@ -713,11 +719,12 @@ func main() {
     //static := http.Handler(http.FileServer(http.Dir("./public/")))
 	//r.PathPrefix("/").Handler(defaultHandler(static))
     
-    r.PathPrefix("/assets/").HandlerFunc(staticHandler)
+    //r.PathPrefix("/assets/").HandlerFunc(staticHandler)
     d.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
     http.HandleFunc("/favicon.ico", favicon)
     http.HandleFunc("/favicon.png", favicon)
-    http.HandleFunc("/robots.txt", robots)    
+    http.HandleFunc("/robots.txt", robots)
+    http.HandleFunc("/assets/", staticHandler)
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe(":3000", nil)
 
