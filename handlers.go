@@ -131,6 +131,16 @@ func adminSignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func adminUserPassHandler(w http.ResponseWriter, r *http.Request) {
+	defer utils.TimeTrack(time.Now(), "adminUserPassHandler")
+	title := "Admin Password Change"
+	p, _ := loadMainPage(title, w, r)
+	err := renderTemplate(w, "admin_password.tmpl", p)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func signupPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Signup"

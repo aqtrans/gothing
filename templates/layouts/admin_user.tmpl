@@ -6,7 +6,7 @@
     </header>
     <section class="content">
     <div>
-        <form method="post" action="/auth/signup" id="signup">
+        <form method="post" action="/admin/user_signup" id="signup">
         User:<input class="stack" type="text" id="username" name="username" placeholder="Username" size="12">
         Password:<input class="stack" type="password" id="password" name="password" placeholder="Password" size="12">
         <input type="hidden" name="token" value="{{.Token}}">
@@ -21,4 +21,40 @@
     <footer>
     </footer>
   </article>
+  
+  <article>
+    <header>
+      <h3>Password change</h3>
+    </header>
+    <section class="content">
+    <div>
+        <form method="post" action="/admin/password_change" id="signup">
+        User:<input class="stack" type="text" id="username" name="username" placeholder="Username" size="12">
+        Password:<input class="stack" type="password" id="password" name="password" placeholder="Password" size="12">
+        <input type="hidden" name="token" value="{{.Token}}">
+        <button class="stack" type="submit" class="button">Change Users Password</button>
+        </form>
+    </div>
+    </section>
+    <footer>
+    </footer>
+  </article>
+
+  <article>
+    <header>
+      <h3>Delete user</h3>
+    </header>
+    <section class="content">
+    <div>
+        <form method="post" action="/admin/user_delete" id="signup">
+        User:<input class="stack" type="text" id="username" name="username" placeholder="Username" size="12">
+        <input type="hidden" name="token" value="{{.Token}}">
+        <button class="stack" type="submit" class="button">Delete user</button>
+        </form>
+    </div>
+    </section>
+    <footer>
+    </footer>
+  </article>
+  
 {{ end }}

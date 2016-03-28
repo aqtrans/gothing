@@ -694,14 +694,16 @@ func main() {
     a.HandleFunc("/login", auth.LoginPostHandler).Methods("POST")
     a.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	a.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
-    a.HandleFunc("/signup", auth.SignupPostHandler).Methods("POST")
-   
+    a.HandleFunc("/signup", auth.SignupPostHandler).Methods("POST")   
 
     admin := d.PathPrefix("/admin").Subrouter()
     admin.HandleFunc("/", auth.AuthAdminMiddle(adminHandler)).Methods("GET")
-    admin.HandleFunc("/users", auth.AuthAdminMiddle(auth.AdminUserPostHandler)).Methods("POST")
+    admin.HandleFunc("/user_signup", auth.AuthAdminMiddle(auth.AdminUserPostHandler)).Methods("POST")
 	admin.HandleFunc("/users", auth.AuthAdminMiddle(adminSignupHandler)).Methods("GET")
-    admin.HandleFunc("/list", auth.AuthAdminMiddle(adminListHandler)).Methods("GET")     
+    admin.HandleFunc("/list", auth.AuthAdminMiddle(adminListHandler)).Methods("GET")
+    //admin.HandleFunc("/user_pass", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler)).Methods("POST") 
+    admin.HandleFunc("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler)).Methods("POST")
+    admin.HandleFunc("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler)).Methods("POST")
     
 	d.HandleFunc("/list", auth.AuthMiddle(listHandler)).Methods("GET")
 	d.HandleFunc("/s", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
