@@ -82,6 +82,7 @@ type ListPage struct {
 	Files     []*File
 	Shorturls []*Shorturl
 	Images    []*Image
+    Screenshots []*Screenshot
 }
 
 type GalleryPage struct {
@@ -111,6 +112,12 @@ type Image struct {
 	RemoteURL string
 }
 
+type Screenshot struct {
+	Created   int64
+	Filename  string
+	Hits      int64
+}
+
 type Shorturl struct {
 	Created int64
 	Short   string
@@ -120,6 +127,12 @@ type Shorturl struct {
 }
 
 // Sorting functions
+type ScreenshotByDate []*Screenshot
+
+func (a ScreenshotByDate) Len() int           { return len(a) }
+func (a ScreenshotByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ScreenshotByDate) Less(i, j int) bool { return a[i].Created < a[j].Created }
+
 type ImageByDate []*Image
 
 func (a ImageByDate) Len() int           { return len(a) }
@@ -419,7 +432,25 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	})
 	sort.Sort(ImageByDate(images))
 
-	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images}, nil
+	var screenshots []*Screenshot
+	//Lets try this with boltDB now!
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Screenshots"))
+		b.ForEach(func(k, v []byte) error {
+			utils.Debugln("SCREENSHOTS: key="+string(k)+" value="+string(v))
+			var screenshot *Screenshot
+			err := json.Unmarshal(v, &screenshot)
+			if err != nil {
+				log.Panicln(err)
+			}
+			screenshots = append(screenshots, screenshot)
+			return nil
+		})
+		return nil
+	})
+	sort.Sort(ScreenshotByDate(screenshots))    
+
+	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images, Screenshots: screenshots}, nil
 }
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
@@ -563,6 +594,25 @@ func (i *Image) save() error {
 	return nil
 }
 
+func (s *Screenshot) save() error {
+    defer utils.TimeTrack(time.Now(), "Screenshot.save()")
+	err := db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Screenshots"))
+		encoded, err := json.Marshal(s)
+		if err != nil {
+			log.Panicln(err)
+			return err
+		}
+		return b.Put([]byte(s.Filename), encoded)
+	})
+	if err != nil {
+		log.Panicln(err)
+		return err
+	}
+	log.Println("++++Screenshot SAVED")
+	return nil
+}
+
 func defaultHandler(next http.Handler) http.Handler {
     defer utils.TimeTrack(time.Now(), "defaultHandler")
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -639,6 +689,10 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}
+        _, err = tx.CreateBucketIfNotExists([]byte("Screenshots"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}        
 		return nil
 	})
 
@@ -668,7 +722,7 @@ func main() {
 	d.HandleFunc("/login", loginPageHandler).Methods("GET")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
 	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
-    d.HandleFunc("/signup", signupPageHandler).Methods("GET")
+    //d.HandleFunc("/signup", signupPageHandler).Methods("GET")
 
     a := d.PathPrefix("/auth").Subrouter()
     a.HandleFunc("/login", auth.LoginPostHandler).Methods("POST")

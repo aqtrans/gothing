@@ -1508,6 +1508,23 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// w.Statuscode = 200
+    
+    // Check if we're uploading a screenshot
+    ss := r.FormValue("screenshot")
+    if ss == "on" {
+        //BoltDB stuff
+        sc := &Screenshot{
+            Created:  time.Now().Unix(),
+            Filename: filename,
+        }
+        err = sc.save()
+        if err != nil {
+            log.Println(err)
+            utils.WriteJ(w, "", false)
+        }
+        utils.WriteJ(w, filename, true)
+        return
+    }
 
 	//BoltDB stuff
 	imi := &Image{
