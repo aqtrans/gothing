@@ -328,7 +328,6 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
     defer utils.TimeTrack(time.Now(), "loadMainPage")
-	//timer.Step("loadpageFunc")
 	p, err := loadPage(title, w, r)
 	if err != nil {
 		return nil, err
@@ -425,9 +424,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
     defer utils.TimeTrack(time.Now(), "ParseMultipartFormProg")
-	//length := r.ContentLength
-	//ticker := time.Tick(time.Millisecond)
-
+    
 	if r.Form == nil {
 		err := r.ParseForm()
 		if err != nil {
@@ -595,22 +592,10 @@ func main() {
 	//log.Println(tm.Format(timestamp))
 
     // Open and initialize auth database
-    //log.Println(viper.Get("authDB"))
-    //log.Println(v.GetString("AuthDbPath"))
     log.Println("Opening " + viper.GetString("AuthDB"))
     auth.Open(viper.GetString("AuthDB"))
-    //log.Println(cfg)
     auth.AuthDbInit()    
     defer auth.Authdb.Close()
-
-	//Load conf.json
-    /*
-	conf, _ := os.Open("conf.json")
-	decoder := json.NewDecoder(conf)
-	err := decoder.Decode(&cfg)
-	if err != nil {
-		fmt.Println("error decoding config:", err)
-	}*/
 
 	//Check for essential directory existence
 	_, err := os.Stat(cfg.ImgDir)
@@ -657,9 +642,6 @@ func main() {
 		return nil
 	})
 
-	//new_sess := utils.RandKey(32)
-	//log.Println("Session ID: " + new_sess)
-
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
@@ -699,7 +681,6 @@ func main() {
     admin.HandleFunc("/user_signup", auth.AuthAdminMiddle(auth.AdminUserPostHandler)).Methods("POST")
 	admin.HandleFunc("/users", auth.AuthAdminMiddle(adminSignupHandler)).Methods("GET")
     admin.HandleFunc("/list", auth.AuthAdminMiddle(adminListHandler)).Methods("GET")
-    //admin.HandleFunc("/user_pass", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler)).Methods("POST") 
     admin.HandleFunc("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler)).Methods("POST")
     admin.HandleFunc("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler)).Methods("POST")
     
@@ -746,8 +727,6 @@ func main() {
 	//Dedicated image subdomain routes
 	i := r.Host(cfg.ImageTLD).Subrouter()
 	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
-    //i.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
-    //i.HandleFunc("/favicon.png", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "") })
 	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
@@ -778,25 +757,5 @@ func main() {
     http.HandleFunc("/assets/", utils.StaticHandler)
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe("127.0.0.1:" + cfg.Port , nil)
-
-	//Runtime stats
-	//g.Get("/stats", runtimeStatsHandler)
-
-	//Test Goji Context
-	/*r.GET("/c-test",  func(w http.ResponseWriter, r *http.Request) {
-		username := GetUsername(c)
-		c.Get("user") = username
-		log.Println("c-Env:")
-		log.Println(c.Keys)
-		log.Println(c.Get("user"))
-		if user, ok := c.Get("user").(string); ok {
-			w.Write([]byte("Hello " + user))
-		} else {
-			w.Write([]byte("Hello Stranger!"))
-			//log.Println(username)
-			//log.Println(c.Env)
-			log.Println(c.Get("user").(string))
-		}
-	})*/
 
 }
