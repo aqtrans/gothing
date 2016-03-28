@@ -167,8 +167,8 @@ func init() {
 	ShortTLD string
 	ImageTLD string
 	GifTLD   string
+    AuthDB   string
     AuthConf struct {
-        AuthDbPath  string
         LdapEnabled bool
         LdapConf struct {
             LdapPort uint16 `json:",omitempty"`
@@ -189,8 +189,8 @@ func init() {
     viper.SetDefault("ShortTLD", "es.gy")
     viper.SetDefault("ImageTLD", "i.es.gy")
     viper.SetDefault("GifTLD", "big.es.gy")
+    viper.SetDefault("AuthDB", "./auth.db")
     defaultauthstruct := &auth.AuthConf {
-        AuthDbPath: "./auth.db",
         LdapEnabled: false,
         LdapConf: auth.LdapConf{ },
     }
@@ -595,7 +595,10 @@ func main() {
 	//log.Println(tm.Format(timestamp))
 
     // Open and initialize auth database
-    auth.Open(cfg.AuthConf.AuthDbPath)
+    //log.Println(viper.Get("authDB"))
+    //log.Println(v.GetString("AuthDbPath"))
+    log.Println("Opening " + viper.GetString("AuthDB"))
+    auth.Open(viper.GetString("AuthDB"))
     //log.Println(cfg)
     auth.AuthDbInit()    
     defer auth.Authdb.Close()
@@ -653,11 +656,6 @@ func main() {
 		}
 		return nil
 	})
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = cfg.Port
-	}
 
 	//new_sess := utils.RandKey(32)
 	//log.Println("Session ID: " + new_sess)
