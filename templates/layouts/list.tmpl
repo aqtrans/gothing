@@ -89,4 +89,24 @@
 {{ end }}
 </tbody>
 </table>
+<h2>Screenshots</h2>
+<table>
+<thead>
+<tr>
+<th width="80">Filename</th>
+<th width="200">Date</th>
+<th width="20">Hits</th>
+</tr>
+</thead>
+<tbody>
+{{range .Screenshots}}
+<tr>
+<td><a href=/i/{{.Filename}}>{{.Filename}}</a></td>
+<td>{{.Created | prettyDate}}</td>
+<td>{{.Hits}}</td>
+{{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert delete">Delete</a></td>{{ end }}
+</tr>
+{{ end }}
+</tbody>
+</table>
 {{ end }}
