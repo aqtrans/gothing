@@ -317,7 +317,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
 			http.Error(w, "Error 400 - No such domain at this address", http.StatusBadRequest)
-			err := errors.New(title + "No Such Short URL")
+			err := errors.New(title + " No Such Short URL")
 			return err
 			//log.Println(err)
 		}
