@@ -5,14 +5,19 @@
 {{ define "content" }}   
 <h1>Admin Panel</h1>
 <hr />
-                <h1>Httpauth example<h1>
+<ul>
+<li><a href="/admin/users">Manage Users</a></li>
+<li><a href="/admin/list">List all things</a></li>
+</ul>
+
+                <!--<h1>Httpauth example<h1>
                 <h2>Admin Page</h2>
                 <p>{{.Msg}}</p>
                 {{ with .User }}<p>Hello {{ .Username }}, your role is '{{ .Role }}'. Your email is {{ .Email }}.</p>{{ end }}
-                <p><a href="/" class="button success">Back</a> <a href="/logout" class="button success">Logout</a></p>
+                <p><a href="/" class="button success">Back</a> <a href="/auth/logout" class="button success">Logout</a></p>
                 <h3>Users</h3>
                 <ul>{{ range .Users }}<li>{{.Username}}</li>{{ end }}</ul>
-                <form action="/api/user/new" method="post" id="add_user">
+                <form action="/auth/signup" method="post" id="add_user">
                     <h3>Add user</h3>
                     <p><input type="text" name="username" placeholder="username"><br>
                     <input type="password" name="password" placeholder="password"><br>
@@ -22,5 +27,5 @@
                         {{ range $key, $val := .Roles }}<option value="{{$key}}">{{$key}} - {{$val}}</option>{{ end }}
                     </select></p>
                     <button type="submit" class="button success">Submit</button>
-                </form>
+                </form>-->
 {{ end }}

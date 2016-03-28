@@ -11,3 +11,6 @@ req.log
 conf.json
 .directory
 thing
+auth.json
+auth.db
+http.log

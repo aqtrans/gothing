@@ -258,7 +258,7 @@ $(document).ready(function(){
         }
     });    
   });
-
+/*
   $("#login").submit(function(event){
     event.preventDefault();   
     $.post( "login", $( this ).serialize(), function(data){
@@ -296,5 +296,5 @@ $(document).ready(function(){
       }
     });
   });
-
+*/
 });

@@ -12,11 +12,14 @@
           <li><a href="/readme"><span>Readme</span></a></li>
           <li><a href="/changelog"><span>Changelog</span></a></li>
           <li><a href="/help"><span>Help</span></a></li>
-          {{ if .Page.UN }}
-              <br>
-              <p>Hello, {{ .Page.UN }}<p>
-              <li><a href="/logout"><span>Logout</span></a></li>
-              <li><a href="/admin"><span>Admin</span></a></li>
-          {{ end }}
+        {{ if .Page.UN }}
+        Hello, {{ .Page.UN }}|{{ .Page.Role }}
+        <a href="/auth/logout" class="button">Logout</a>
+        {{ if .Page.Role|isAdmin }}    
+                <a href="/admin" class="button">admin</a>
+        {{ end }}    
+        {{ else }}
+        <label for="login_modal" class="button">Login</label>
+        {{ end }}
         </ul>
 {{ end }}

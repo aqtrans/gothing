@@ -101,14 +101,41 @@ func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func galleryListHandler(w http.ResponseWriter, r *http.Request) {
+func adminListHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "galleryListHandler")
-	l, err := loadGalleryPage(w, r)
+	title := "Admin List"
+	p, _ := loadMainPage(title, w, r)
+	err := renderTemplate(w, "admin_list.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
+}
 
-	err = renderTemplate(w, "admin-list.tmpl", l)
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	defer utils.TimeTrack(time.Now(), "adminHandler")
+	title := "Admin Panel"
+	p, _ := loadMainPage(title, w, r)
+	err := renderTemplate(w, "admin.tmpl", p)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func adminSignupHandler(w http.ResponseWriter, r *http.Request) {
+	defer utils.TimeTrack(time.Now(), "adminSignupHandler")
+	title := "Admin Signup"
+	p, _ := loadMainPage(title, w, r)
+	err := renderTemplate(w, "admin_user.tmpl", p)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func signupPageHandler(w http.ResponseWriter, r *http.Request) {
+	defer utils.TimeTrack(time.Now(), "adminSignupHandler")
+	title := "Signup"
+	p, _ := loadMainPage(title, w, r)
+	err := renderTemplate(w, "signup.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
