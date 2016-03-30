@@ -33,6 +33,7 @@ install-go:
     - echo $(pwd)
     - go env
     - which go
+    - echo $SHELL
 
 build-my-project:
   stage: build
