@@ -27,6 +27,7 @@ install-go:
     - mkdir -p $HOME/gopath # for GOPATH (contains code and external packages)
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin
+    - export PATH=$PATH:/usr/local/go/bin
     - go version
     - echo $PATH
     - echo $(pwd)
