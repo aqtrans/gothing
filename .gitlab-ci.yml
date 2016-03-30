@@ -26,8 +26,7 @@ install-go:
     - rm -rf $HOME/gopath
     - mkdir -p $HOME/gopath # for GOPATH (contains code and external packages)
     - export GOPATH=$HOME/gopath
-    - export PATH=$PATH:$GOPATH/bin
-    - export PATH=$PATH:/usr/local/go/bin
+    - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - go version
     - echo $PATH
     - echo $(pwd)
@@ -39,7 +38,7 @@ build-my-project:
   stage: build
   script:
     - export GOPATH=$HOME/gopath
-    - export PATH=$PATH:$GOPATH/bin
+    - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - cd $CI_PROJECT_DIR
     - go get -d
     - go build
@@ -48,14 +47,14 @@ test-my-project:
   stage: test
   script:
     - export GOPATH=$HOME/gopath
-    - export PATH=$PATH:$GOPATH/bin
+    - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - go test
 
 deploy-it:
   stage: deploy
   script:
     - export GOPATH=$HOME/gopath
-    - export PATH=$PATH:$GOPATH/bin
+    - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - cd $CI_PROJECT_DIR
     - go get -d
     - go build -o ./thing
