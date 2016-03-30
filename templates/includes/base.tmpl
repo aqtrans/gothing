@@ -21,11 +21,11 @@
 <body>
 {{ .Page.FlashMsg |safeHTML }}
 <div class="row">
-  <div class="small-2 columns sidebar">
+  <div class="small-3 columns sidebar">
       <a href="/"><h3>{{.Page.TheName}}</a></h3>
       {{ template "sidebar" .}}
   </div>
-<div class="small-10 columns body">
+<div class="small-9 columns body">
   <div class="alerts"></div>
 {{ template "content" . }}
 </div>

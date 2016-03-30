@@ -11,6 +11,14 @@ button.tiny, .button.tiny {
     margin-bottom: 0.25rem;
 }
 
+ul.side-nav {
+    line-height: 0.9;    
+}
+
+ul.side-nav span {
+    white-space: nowrap;
+}
+
 .sidebar
 {
   z-index: 20;
@@ -149,6 +157,6 @@ a.gif-view-full{
     to {transform: rotate(359deg);}
 }
 
-.icon-maximize:before{;
+.icon-maximize:before{
     content: "\f0b2";
 }

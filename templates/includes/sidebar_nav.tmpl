@@ -14,12 +14,12 @@
           <li><a href="/help"><span>Help</span></a></li>
         {{ if .Page.UN }}
         Hello, {{ .Page.UN }}|{{ .Page.Role }}
-        <a href="/auth/logout" class="button">Logout</a>
+        <a href="/auth/logout" class="button tiny">Logout</a>
         {{ if .Page.Role|isAdmin }}    
-                <a href="/admin" class="button">admin</a>
+                <a href="/admin" class="button tiny">Admin</a>
         {{ end }}    
         {{ else }}
-        <a href="/login" class="button">Login</a>
+        <a href="/login" class="button tiny">Login</a>
         {{ end }}
         </ul>
 {{ end }}
