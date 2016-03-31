@@ -57,5 +57,7 @@ deploy-it:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - cd $CI_PROJECT_DIR
+    - go get -d
+    - go build -o ./thing
     - rsync -av $CI_PROJECT_DIR aqtrans@localhost:/home/aqtrans/production_apps/
     - ssh aqtrans@localhost /home/aqtrans/production_apps/finish_thing.sh
