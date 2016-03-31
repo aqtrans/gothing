@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
     "jba.io/go/utils"
-    "jba.io/go/auth"
+    //"jba.io/go/auth"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -662,6 +662,7 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "APInewRemoteFile")
+	/*
     // Check for CSRF token
     err := auth.CheckToken(w, r)
     if err != nil {
@@ -669,6 +670,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), 500)
         return
     }
+	*/
     
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
@@ -768,6 +770,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	}
 	//log.Println(uptype)
 
+	/*
     // Check for CSRF token on non-cli uploads
     if uptype != "cli" {
         err = auth.CheckToken(w, r)
@@ -777,6 +780,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
             return
         }
     }
+	*/
 
 	//Remote File Uploads
 	if uptype == "remote" {
@@ -968,6 +972,7 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		utils.WriteJ(w, "", false)
 	}
+	/*
     // Check for CSRF token
     err = auth.CheckToken(w, r)
     if err != nil {
@@ -975,6 +980,7 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), 500)
         return
     }
+	*/
     
     subdomain := r.PostFormValue("shortSub")
     log.Println(subdomain)
@@ -1091,6 +1097,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	/*
     // Check for CSRF token
     err = auth.CheckToken(w, r)
     if err != nil {
@@ -1098,6 +1105,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), 500)
         return
     }
+	*/
         
 	title := r.PostFormValue("title")
 	if title != "" {
@@ -1194,6 +1202,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	/*
     // Check for CSRF token
     err = auth.CheckToken(w, r)
     if err != nil {
@@ -1201,6 +1210,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), 500)
         return
     }
+	*/
         
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff
@@ -1280,6 +1290,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
     
+	/*
     // Check for CSRF token
     err := auth.CheckToken(w, r)
     if err != nil {
@@ -1287,6 +1298,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), 500)
         return
     }
+	*/
     
 	if !strings.HasPrefix(remoteURL, "http") {
 		log.Println("remoteURL does not contain a URL prefix, so adding http")
@@ -1366,6 +1378,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	formfilename := vars["filename"]
 	contentType := r.Header.Get("Content-Type")
     
+	/*
     // Check for CSRF token, if not a CLI upload
     if contentType != "" {
         err = auth.CheckToken(w, r)
@@ -1375,6 +1388,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
             return
         }
     }
+	*/
 
 	if contentType == "" {
 		log.Println("Content-type blank, so this should be a CLI upload...")
