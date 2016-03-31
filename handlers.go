@@ -103,9 +103,12 @@ func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
 
 func adminListHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "galleryListHandler")
-	title := "Admin List"
-	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "admin_list.tmpl", p)
+	//title := "Admin List"
+	l, err := loadGalleryPage(w, r)
+	if err != nil {
+		log.Println(err)
+	}
+	err = renderTemplate(w, "admin_list.tmpl", l)
 	if err != nil {
 		log.Println(err)
 	}
