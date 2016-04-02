@@ -617,16 +617,22 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
     }
     
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`<!doctype html><html>
+	w.Write([]byte(`<!doctype html>
+                    <html>
                     <head>
+                    <meta charset=utf-8>
                     <title>` + name + `</title>
                     <style>
-                    body{
-                        background: url('/i/` + name + `');
-                        height:100%;
-                        width:100%;
-                        background-position: center;
+                    html { 
+                        background: url('/i/` + name + `') no-repeat center center fixed; 
+                        -webkit-background-size: cover;
+                        -moz-background-size: cover;
+                        -o-background-size: cover;
                         background-size: cover;
+                        height: 100%;
+                    }
+                    body {
+                        height: 100%;
                     }
                     </style>
                     </head>
