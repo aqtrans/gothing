@@ -620,9 +620,9 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title>
                     <style>
                     body{
-                        background: url('/i/` + name + `') no-repeat center center fixed;
-                        background-size: contain;
-                        background-clip: content-box;
+                        background: url('/i/` + name + `') repeat-y 100% 100% fixed;
+                        height:100%;
+                        width:100%;
                     }</style></head><body></body></html>`))
 }
 
