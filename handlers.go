@@ -617,13 +617,21 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
     }
     
     w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title>
+	w.Write([]byte(`<!doctype html><html>
+                    <head>
+                    <title>` + name + `</title>
                     <style>
                     body{
-                        background: url('/i/` + name + `') repeat-y 100% 100% fixed;
+                        background: url('/i/` + name + `');
                         height:100%;
                         width:100%;
-                    }</style></head><body></body></html>`))
+                        background-position: center;
+                        background-size: cover;
+                    }
+                    </style>
+                    </head>
+                    <body></body>
+                    </html>`))
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
