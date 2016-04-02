@@ -630,9 +630,11 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
                         -o-background-size: cover;
                         background-size: cover;
                         height: 100%;
+                        width: 100%;
                     }
                     body {
                         height: 100%;
+                        width: 100%;
                     }
                     </style>
                     </head>
