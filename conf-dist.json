@@ -4,7 +4,6 @@
     "ImgDir": "./up-imgs/",
     "FileDir": "./up-files/",
     "ThumbDir": "./thumbs/",
-    "GifDir": "./big-imgs/",
     "MainTLD": "go.jba.io",
     "ShortTLD": "es.gy",
     "ImageTLD": "i.es.gy",

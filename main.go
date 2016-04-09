@@ -44,7 +44,6 @@ type configuration struct {
 	ImgDir   string
 	FileDir  string
 	ThumbDir string
-	GifDir   string
 	MainTLD  string
 	ShortTLD string
 	ImageTLD string
@@ -175,7 +174,6 @@ func init() {
 	ImgDir   string
 	FileDir  string
 	ThumbDir string
-	GifDir   string
 	MainTLD  string
 	ShortTLD string
 	ImageTLD string
@@ -197,7 +195,6 @@ func init() {
     viper.SetDefault("ImgDir", "./up-imgs/")
     viper.SetDefault("FileDir", "./up-files/")
     viper.SetDefault("ThumbDir", "./thumbs/")
-    viper.SetDefault("GifDir", "./big-imgs/")
     viper.SetDefault("MainTLD", "es.gy")
     viper.SetDefault("ShortTLD", "es.gy")
     viper.SetDefault("ImageTLD", "i.es.gy")
@@ -655,10 +652,6 @@ func main() {
 	_, err = os.Stat(cfg.FileDir)
 	if err != nil {
 		os.Mkdir(cfg.FileDir, 0755)
-	}
-	_, err = os.Stat(cfg.GifDir)
-	if err != nil {
-		os.Mkdir(cfg.GifDir, 0755)
 	}
 	_, err = os.Stat(cfg.ThumbDir)
 	if err != nil {

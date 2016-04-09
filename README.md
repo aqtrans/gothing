@@ -45,9 +45,6 @@ I have added comments here for clarity, so if copying and pasting, remove them:
     //Directory where files should be uploaded to
     "FileDir": "./up-files/",
 
-    //Directory where embiggened GIFs are generated to
-    "GifDir": "./big-imgs/",
-
     //The domain where all functions should be
     "MainTLD": "the.main.tld",
 
