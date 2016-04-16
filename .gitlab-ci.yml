@@ -61,5 +61,5 @@ deploy-it:
     - go get -d
     - go build -o ./deploy/thing
     - cp -r templates CHANGELOG.md README.md assets deploy/
-    - rsync -av --delete deploy/ aqtrans@localhost:/home/aqtrans/production_apps/thing/
+    - rsync -av --delete --exclude auth.db --exclude bolt.db --exclude conf.json --exclude thumbs --exclude up-files --exclude up-imgs --exclude http.log deploy/ aqtrans@localhost:/home/aqtrans/production_apps/thing/
     - ssh aqtrans@localhost /home/aqtrans/production_apps/finish_thing.sh
