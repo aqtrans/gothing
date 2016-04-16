@@ -27,12 +27,12 @@ install-go:
     - mkdir -p $HOME/gopath # for GOPATH (contains code and external packages)
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
-    - go version
-    - echo $PATH
-    - echo $(pwd)
-    - go env
-    - which go
-    - echo $SHELL
+#    - go version
+#    - echo $PATH
+#    - echo $(pwd)
+#    - go env
+#    - which go
+#    - echo $SHELL
 
 build-my-project:
   stage: build
@@ -41,7 +41,7 @@ build-my-project:
     - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - cd $CI_PROJECT_DIR
     - go get -d
-    - go build -o ./thing
+    - go build
 
 test-my-project:
   stage: test
@@ -57,7 +57,9 @@ deploy-it:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
     - cd $CI_PROJECT_DIR
+    - mkdir deploy
     - go get -d
-    - go build -o ./thing
-    - rsync -av $CI_PROJECT_DIR aqtrans@localhost:/home/aqtrans/production_apps/
+    - go build -o ./deploy/thing
+    - cp -r templates CHANGELOG.md README.md assets deploy/
+    - rsync -av --delete deploy/ aqtrans@localhost:/home/aqtrans/production_apps/thing/
     - ssh aqtrans@localhost /home/aqtrans/production_apps/finish_thing.sh
