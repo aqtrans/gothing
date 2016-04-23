@@ -1,25 +1,22 @@
 {{ define "base" }}
 <!DOCTYPE html>
 <!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]--> 
-<html class="no-js" lang="en" >
+<html lang="en" >
 <head>
   {{ template "title" . }}
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Gowiki">
+  <meta name="description" content="Golang powered thing">
   <link rel="shortcut icon" type="image/png" href="/assets/favicon.png"/>
   <link rel="shortcut icon" type="image/ico" href="/assets/favicon.ico" />
-  <link rel="stylesheet" href="/assets/css/normalize.css"> 
-  <link rel="stylesheet" href="/assets/css/foundation.css"> 
-  <link rel="stylesheet" href="/assets/css/app.css">
-  <link rel="stylesheet" href="/assets/css/font-awesome.min.css">
-  <script src="/assets/js/modernizr.js"></script>
-  <script src="/assets/js/jquery.js"></script>
-  <script src="/assets/js/fastclick.js"></script>
-  <script src="/assets/js/foundation.min.js"></script>
+  <link rel="stylesheet" href="//static.jba.io/bourbon.css">
+  <link rel="stylesheet" href="//static.jba.io/material-icons/material-icons.css">
  </head>
-<body>
-{{ .Page.FlashMsg |safeHTML }}
+
+<div class="modal" id="alert-modal">
+  {{ .Page.FlashMsg |safeHTML }}
+</div>
+  
 <div class="row">
   <div class="small-3 columns sidebar">
       <a href="/"><h3>{{.Page.TheName}}</a></h3>
@@ -35,7 +32,6 @@
   <script> $(document).foundation(); </script>
   <script src="/assets/js/my.js"></script>
   {{ template "extra_scripts" . }}
-</body>
 </html>
 {{ end }}
 {{ define "sidebar" }}{{ end }}
