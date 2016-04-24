@@ -5,25 +5,31 @@
   </article>
   <article>  
     <main>
-		<ul class="inline-list"> 
-		{{range .Images}}
-		<li>
-		<div class="thumbspacer">
-		<a class="th" href="/{{.Filename}}">
-		<img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
-		</a>
-		</div>
-		</li> 
-		{{ end }}
+		<ul class="gallery"> 
+        {{range .Images}}
+        {{$imgext := .Filename|imgExt}}
+        <li>
+            {{if eq $imgext "gif"}}
+            <img class="{{.Filename|imgClass}}" data-gifffer="/imagedirect/{{.Filename}}">
+            {{else if eq $imgext "webm"}}
+            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
+            {{else}}
+            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
+            {{end}}
+            <br>
+            <a href="/{{.Filename}}"><i class='fa fa-external-link'></i>Link</a>
+            <a href="/big/{{.Filename}}"><i class='fa fa-arrows-alt'></i>Embiggen</a>
+        </li> 
+        {{ end }}
 		</ul>
     </main>
   </article>
 {{ end }}
 {{ define "extra_scripts" }}
-<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
+<script src="/assets/js/gifffer.min.js" type="text/javascript"></script>
 <script type="text/javascript" charset="utf-8">
-$(function() {
-    $('.gifs').gifplayer();
-});
+window.onload = function() {
+  Gifffer();
+}
 </script>
 {{ end }}
