@@ -3,8 +3,11 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}       
-<h1>{{.Page.TheName}}</h1>
-<hr />
+  <article>
+    <header>{{.Page.TheName}}</header>
+  </article>
+  <article>  
+    <main>
 <h3 class="subheader">Paste stuff from CLI</h3>
 <div class="panel callout">
 curl --data "STUFF" http://go.jba.io/p(/ID)

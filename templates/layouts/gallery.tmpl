@@ -3,39 +3,38 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }} 
-<h1>Image Gallery</h1>
-<div class="row">
-	<ul class="inline-list"> 
-	{{range .Images}}
-    {{$imgext := .Filename|imgExt}}
-	<li>
-    <div class="image-wrapper">
-        <div class="thumbspacer">
-        <a class="th" href="#">
-        {{if eq $imgext "gif"}}
-        <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
-        {{else if eq $imgext "webm"}}
-        <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-mode="video" data-webm="/imagedirect/{{.Filename}}">
-        {{else}}
-        <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
-        {{end}}
-        </a>
-        </div>
-        <ul class="button-group">
-            <li><a href="/i/{{.Filename}}" class="button tiny"><i class='fa fa-external-link'></i>Link</a></li>
-            <li><a href="/big/{{.Filename}}" class="button tiny"><i class='fa fa-arrows-alt'></i>Embiggen</a></li>
+  <article>
+    <header>Image Gallery</header>
+  </article>
+  <article>  
+    <main>
+        <ul class="gallery"> 
+        {{range .Images}}
+        {{$imgext := .Filename|imgExt}}
+        <li>
+            <a class="th" href="#">
+            {{if eq $imgext "gif"}}
+            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+            {{else if eq $imgext "webm"}}
+            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-mode="video" data-webm="/imagedirect/{{.Filename}}">
+            {{else}}
+            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+            {{end}}
+            </a>
+            <br>
+            <a href="/i/{{.Filename}}"><i class='fa fa-external-link'></i>Link</a>
+            <a href="/big/{{.Filename}}"><i class='fa fa-arrows-alt'></i>Embiggen</a>
+        </li> 
+        {{ end }}
         </ul>
-    </div>
-	</li> 
-	{{ end }}
-	</ul>
-</div>
+    </main>
+  </article>
 {{ end }}
 {{ define "extra_scripts" }}
-<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
+<!--<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
 <script type="text/javascript" charset="utf-8">
 $(function() {
     $('.gifs').gifplayer();
 });
-</script>
+</script>-->
 {{ end }}

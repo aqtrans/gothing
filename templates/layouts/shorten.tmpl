@@ -3,7 +3,11 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}  
-<h1>New Short URL</h1>
+  <article>
+    <header>New Short URL</header>
+  </article>
+  <article>  
+    <main>
 <ul class="accordion" data-accordion>
   <li class="accordion-navigation">
     <a href="#panel1a">Shorten URL to a subdomain</a>
@@ -65,5 +69,7 @@
         </div>
         </form>
     </div>
-  </li>      
+  </li>    
+    </main>
+  </article>    
 {{ end }}

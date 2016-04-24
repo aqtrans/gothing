@@ -1,6 +1,5 @@
 {{ define "base" }}
 <!DOCTYPE html>
-<!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]--> 
 <html lang="en" >
 <head>
   {{ template "title" . }}
@@ -13,24 +12,42 @@
   <link rel="stylesheet" href="//static.jba.io/material-icons/material-icons.css">
  </head>
 
+<section>
+  <aside>
+    <header><a href="/">{{.Page.TheName}}</a></header>
+      {{ template "sidebar" .}}
+  </aside>
+
+  <section>
+    {{ template "content" . }}
+  </section>
+</section>
+
 <div class="modal" id="alert-modal">
   {{ .Page.FlashMsg |safeHTML }}
 </div>
-  
-<div class="row">
-  <div class="small-3 columns sidebar">
-      <a href="/"><h3>{{.Page.TheName}}</a></h3>
-      {{ template "sidebar" .}}
-  </div>
-<div class="small-9 columns body">
-  <div class="alerts"></div>
-{{ template "content" . }}
-</div>
+
+<div class="modal" id="login-form">
+  <input id="login_modal" type="checkbox" />
+  <label for="login_modal" class="overlay"></label>
+  <article>
+    <header>Login</header>
+      <label for="login_modal" class="close">&times;</label>
+    <section>
+    <form method="post" action="/login" id="login">
+    <input type="text" id="username" name="username" placeholder="Username">
+    <input type="password" id="password" name="password" placeholder="Password">
+    <input type="hidden" name="token" value="{{.Page.Token}}">
+      <button type="submit" class="button">Login</button>
+        </form>
+      <label for="login_modal" class="button-dangerous">
+        Cancel
+      </label>
+     </section> 
+  </article>
 </div>
 <footer>
 </footer>
-  <script> $(document).foundation(); </script>
-  <script src="/assets/js/my.js"></script>
   {{ template "extra_scripts" . }}
 </html>
 {{ end }}

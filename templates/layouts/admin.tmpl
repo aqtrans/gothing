@@ -2,11 +2,16 @@
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
-{{ define "content" }}   
-<h1>Admin Panel</h1>
-<hr />
-<ul>
-<li><a href="/admin/users">Manage Users</a></li>
-<li><a href="/admin/list">List all things</a></li>
-</ul>
+{{ define "content" }}
+<article>
+    <header>Admin Panel</header>
+</article>
+  <article>  
+    <main>
+        <ul>
+        <li><a href="/admin/users">Manage Users</a></li>
+        <li><a href="/admin/list">List all things</a></li>
+        </ul>
+    </main>
+  </article>        
 {{ end }}
