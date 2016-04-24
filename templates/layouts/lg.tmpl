@@ -3,34 +3,39 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}       
-<h1>Network Tools</h1>
-<hr />
-<div id="nettools">
-<form method="post" action="/lg" id="lg">
-  <div class="row">
-    <div class="small-3 columns">
-      <label>Select Box
-        <select name="lg-action">
-          <option value="ping">Ping</option>
-          <option value="mtr">MTR</option>
-          <option value="traceroute">Traceroute</option>
-        </select>
-      </label>
-    </div>
-    <div class="small-9 columns">
-      <label>IP or Domain
-        <input type="text" name="url" placeholder="IP or domain" />
-        <input type="hidden" name="token" value="{{.Page.Token}}">
-      </label>
-    </div>    
-  </div>
-<button class="button success" type="submit">Ping</button>
-</form>
-</div>
+  <article>
+    <header>Network Tools</header>
+  </article>
+  <article>  
+    <main>
+      <div id="nettools">
+      <form method="post" action="/lg" id="lg">
+        <div class="row">
+          <div class="small-3 columns">
+            <label>Select Box
+              <select name="lg-action">
+                <option value="ping">Ping</option>
+                <option value="mtr">MTR</option>
+                <option value="traceroute">Traceroute</option>
+              </select>
+            </label>
+          </div>
+          <div class="small-9 columns">
+            <label>IP or Domain
+              <input type="text" name="url" placeholder="IP or domain" />
+              <input type="hidden" name="token" value="{{.Page.Token}}">
+            </label>
+          </div>    
+        </div>
+      <button class="button success" type="submit">Ping</button>
+      </form>
+      </div>
 
-<div class="panel radius">
-<pre>
-{{ .Message }}
-</pre>
-</div>
+      <div class="panel radius">
+      <pre>
+      {{ .Message }}
+      </pre>
+      </div>
+    </main>
+  </article>
 {{ end }}

@@ -3,7 +3,11 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}
-<h1>Upload an image</h1>
+  <article>
+    <header>Upload an image</header>
+  </article>
+  <article>  
+    <main>
 <ul class="accordion" data-accordion>
   <li class="accordion-navigation">
     <a href="#panel1a">Upload a local image</a>
@@ -50,4 +54,6 @@
     </div>
   </li>
 </ul>
+    </main>
+  </article>
 {{ end }}

@@ -3,12 +3,17 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}   
-<h1>New paste</h1>
-<hr />
-<form action="/api/paste/new" method="POST">
-Title:<input type="text" name="title"><br>
-<input type="hidden" name="token" value="{{.Page.Token}}">
-<textarea name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
-<input type="submit" value="Submit" class="button success">
-</form>
+  <article>
+    <header>New paste</header>
+  </article>
+  <article>  
+    <main>
+        <form action="/api/paste/new" method="POST">
+        Title:<input type="text" name="title"><br>
+        <input type="hidden" name="token" value="{{.Page.Token}}">
+        <textarea name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
+        <input type="submit" value="Submit" class="button success">
+        </form>
+    </main>
+  </article>
 {{ end }}

@@ -1,24 +1,23 @@
 {{ define "title" }}<title>Image Gallery - {{.Page.TheName}}</title>{{ end }}
-{{ define "sidebar" }}
-    <ul class="side-nav">
-      <li><a href="/"><span>Gallery</span></a></li>
-    </ul>
-{{ end }}
 {{ define "content" }}       
-<h1>Image Gallery</h1>
-<div class="row">
-	<ul class="inline-list"> 
-	{{range .Images}}
-	<li>
-	<div class="thumbspacer">
-	<a class="th" href="/{{.Filename}}">
-	<img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
-	</a>
-	</div>
-	</li> 
-	{{ end }}
-	</ul>
-</div>
+  <article>
+    <header>Image Gallery</header>
+  </article>
+  <article>  
+    <main>
+		<ul class="inline-list"> 
+		{{range .Images}}
+		<li>
+		<div class="thumbspacer">
+		<a class="th" href="/{{.Filename}}">
+		<img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png" data-gif="/imagedirect/{{.Filename}}">
+		</a>
+		</div>
+		</li> 
+		{{ end }}
+		</ul>
+    </main>
+  </article>
 {{ end }}
 {{ define "extra_scripts" }}
 <script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>

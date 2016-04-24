@@ -284,6 +284,10 @@ func getScheme(r *http.Request) (scheme string) {
 	return scheme
 }
 
+func setFlash(msg string, w http.ResponseWriter, r *http.Request) {
+	auth.SetSession("flash", msg, w, r)
+}
+
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
     defer utils.TimeTrack(time.Now(), "renderTemplate")
 	tmpl, ok := templates[name]
@@ -324,10 +328,19 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
     var message string
     if msg != "" {
         message = `
-        <div data-alert class="alert-box">
-                        `+ msg + `
-        <a href="#" class="close">&times;</a>
-        </div>
+    <input id="alert_modal" type="checkbox" checked />
+    <label for="alert_modal" class="overlay"></label>
+        <article>
+            <header>Alert!</header>
+            <section>
+            <label for="alert_modal" class="close">&times;</label>
+                `+ template.HTMLEscapeString(msg) + `
+                <hr>
+            <label for="alert_modal" class="button">
+                Okay
+            </label>
+            </section>
+        </article>        
         `
     } else {
         message = ""
