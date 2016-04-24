@@ -990,9 +990,9 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uptype == "cli" {
-		fmt.Fprintf(w, "http://go.jba.io/d/"+filename)
+		fmt.Fprintf(w, "https://"+cfg.MainTLD+"/d/"+filename)
 	} else {
-		setFlash("Successfully saved "+filename, w, r)
+		setFlash("Successfully saved "+filename+": https://"+cfg.MainTLD+"/d/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -1407,7 +1407,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	setFlash("Successfully saved "+fileName, w, r)
+	setFlash("Successfully saved "+fileName+": https://"+cfg.MainTLD+"/i/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -1582,7 +1582,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
             setFlash("Failed to save screenshot", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
         }
-		setFlash("Successfully saved screenshot "+filename, w, r)
+		setFlash("Successfully saved screenshot "+filename+": https://"+cfg.MainTLD+"/i/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
         return
     }
@@ -1598,7 +1598,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 		setFlash("Failed to save image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	setFlash("Successfully saved image "+filename, w, r)
+	setFlash("Successfully saved image "+filename+": https://"+cfg.MainTLD+"/i/"+filename, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
