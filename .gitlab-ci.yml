@@ -17,6 +17,7 @@ stages:
   - build
   - test
   - deploy
+  - mirror
 
 install-go:
   stage: install-environment
@@ -53,6 +54,8 @@ test-my-project:
 
 deploy-it:
   stage: deploy
+  except:
+    - branches
   script:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
@@ -63,3 +66,10 @@ deploy-it:
     - cp -r templates CHANGELOG.md README.md assets deploy/
     - rsync -av --delete --exclude auth.db --exclude bolt.db --exclude conf.json --exclude thumbs --exclude up-files --exclude up-imgs --exclude http.log deploy/ aqtrans@localhost:/home/aqtrans/production_apps/thing/
     - ssh aqtrans@localhost /home/aqtrans/production_apps/finish_thing.sh
+
+mirror-to-github:
+  stage: mirror
+  only:
+    - /^github$/
+  script:
+    - git push --mirror git@github.com:aqtrans/gothing.git
