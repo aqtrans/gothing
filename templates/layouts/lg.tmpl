@@ -2,12 +2,12 @@
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
-{{ define "content" }}       
+{{ define "content" }}   
+<main>    
   <article>
     <header>Network Tools</header>
   </article>
   <article>  
-    <main>
       <div id="nettools">
       <form method="post" action="/lg" id="lg">
         <div class="row">
@@ -36,6 +36,6 @@
       {{ .Message }}
       </pre>
       </div>
-    </main>
   </article>
+</main>
 {{ end }}

@@ -1,10 +1,11 @@
 {{ define "title" }}<title>{{.Page.TheName}}|Admin User Panel</title>{{ end }}
 {{ define "content" }}
+<main>
   <article>
     <header>Admin User Panel</header>
   </article>
+  <article>
   <article>  
-    <main>
         <form method="post" action="/admin/user_signup" id="signup">
         User:<input class="stack" type="text" id="username" name="username" placeholder="Username" size="12">
         Password:<input class="stack" type="password" id="password" name="password" placeholder="Password" size="12">
@@ -55,6 +56,6 @@
     <footer>
     </footer>
   </article>
-    </main>
   </article>  
+</main>  
 {{ end }}

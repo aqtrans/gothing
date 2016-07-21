@@ -2,16 +2,16 @@
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
-{{ define "content" }}       
+{{ define "content" }}
+<main>
   <article>
     <header>{{.Page.TheName}}</header>
   </article>
   <article>  
-    <main>
 <h3 class="subheader">Welcome!</h3>
 <div class="panel callout">
 Welcome to my Golang project!
 </div>
-    </main>
-  </article>
+</article>
+</main>
 {{ end }}

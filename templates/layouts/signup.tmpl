@@ -1,10 +1,10 @@
 {{ define "title" }}<title>{{.page.SiteName}}|Sign Up</title>{{ end }}
 {{ define "content" }}
+<main>
   <article>
     <header>Sign up</header>
   </article>
   <article>  
-    <main>
     <div>
         <form method="post" action="/signup" id="signup">
         <input class="stack" type="text" id="username" name="username" placeholder="Username" size="12">
@@ -13,6 +13,6 @@
         <button class="stack" type="submit" class="button">Sign Up</button>
         </form>
     </div>
-    </main>
   </article>
+</main>  
 {{ end }}

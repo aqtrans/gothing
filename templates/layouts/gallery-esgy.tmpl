@@ -1,10 +1,10 @@
 {{ define "title" }}<title>Image Gallery - {{.Page.TheName}}</title>{{ end }}
-{{ define "content" }}       
+{{ define "content" }}
+<main>    
   <article>
     <header>Image Gallery</header>
   </article>
   <article>  
-    <main>
 		<ul class="gallery"> 
         {{range .Images}}
         {{$imgext := .Filename|imgExt}}
@@ -22,8 +22,8 @@
         </li> 
         {{ end }}
 		</ul>
-    </main>
   </article>
+</main>  
 {{ end }}
 {{ define "extra_scripts" }}
 <script src="/assets/js/gifffer.min.js" type="text/javascript"></script>

@@ -2,11 +2,16 @@
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
-{{ define "content" }}     
-<h1>{{ .Page.Title }}</h1>
+{{ define "content" }}   
+<main>
+<article>
+<header><h1>{{ .Page.Title }}</h1></header>
+</article>
 {{$title := .Page.Title}}
-<hr />
+<article>
 <div>
 {{.MD}}
 </div>
+</article>
+</main>
 {{ end }}

@@ -3,13 +3,13 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}
+<main>
   <article>
     <header>Upload an image</header>
   </article>
   <article>  
-    <main>
 <ul class="accordion" data-accordion>
-  <li class="accordion-navigation">
+  <li class="accordion-item">
     <a href="#panel1a">Upload a local image</a>
     <div id="panel1a" class="content active">
         <h3>Upload a local image</h3>
@@ -32,7 +32,7 @@
         </form>
     </div>
   </li>
-  <li class="accordion-navigation">
+  <li class="accordion-item">
     <a href="#panel2a">Upload a remote image</a>
     <div id="panel2a" class="content">
         <h3>Upload an image from a remote URL</h3>
@@ -54,6 +54,6 @@
     </div>
   </li>
 </ul>
-    </main>
   </article>
+</main>  
 {{ end }}

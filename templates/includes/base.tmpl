@@ -8,47 +8,28 @@
   <meta name="description" content="Golang powered thing">
   <link rel="shortcut icon" type="image/png" href="/assets/favicon.png"/>
   <link rel="shortcut icon" type="image/ico" href="/assets/favicon.ico" />
-  <link rel="stylesheet" href="//static.jba.io/bourbon.css">
+  <link rel="stylesheet" href="/assets/css/foundation.css">  
   <link rel="stylesheet" href="//static.jba.io/material-icons/material-icons.css">
+  <script src="/assets/js/jquery.min.js"></script>
+  <script src="/assets/js/foundation.min.js"></script>
  </head>
 
-<section>
-  <aside>
+<body>
+  <nav>
     <header><a href="/">{{.Page.TheName}}</a></header>
       {{ template "sidebar" .}}
-  </aside>
+  </nav>
 
   <section>
+    {{ .Page.FlashMsg |safeHTML }}
     {{ template "content" . }}
   </section>
-</section>
 
-<div class="modal" id="alert-modal">
-  {{ .Page.FlashMsg |safeHTML }}
-</div>
-
-<div class="modal" id="login-form">
-  <input id="login_modal" type="checkbox" />
-  <label for="login_modal" class="overlay"></label>
-  <article>
-    <header>Login</header>
-      <label for="login_modal" class="close">&times;</label>
-    <section>
-    <form method="post" action="/login" id="login">
-    <input type="text" id="username" name="username" placeholder="Username">
-    <input type="password" id="password" name="password" placeholder="Password">
-    <input type="hidden" name="token" value="{{.Page.Token}}">
-      <button type="submit" class="button">Login</button>
-        </form>
-      <label for="login_modal" class="button-dangerous">
-        Cancel
-      </label>
-     </section> 
-  </article>
-</div>
-<footer>
-</footer>
   {{ template "extra_scripts" . }}
+<script>
+$(document).foundation();
+</script>  
+</body>
 </html>
 {{ end }}
 {{ define "sidebar" }}{{ end }}

@@ -2,7 +2,11 @@
 {{ define "sidebar" }}
     {{ template "sidebar_nav" . }}
 {{ end }}
-{{ define "content" }}     
-<h1>Login</h1>
+{{ define "content" }}  
+<main>   
+<article><header><h1>Login</h1></header></article>
+<article>
 {{ template "login_form" .}}
+</article>
+</main>
 {{ end }}

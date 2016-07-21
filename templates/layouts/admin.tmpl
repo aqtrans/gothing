@@ -3,15 +3,15 @@
     {{ template "sidebar_nav" . }}
 {{ end }}
 {{ define "content" }}
+<main>
 <article>
     <header>Admin Panel</header>
 </article>
   <article>  
-    <main>
         <ul>
         <li><a href="/admin/users">Manage Users</a></li>
         <li><a href="/admin/list">List all things</a></li>
         </ul>
-    </main>
-  </article>        
+  </article>  
+</main>        
 {{ end }}
