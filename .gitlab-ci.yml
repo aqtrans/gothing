@@ -54,6 +54,8 @@ test-my-project:
 
 deploy-it:
   stage: deploy
+  only: 
+    - master
   except:
     - branches
   script:
