@@ -55,9 +55,7 @@ test-my-project:
 deploy-it:
   stage: deploy
   only: 
-    - master
-  except:
-    - branches
+    - master@go/thing
   script:
     - export GOPATH=$HOME/gopath
     - export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
