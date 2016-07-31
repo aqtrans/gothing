@@ -33,7 +33,7 @@ install-go:
     - export GOROOT=$HOME/golang/go
     - export GOPATH=$HOME/gopath
     - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOROOT/bin:$PATH
+    - export PATH=$GOPATH/bin:$PATH
     - ln -s $CI_PROJECT_DIR $GOPATH/src/thing
     - go version
     - echo $PATH
@@ -46,7 +46,7 @@ build-my-project:
     - export GOROOT=$HOME/golang/go
     - export GOPATH=$HOME/gopath
     - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOROOT/bin:$PATH  
+    - export PATH=$GOPATH/bin:$PATH  
     - cd $HOME/gopath/src/thing
     - go get -d
     - go build
@@ -57,7 +57,7 @@ test-my-project:
     - export GOROOT=$HOME/golang/go
     - export GOPATH=$HOME/gopath
     - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOROOT/bin:$PATH  
+    - export PATH=$GOPATH/bin:$PATH  
     - cd $HOME/gopath/src/thing
     - go test
 
@@ -69,7 +69,7 @@ deploy-it:
     - export GOROOT=$HOME/golang/go
     - export GOPATH=$HOME/gopath
     - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOROOT/bin:$PATH  
+    - export PATH=$GOPATH/bin:$PATH  
     - cd $HOME/gopath/src/thing
     - mkdir deploy
     - go get -d
