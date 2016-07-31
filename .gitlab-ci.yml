@@ -32,8 +32,8 @@ install-go:
     - tar -C $HOME/golang -xzf go1.6.3.linux-amd64.tar.gz
     - export GOROOT=$HOME/golang/go    
     - export GOPATH=$HOME/gopath
-    - export PATH=$PATH:$GOROOT/bin    
-    - export PATH=$PATH:$GOPATH/bin
+    - export PATH=$GOROOT/bin:$PATH 
+    - export PATH=$GOROOT/bin:$PATH
     - ln -s $CI_PROJECT_DIR $GOPATH/src/thing
     - go version
     - echo $PATH
