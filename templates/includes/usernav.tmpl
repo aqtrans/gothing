@@ -1,0 +1,15 @@
+{{ define "usernav" }}
+<div class="callout small primary">
+<ul>
+{{ if .Page.UN }}
+    <li><i class="fa fa-user" aria-hidden="true"></i>{{ .Page.UN }}<br></li>
+    <li><a href="/auth/logout">Logout</a></li>
+    {{ if .Page.IsAdmin }}    
+        <li><a href="/admin">Admin Panel</a></li>
+    {{ end }}    
+{{ else }}
+<li><a href="/login">Login</a></li>
+{{ end }}
+</ul>
+</div>
+{{ end }}

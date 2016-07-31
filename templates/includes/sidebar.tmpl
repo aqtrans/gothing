@@ -1,4 +1,4 @@
-{{ define "sidebar_nav" }}
+{{ define "sidebar" }}
 <ul>
         <li><a href="/"><span>Home</span></a></li>
         <li><a href="/list"><span>List</span></a></li>
@@ -13,16 +13,5 @@
         <li><a href="/help"><span>Help</span></a></li>
 </ul>  
 <br>
-<ul>
-    
-{{ if .Page.UN }}
-    <li><i class="material-icons centericon">person</i>{{ .Page.UN }}|{{ .Page.Role }}<br></li>
-    <li><a href="/auth/logout">Logout</a></li>
-    {{ if .Page.Role|isAdmin }}    
-        <li><a href="/admin">Admin Panel</a></li>
-    {{ end }}    
-{{ else }}
-<li><a href="/login">Login</a></li>
-{{ end }}
-</ul>
+{{ template "usernav" .}}
 {{ end }}

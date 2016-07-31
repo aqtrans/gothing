@@ -4,7 +4,7 @@
 	<p>Hello, {{ .Page.UN }}<p>
     <ul class="side-nav">
       <li><a href="/auth/logout"><span>Logout</span></a></li>
-        {{ if .Page.Role|isAdmin }}    
+        {{ if .Page.IsAdmin }}    
                 <li><a href="/admin" class="button">admin</a></li>
         {{ end }}   
     </ul>
