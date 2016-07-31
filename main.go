@@ -36,7 +36,7 @@ import (
 	//"strings"
 	"strconv"
 
-	"jba.io/go/auth"
+	"jba.io/go/thing/lib"
 	"jba.io/go/utils"
 )
 
@@ -59,7 +59,7 @@ var (
 	_24K      int64 = (1 << 20) * 24
 	fLocal    bool
 	debug     bool
-	db, _     = bolt.Open("./bolt.db", 0600, nil)
+	db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	cfg       = configuration{}
 )
 
@@ -71,7 +71,7 @@ type Page struct {
 	TheName  string
 	Title    string
 	UN       string
-	Role     string
+	IsAdmin  bool
 	Token    string
 	FlashMsg string
 }
@@ -161,7 +161,7 @@ func init() {
 
 	// Viper config
 	viper.SetConfigName("conf")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath("./data/")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
@@ -193,20 +193,20 @@ func init() {
 	*/
 	viper.SetDefault("Port", "3000")
 	viper.SetDefault("Email", "unused@the.moment")
-	viper.SetDefault("ImgDir", "./up-imgs/")
-	viper.SetDefault("FileDir", "./up-files/")
-	viper.SetDefault("ThumbDir", "./thumbs/")
+	viper.SetDefault("ImgDir", "./data/up-imgs/")
+	viper.SetDefault("FileDir", "./data/up-files/")
+	viper.SetDefault("ThumbDir", "./data/thumbs/")
 	viper.SetDefault("MainTLD", "es.gy")
 	viper.SetDefault("ShortTLD", "es.gy")
 	viper.SetDefault("ImageTLD", "i.es.gy")
 	viper.SetDefault("GifTLD", "big.es.gy")
-	viper.SetDefault("AuthDB", "./auth.db")
+	viper.SetDefault("AuthDB", "./data/auth.db")
 	defaultauthstruct := &auth.AuthConf{
-		LdapEnabled: false,
-		LdapConf:    auth.LdapConf{},
+		AdminUser: "admin",
 	}
 	viper.SetDefault("AuthConf", defaultauthstruct)
 	viper.Unmarshal(&cfg)
+	viper.UnmarshalKey("AuthConf", &auth.Authcfg)
 
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
@@ -227,7 +227,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	funcMap := template.FuncMap{"prettyDate": utils.PrettyDate, "safeHTML": utils.SafeHTML, "imgClass": utils.ImgClass, "imgExt": utils.ImgExt, "isAdmin": isAdmin}
+	funcMap := template.FuncMap{"prettyDate": utils.PrettyDate, "safeHTML": utils.SafeHTML, "imgClass": utils.ImgClass, "imgExt": utils.ImgExt}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
@@ -321,31 +321,26 @@ func ParseBool(value string) bool {
 func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
 	defer utils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
-	user, role, msg := auth.GetUsername(r)
+	user, isAdmin := auth.GetUsername(r)
+	msg := auth.GetFlash(r)
 	token := auth.GetToken(r)
 
 	var message string
 	if msg != "" {
 		message = `
-    <input id="alert_modal" type="checkbox" checked />
-    <label for="alert_modal" class="overlay"></label>
-        <article>
-            <header>Alert!</header>
-            <section>
-            <label for="alert_modal" class="close">&times;</label>
-                ` + template.HTMLEscapeString(msg) + `
-                <hr>
-            <label for="alert_modal" class="button">
-                Okay
-            </label>
-            </section>
-        </article>        
+			<div class="alert callout" data-closable>
+			<h5>Alert!</h5>
+			<p>` + template.HTMLEscapeString(msg) + `</p>
+			<button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+				<span aria-hidden="true">&times;</span>
+			</button>
+			</div>			
         `
 	} else {
 		message = ""
 	}
 
-	return &Page{TheName: "GoThing", Title: title, UN: user, Role: role, Token: token, FlashMsg: message}, nil
+	return &Page{TheName: "GoThing", Title: title, UN: user, IsAdmin: isAdmin, Token: token, FlashMsg: message}, nil
 }
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
@@ -651,9 +646,11 @@ func main() {
 	//log.Println(tm.Format(timestamp))
 
 	// Open and initialize auth database
-	log.Println("Opening " + viper.GetString("AuthDB"))
-	auth.Open(viper.GetString("AuthDB"))
-	auth.AuthDbInit()
+	auth.Open("./data/auth.db")
+	autherr := auth.AuthDbInit()
+	if autherr != nil {
+		log.Fatalln(autherr)
+	}
 	defer auth.Authdb.Close()
 
 	//Check for essential directory existence
@@ -705,6 +702,7 @@ func main() {
 	flag.Set("bind", ":3000")
 
 	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
+	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
 	r := mux.NewRouter().StrictSlash(true)
