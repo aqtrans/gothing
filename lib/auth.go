@@ -814,7 +814,9 @@ func UserEnvMiddle(next http.Handler) http.Handler {
 		//log.Println("4")
 		// If username is the configured AdminUser, set context to reflect this
 		isAdmin := false
-		if username == Authcfg.AdminUser {
+		log.Println(username)
+		log.Println(Authcfg.AdminUser)
+		if Authcfg.AdminUser != "" && username == Authcfg.AdminUser {
 			utils.Debugln("Setting isAdmin to true due to "+ Authcfg.AdminUser)
 			isAdmin = true
 		}

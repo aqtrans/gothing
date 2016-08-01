@@ -160,6 +160,19 @@ func (a ShortByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
 func init() {
 
 	// Viper config
+	viper.SetDefault("Port", "3000")
+	viper.SetDefault("Email", "unused@the.moment")
+	viper.SetDefault("ImgDir", "./data/up-imgs/")
+	viper.SetDefault("FileDir", "./data/up-files/")
+	viper.SetDefault("ThumbDir", "./data/thumbs/")
+	viper.SetDefault("MainTLD", "es.gy")
+	viper.SetDefault("ShortTLD", "es.gy")
+	viper.SetDefault("ImageTLD", "i.es.gy")
+	viper.SetDefault("GifTLD", "big.es.gy")
+	viper.SetDefault("AuthDB", "./data/auth.db")
+	viper.SetDefault("AuthConf.AdminUser", "admin")
+	auth.Authcfg.AdminUser = "admin"
+	
 	viper.SetConfigName("conf")
 	viper.AddConfigPath("./data/")
 	err := viper.ReadInConfig() // Find and read the config file
@@ -191,22 +204,9 @@ func init() {
 		        }
 		    }
 	*/
-	viper.SetDefault("Port", "3000")
-	viper.SetDefault("Email", "unused@the.moment")
-	viper.SetDefault("ImgDir", "./data/up-imgs/")
-	viper.SetDefault("FileDir", "./data/up-files/")
-	viper.SetDefault("ThumbDir", "./data/thumbs/")
-	viper.SetDefault("MainTLD", "es.gy")
-	viper.SetDefault("ShortTLD", "es.gy")
-	viper.SetDefault("ImageTLD", "i.es.gy")
-	viper.SetDefault("GifTLD", "big.es.gy")
-	viper.SetDefault("AuthDB", "./data/auth.db")
-	defaultauthstruct := &auth.AuthConf{
-		AdminUser: "admin",
-	}
-	viper.SetDefault("AuthConf", defaultauthstruct)
+
 	viper.Unmarshal(&cfg)
-	viper.UnmarshalKey("AuthConf", &auth.Authcfg)
+	//viper.UnmarshalKey("AuthConf", &auth.Authcfg)
 
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
@@ -701,19 +701,24 @@ func main() {
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
+	std := alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
 	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
+
+	if fLocal {
+		cfg.MainTLD = "main.devd.io"
+		cfg.ShortTLD = "devd.io"
+		cfg.ImageTLD = "i.devd.io"
+		cfg.GifTLD = "big.devd.io"
+		log.Println("Listening on devd.io domains due to -l flag...")
+	} else {
+		log.Println("Listening on " + cfg.MainTLD + " domain")
+	}
 
 	r := mux.NewRouter().StrictSlash(true)
 	d := r.Host(cfg.MainTLD).Subrouter()
 
-	if fLocal {
-		log.Println("Listening on .dev domains due to -l flag...")
-		d = r.Host("go.dev").Subrouter()
-	} else {
-		log.Println("Listening on " + cfg.MainTLD + " domain")
-	}
+
 	log.Println("Port: " + cfg.Port)
 
 	d.HandleFunc("/", indexHandler).Methods("GET")
@@ -796,7 +801,8 @@ func main() {
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
-	wild := r.Host("{name}.es.gy").Subrouter()
+	wildString := "{name}."+cfg.ShortTLD
+	wild := r.Host(wildString).Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 	//Main Short URL page
 	// Collapsing this into main TLD
@@ -812,6 +818,12 @@ func main() {
 	http.HandleFunc("/favicon.ico", utils.FaviconHandler)
 	http.HandleFunc("/favicon.png", utils.FaviconHandler)
 	http.HandleFunc("/assets/", utils.StaticHandler)
+	/* Used for troubleshooting proxy headers
+	http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.Host)
+		log.Println(r.Header)
+	})
+	*/
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe("127.0.0.1:"+cfg.Port, nil)
 
