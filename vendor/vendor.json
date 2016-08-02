@@ -247,12 +247,6 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "e4d366fc3c7938e2958e662b4258c7a89e1f0e3e",
 			"revisionTime": "2016-07-15T03:37:55Z"
-		},
-		{
-			"checksumSHA1": "fZYWzMZn3alKsTN9sJhtPNO9FR4=",
-			"path": "jba.io/go/utils",
-			"revision": "206badd282389bd93c10b8d213954a7680221f0c",
-			"revisionTime": "2016-07-17T18:39:28Z"
 		}
 	],
 	"rootPath": "jba.io/go/thing"
