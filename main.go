@@ -628,8 +628,6 @@ func defaultHandler(next http.Handler) http.Handler {
 	})
 }
 
-//http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { http.ServeContent(w, r, staticFile, time.Now(), content) http.ServeFile(w, r, "./assets/favicon.ico") })
-
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
