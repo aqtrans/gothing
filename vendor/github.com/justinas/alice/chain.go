@@ -21,10 +21,7 @@ type Chain struct {
 // New serves no other function,
 // constructors are only called upon a call to Then().
 func New(constructors ...Constructor) Chain {
-	c := Chain{}
-	c.constructors = append(c.constructors, constructors...)
-
-	return c
+	return Chain{append(([]Constructor)(nil), constructors...)}
 }
 
 // Then chains the middleware and returns the final http.Handler.
@@ -46,18 +43,15 @@ func New(constructors ...Constructor) Chain {
 //
 // Then() treats nil as http.DefaultServeMux.
 func (c Chain) Then(h http.Handler) http.Handler {
-	var final http.Handler
-	if h != nil {
-		final = h
-	} else {
-		final = http.DefaultServeMux
+	if h == nil {
+		h = http.DefaultServeMux
 	}
 
-	for i := len(c.constructors) - 1; i >= 0; i-- {
-		final = c.constructors[i](final)
+	for i := range c.constructors {
+		h = c.constructors[len(c.constructors)-1-i](h)
 	}
 
-	return final
+	return h
 }
 
 // ThenFunc works identically to Then, but takes
@@ -72,7 +66,7 @@ func (c Chain) ThenFunc(fn http.HandlerFunc) http.Handler {
 	if fn == nil {
 		return c.Then(nil)
 	}
-	return c.Then(http.HandlerFunc(fn))
+	return c.Then(fn)
 }
 
 // Append extends a chain, adding the specified constructors
@@ -85,10 +79,34 @@ func (c Chain) ThenFunc(fn http.HandlerFunc) http.Handler {
 //     // requests in stdChain go m1 -> m2
 //     // requests in extChain go m1 -> m2 -> m3 -> m4
 func (c Chain) Append(constructors ...Constructor) Chain {
-	newCons := make([]Constructor, len(c.constructors)+len(constructors))
-	copy(newCons, c.constructors)
-	copy(newCons[len(c.constructors):], constructors)
+	newCons := make([]Constructor, 0, len(c.constructors)+len(constructors))
+	newCons = append(newCons, c.constructors...)
+	newCons = append(newCons, constructors...)
 
-	newChain := New(newCons...)
-	return newChain
+	return Chain{newCons}
+}
+
+// Extend extends a chain by adding the specified chain
+// as the last one in the request flow.
+//
+// Extend returns a new chain, leaving the original one untouched.
+//
+//     stdChain := alice.New(m1, m2)
+//     ext1Chain := alice.New(m3, m4)
+//     ext2Chain := stdChain.Extend(ext1Chain)
+//     // requests in stdChain go  m1 -> m2
+//     // requests in ext1Chain go m3 -> m4
+//     // requests in ext2Chain go m1 -> m2 -> m3 -> m4
+//
+// Another example:
+//  aHtmlAfterNosurf := alice.New(m2)
+// 	aHtml := alice.New(m1, func(h http.Handler) http.Handler {
+// 		csrf := nosurf.New(h)
+// 		csrf.SetFailureHandler(aHtmlAfterNosurf.ThenFunc(csrfFail))
+// 		return csrf
+// 	}).Extend(aHtmlAfterNosurf)
+//		// requests to aHtml hitting nosurfs success handler go m1 -> nosurf -> m2 -> target-handler
+//		// requests to aHtml hitting nosurfs failure handler go m1 -> nosurf -> m2 -> csrfFail
+func (c Chain) Extend(chain Chain) Chain {
+	return c.Append(chain.constructors...)
 }
