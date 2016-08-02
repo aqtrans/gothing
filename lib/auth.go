@@ -4,11 +4,11 @@ package auth
 // Currently handles the following:
 //  User Auth:
 //   - User sign-up, stored in a Boltdb named auth.db
-//   - User roles, currently hard-coded to two, "User" and "Admin", probably case-sensitive
+//   - A configured AdminUser, which has RoleKey/IsAdmin set to true 
 //   - User authentication against Boltdb and optionally LDAP
 //       - Cookie-powered
 //       - With gorilla/context to help pass around the user info
-//   - Boltdb powered, using Users and Roles buckets
+//   - Boltdb powered, using a Users bucket
 //   - Success/failure is delivered via a redirect and a flash message
 //
 //  XSRF:
@@ -272,8 +272,7 @@ func UserSignupPostHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		username := template.HTMLEscapeString(r.FormValue("username"))
 		password := template.HTMLEscapeString(r.FormValue("password"))
-		role := r.FormValue("role")
-		err := newUser(username, password, role)
+		err := newUser(username, password)
 		if err != nil {
 			utils.Debugln(err)
 			panic(err)
@@ -357,8 +356,7 @@ func SignupPostHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		username := template.HTMLEscapeString(r.FormValue("username"))
 		password := template.HTMLEscapeString(r.FormValue("password"))
-		role := "User"
-		err := newUser(username, password, role)
+		err := newUser(username, password)
 		if err != nil {
 			utils.Debugln(err)
 			SetSession("flash", "User registration failed.", w, r)
@@ -502,9 +500,9 @@ func postRedir(w http.ResponseWriter, r *http.Request, name string) {
 	http.Redirect(w, r, name, http.StatusSeeOther)
 }
 
-// Dedicated function to create new users, taking plaintext username, password, and role
+// Dedicated function to create new users, taking plaintext username and password
 //  Hashing done in this function, no need to do it before
-func newUser(username, password, role string) error {
+func newUser(username, password string) error {
 
 	// Hash password now so if it fails we catch it before touching Bolt
 	hash, err := HashPassword([]byte(password))
@@ -555,20 +553,7 @@ func newUser(username, password, role string) error {
 		return adderr
 	}
 
-	roleerr := Authdb.Update(func(tx *bolt.Tx) error {
-		rolebucket := tx.Bucket([]byte("Roles"))
-
-		err = rolebucket.Put([]byte(username), []byte(role))
-		if err != nil {
-			return err
-		}
-		log.Println("User: " + username + " added as " + role)
-		return nil
-	})
-	if roleerr != nil {
-		return roleerr
-	}
-
+	log.Println("User: " + username + " added.")
 	return nil
 }
 
@@ -754,35 +739,24 @@ func AuthAdminMiddle(next http.HandlerFunc) http.HandlerFunc {
 func UserEnvMiddle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username := getUsernameFromCookie(r)
-		//log.Println("1")
-		//log.Println(username)
 		message := getFlashFromCookie(r)
-		//log.Println("2")
 		// Check if user actually exists before setting username
 		// If user does not exist, clear the session because something fishy is going on
 		if !doesUserExist(username) {
 			username = ""
 			ClearSession(w, r)
 		}
-		//log.Println("3")
 		// Delete flash after pushing to context
 		clearFlash(w, r)
-		//log.Println("4")
 		// If username is the configured AdminUser, set context to reflect this
 		isAdmin := false
-		log.Println(username)
-		log.Println(AdminUser)
 		if AdminUser != "" && username == AdminUser {
 			utils.Debugln("Setting isAdmin to true due to "+ AdminUser)
 			isAdmin = true
 		}
-		//log.Println("5")
 		context.Set(r, UserKey, username)
-		//log.Println("6")
 		context.Set(r, RoleKey, isAdmin)
-		//log.Println("7")
 		context.Set(r, MsgKey, message)
-		//log.Println("8")
 		next.ServeHTTP(w, r)
 	})
 }
