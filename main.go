@@ -717,8 +717,10 @@ func main() {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
 
+	//mainTLD := viper.GetString("MainTLD")
+
 	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host(viper.GetString("MainTLD")).Subrouter()
+	d := r.Host("es.gy").Subrouter()
 
 
 	log.Println("Port: " + viper.GetString("Port"))
