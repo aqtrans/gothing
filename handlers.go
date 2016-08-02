@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"github.com/spf13/viper"
     "jba.io/go/utils"
     //"jba.io/go/auth"
 )
@@ -330,9 +331,9 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
         }
         count := (shorturl.Hits + 1)
         //If the shorturl is local, just serve whatever file being requested
-        if strings.Contains(shorturl.Long, cfg.ShortTLD+"/") {
+        if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
             log.Println("LONG URL CONTAINS ShortTLD")
-            if strings.HasPrefix(shorturl.Long, "http://"+cfg.ImageTLD) {
+            if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("ImageTLD")) {
                 u, err := url.Parse(shorturl.Long)
                 if err != nil {
                     log.Println(err)
@@ -340,11 +341,11 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
                 segments := strings.Split(u.Path, "/")
                 fileName := segments[len(segments)-1]
                 log.Println("Serving " + shorturl.Long + " file directly")
-                http.ServeFile(w, r, cfg.ImgDir+fileName)
+                http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
             }
-        } else if strings.Contains(shorturl.Long, cfg.MainTLD+"/i/") {
+        } else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
             log.Println("LONG URL CONTAINS MainTLD")
-            if strings.HasPrefix(shorturl.Long, "http://"+cfg.MainTLD+"/i/") {
+            if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("MainTLD")+"/i/") {
                 u, err := url.Parse(shorturl.Long)
                 if err != nil {
                     log.Println(err)
@@ -352,7 +353,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
                 segments := strings.Split(u.Path, "/")
                 fileName := segments[len(segments)-1]
                 log.Println("Serving " + shorturl.Long + " file directly")
-                http.ServeFile(w, r, cfg.ImgDir+fileName)
+                http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
             }
         } else {
             http.Redirect(w, r, shorturl.Long, 302)
@@ -439,7 +440,8 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "downloadHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
-	fpath := cfg.FileDir + path.Base(name)
+	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
+	//fpath := cfg.FileDir + path.Base(name)
 
 	//Attempt to increment file hit counter...
 	file := &File{}
@@ -472,7 +474,8 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "downloadImageHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
-	fpath := cfg.ImgDir + path.Base(name)
+	//fpath := cfg.ImgDir + path.Base(name)
+	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
     
     if name == "favicon.ico" {
         //log.Println("omg1")
@@ -492,7 +495,8 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 		for _, ext := range extensions {
 			if _, err := os.Stat(fpath + ext); err == nil {
 				name = name + ext
-				fpath = cfg.ImgDir + path.Base(name)
+				//fpath = cfg.ImgDir + path.Base(name)
+				fpath = filepath.Join(viper.GetString("ImgDir"), path.Base(name))
                 log.Println(name + fpath)
 				break
 			} else {
@@ -544,8 +548,8 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageThumbHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
-	fpath := cfg.ImgDir + path.Base(strings.TrimSuffix(name, ".png"))
-	thumbPath := cfg.ThumbDir + path.Base(name)
+	fpath := viper.GetString("ImgDir") + path.Base(strings.TrimSuffix(name, ".png"))
+	thumbPath := viper.GetString("ThumbDir") + path.Base(name)
 
 	//log.Println("name:"+ name)
 	//log.Println("fpath:"+ fpath)
@@ -555,7 +559,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 	//If so, serve it directly
 	if _, err := os.Stat(thumbPath); err == nil {
 		log.Println("Pre-existing thumbnail already found, serving it...")
-		http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
+		http.ServeFile(w, r, viper.GetString("ThumbDir")+path.Base(name))
 	} else {
 		log.Println("Thumbnail not found. Running thumbnail function...")
 		makeThumb(fpath, thumbPath)
@@ -578,7 +582,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 		//Trying with imaging library now
 
-		http.ServeFile(w, r, cfg.ThumbDir+path.Base(name))
+		http.ServeFile(w, r, viper.GetString("ThumbDir")+path.Base(name))
 	}
 
 }
@@ -598,7 +602,7 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageDirectHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
-    serveContent(w, r, cfg.ImgDir, name)
+    serveContent(w, r, viper.GetString("ImgDir"), name)
     
 }
 
@@ -608,7 +612,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageBigHandler")
 	vars := mux.Vars(r)
 	name := vars["name"]
-	smallPath := cfg.ImgDir + path.Base(name)
+	smallPath := viper.GetString("ImgDir") + path.Base(name)
     //Check if small image exists:
     _, err := os.Stat(smallPath)
 	if err != nil {
@@ -624,7 +628,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
                     <title>` + name + `</title>
                     <style>
                     html { 
-                        background: url('/i/` + name + `') no-repeat center center fixed; 
+                        background: url('/imagedirect/` + name + `') no-repeat center center fixed; 
                         -webkit-background-size: cover;
                         -moz-background-size: cover;
                         -o-background-size: cover;
@@ -710,7 +714,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 		log.Println("Path:")
 		log.Println(path)
 	*/
-	dlpath := cfg.FileDir
+	dlpath := viper.GetString("FileDir")
 	if r.FormValue("remote-file-name") != "" {
 		fileName = sanitize.Name(r.FormValue("remote-file-name"))
 		log.Println("custom remote file name: " + fileName)
@@ -763,7 +767,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
 
-	setFlash("Successfully saved "+fileName+": https://"+cfg.MainTLD+"/d/"+fileName, w, r)
+	setFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -781,7 +785,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	var uptype string
 	var fi *File
 	//fi := &File{}
-	path := cfg.FileDir
+	path := viper.GetString("FileDir")
 	contentType := r.Header.Get("Content-Type")
 
 	//Determine how the file is being uploaded
@@ -990,9 +994,9 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if uptype == "cli" {
-		fmt.Fprintf(w, "https://"+cfg.MainTLD+"/d/"+filename)
+		fmt.Fprintf(w, "https://"+viper.GetString("MainTLD")+"/d/"+filename)
 	} else {
-		setFlash("Successfully saved "+filename+": https://"+cfg.MainTLD+"/d/"+filename, w, r)
+		setFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -1033,7 +1037,7 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
             }
             short = string(bytes)
         }
-        full := "https://" + cfg.ShortTLD + "/" + short 
+        full := "https://" + viper.GetString("ShortTLD") + "/" + short 
         log.Println("Subdomain is blank, creating a regular short URL.")
         log.Println(full)
         s := &Shorturl{
@@ -1062,7 +1066,7 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
         return
     }
-        full := "http://" + subdomain + "." + cfg.ShortTLD
+        full := "http://" + subdomain + "." + viper.GetString("ShortTLD")
         log.Println(full)
         log.Println("Subdomain is not blank, creating a subdomain short URL.")
         s := &Shorturl{
@@ -1184,7 +1188,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		fpath := cfg.FileDir + fname
+		fpath := viper.GetString("FileDir") + fname
 		err = os.Remove(fpath)
 		if err != nil {
 			log.Println(err)
@@ -1201,7 +1205,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		fpath := cfg.ImgDir + fname
+		fpath := viper.GetString("ImgDir") + fname
 		err = os.Remove(fpath)
 		if err != nil {
 			log.Println(err)
@@ -1358,7 +1362,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	   log.Println("Path:")
 	   log.Println(path)
 	*/
-	dlpath := cfg.ImgDir
+	dlpath := viper.GetString("ImgDir")
 	if r.FormValue("remote-image-name") != "" {
 		fileName = sanitize.Name(r.FormValue("remote-image-name"))
 		log.Println("custom remote image name: " + fileName)
@@ -1407,7 +1411,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	setFlash("Successfully saved "+fileName+": https://"+cfg.MainTLD+"/i/"+fileName, w, r)
+	setFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -1418,7 +1422,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	var f io.WriteCloser
 	var err error
 	var filename string
-	path := cfg.ImgDir
+	path := viper.GetString("ImgDir")
 	vars := mux.Vars(r)
 	formfilename := vars["filename"]
 	contentType := r.Header.Get("Content-Type")
@@ -1582,7 +1586,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
             setFlash("Failed to save screenshot", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
         }
-		setFlash("Successfully saved screenshot "+filename+": https://"+cfg.MainTLD+"/i/"+filename, w, r)
+		setFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
         return
     }
@@ -1598,7 +1602,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 		setFlash("Failed to save image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	setFlash("Successfully saved image "+filename+": https://"+cfg.MainTLD+"/i/"+filename, w, r)
+	setFlash("Successfully saved image "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

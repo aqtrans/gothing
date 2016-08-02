@@ -50,7 +50,6 @@ type configuration struct {
 	ShortTLD string
 	ImageTLD string
 	GifTLD   string
-	AuthConf auth.AuthConf
 }
 
 var (
@@ -60,7 +59,7 @@ var (
 	fLocal    bool
 	debug     bool
 	db, _     = bolt.Open("./data/bolt.db", 0600, nil)
-	cfg       = configuration{}
+	//cfg       = configuration{}
 )
 
 //Flags
@@ -170,8 +169,7 @@ func init() {
 	viper.SetDefault("ImageTLD", "i.es.gy")
 	viper.SetDefault("GifTLD", "big.es.gy")
 	viper.SetDefault("AuthDB", "./data/auth.db")
-	viper.SetDefault("AuthConf.AdminUser", "admin")
-	auth.Authcfg.AdminUser = "admin"
+	viper.SetDefault("AdminUser", "admin")
 	
 	viper.SetConfigName("conf")
 	viper.AddConfigPath("./data/")
@@ -205,7 +203,7 @@ func init() {
 		    }
 	*/
 
-	viper.Unmarshal(&cfg)
+	//viper.Unmarshal(&cfg)
 	//viper.UnmarshalKey("AuthConf", &auth.Authcfg)
 
 	//Flag '-l' enables go.dev and *.dev domain resolution
@@ -620,7 +618,7 @@ func (s *Screenshot) save() error {
 func defaultHandler(next http.Handler) http.Handler {
 	defer utils.TimeTrack(time.Now(), "defaultHandler")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www."+cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" || r.Host == "go.jba.io" {
+		if r.Host == viper.GetString("ImageTLD") || r.Host == viper.GetString("MainTLD") || r.Host == "www."+viper.GetString("MainTLD") || r.Host == viper.GetString("ShortTLD") || r.Host == viper.GetString("GifTLD") || r.Host == "go.dev" || r.Host == "go.jba.io" {
 			next.ServeHTTP(w, r)
 		} else {
 			log.Println("Not serving anything, because this request belongs to: " + r.Host)
@@ -652,19 +650,21 @@ func main() {
 		log.Fatalln(autherr)
 	}
 	defer auth.Authdb.Close()
+	
+	auth.AdminUser = viper.GetString("AdminUser")
 
 	//Check for essential directory existence
-	_, err := os.Stat(cfg.ImgDir)
+	_, err := os.Stat(viper.GetString("ImgDir"))
 	if err != nil {
-		os.Mkdir(cfg.ImgDir, 0755)
+		os.Mkdir(viper.GetString("ImgDir"), 0755)
 	}
-	_, err = os.Stat(cfg.FileDir)
+	_, err = os.Stat(viper.GetString("FileDir"))
 	if err != nil {
-		os.Mkdir(cfg.FileDir, 0755)
+		os.Mkdir(viper.GetString("FileDir"), 0755)
 	}
-	_, err = os.Stat(cfg.ThumbDir)
+	_, err = os.Stat(viper.GetString("ThumbDir"))
 	if err != nil {
-		os.Mkdir(cfg.ThumbDir, 0755)
+		os.Mkdir(viper.GetString("ThumbDir"), 0755)
 	}
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
@@ -706,20 +706,21 @@ func main() {
 	//stda := alice.New(Auth, Logger)
 
 	if fLocal {
-		cfg.MainTLD = "main.devd.io"
-		cfg.ShortTLD = "devd.io"
-		cfg.ImageTLD = "i.devd.io"
-		cfg.GifTLD = "big.devd.io"
+		viper.Set("MainTLD", "main.devd.io")
+		viper.Set("ShortTLD", "devd.io")
+		viper.Set("ImageTLD", "i.devd.io")
+		viper.Set("GifTLD", "big.devd.io")
+
 		log.Println("Listening on devd.io domains due to -l flag...")
 	} else {
-		log.Println("Listening on " + cfg.MainTLD + " domain")
+		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
 
 	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host(cfg.MainTLD).Subrouter()
+	d := r.Host(viper.GetString("MainTLD")).Subrouter()
 
 
-	log.Println("Port: " + cfg.Port)
+	log.Println("Port: " + viper.GetString("Port"))
 
 	d.HandleFunc("/", indexHandler).Methods("GET")
 	d.HandleFunc("/help", helpHandler).Methods("GET")
@@ -787,7 +788,7 @@ func main() {
 	api.HandleFunc("/vars", utils.HandleExpvars)
 
 	//Dedicated image subdomain routes
-	i := r.Host(cfg.ImageTLD).Subrouter()
+	i := r.Host(viper.GetString("ImageTLD")).Subrouter()
 	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
 	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
 	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
@@ -795,18 +796,18 @@ func main() {
 	i.HandleFunc("/{name}", downloadImageHandler).Methods("GET")
 
 	//Big GIFs
-	big := r.Host(cfg.GifTLD).Subrouter()
+	big := r.Host(viper.GetString("GifTLD")).Subrouter()
 	big.HandleFunc("/i/{name}", imageDirectHandler).Methods("GET")
 	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
-	wildString := "{name}."+cfg.ShortTLD
+	wildString := "{name}."+viper.GetString("ShortTLD")
 	wild := r.Host(wildString).Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 	//Main Short URL page
 	// Collapsing this into main TLD
-	//short := r.Host(cfg.ShortTLD).Subrouter()
+	//short := r.Host(viper.GetString("ShortTLD")).Subrouter()
 	//short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
 
 	//static := http.Handler(http.FileServer(http.Dir("./public/")))
@@ -825,6 +826,6 @@ func main() {
 	})
 	*/
 	http.Handle("/", std.Then(r))
-	http.ListenAndServe("127.0.0.1:"+cfg.Port, nil)
+	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
 }
