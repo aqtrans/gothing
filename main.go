@@ -702,7 +702,7 @@ func main() {
 	flag.Set("bind", ":3000")
 
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
-	std := alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
+	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
 	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
@@ -713,14 +713,14 @@ func main() {
 		viper.Set("GifTLD", "big.devd.io")
 
 		log.Println("Listening on devd.io domains due to -l flag...")
+		
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
 
-	//mainTLD := viper.GetString("MainTLD")
-
 	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host("es.gy").Subrouter()
+	d := r.Host(viper.GetString("MainTLD")).Subrouter()
 
 
 	log.Println("Port: " + viper.GetString("Port"))
