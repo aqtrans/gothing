@@ -6,9 +6,9 @@
   </article>
   <article>  
 <ul class="accordion" data-accordion>
-  <li class="accordion-navigation">
-    <a href="#panel1a">Upload a local file</a>
-    <div id="panel1a" class="content active">
+  <li class="accordion-item is-active" data-accordion-item>
+    <a href="#" class="accordion-title">Upload a local file</a>
+    <div class="accordion-content" data-tab-content>
       <h3>Upload a local file</h3>
       <hr />
       <form action="/up" method="post" enctype="multipart/form-data" class="dropzone" id="fileup">
@@ -28,9 +28,9 @@
       </form>
     </div>
   </li>
-  <li class="accordion-navigation">
-    <a href="#panel2a">Upload a remote file</a>
-    <div id="panel2a" class="content">
+  <li class="accordion-item" data-accordion-item>
+    <a href="#" class="accordion-title">Upload a remote file</a>
+    <div class="accordion-content" data-tab-content>
       <h3>Upload a file from a remote URL</h3>
       <hr />
       <form method="post" action="/up" id="remotefileup">

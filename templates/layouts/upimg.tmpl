@@ -6,9 +6,9 @@
   </article>
   <article>  
 <ul class="accordion" data-accordion>
-  <li class="accordion-item">
-    <a href="#panel1a">Upload a local image</a>
-    <div id="panel1a" class="content active">
+  <li class="accordion-item is-active" data-accordion-item>
+    <a href="#" class="accordion-title">Upload a local image</a>
+    <div class="accordion-content" data-tab-content>
         <h3>Upload a local image</h3>
         <hr />
         <form action="/api/image/new" method="post" enctype="multipart/form-data" class="dropzone" id="imageup">
@@ -29,9 +29,9 @@
         </form>
     </div>
   </li>
-  <li class="accordion-item">
-    <a href="#panel2a">Upload a remote image</a>
-    <div id="panel2a" class="content">
+  <li class="accordion-item" data-accordion-item>
+    <a href="#" class="accordion-title">Upload a remote image</a>
+    <div class="accordion-content" data-tab-content>
         <h3>Upload an image from a remote URL</h3>
         <hr />
         <form method="post" action="/api/image/remote" id="remoteimageup">

@@ -5,10 +5,10 @@
     <header>Image Gallery</header>
   </article>
   <article>  
-        <ul class="gallery"> 
+      <div id="gallery" class="row">
         {{range .Images}}
         {{$imgext := .Filename|imgExt}}
-        <li>
+        	<div class="columns">
             {{if eq $imgext "gif"}}
             <img class="{{.Filename|imgClass}}" data-gifffer="/imagedirect/{{.Filename}}">
             {{else if eq $imgext "webm"}}
@@ -16,12 +16,13 @@
             {{else}}
             <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
             {{end}}
-            <br>
-            <a href="/i/{{.Filename}}"><i class='fa fa-external-link'></i>Link</a>
-            <a href="/big/{{.Filename}}"><i class='fa fa-arrows-alt'></i>Embiggen</a>
-        </li> 
+            <div class="button-group">
+            <a href="/i/{{.Filename}}" class="small button"><i class='fa fa-external-link'></i>Link</a>
+            <a href="/big/{{.Filename}}" class="small button"><i class='fa fa-arrows-alt'></i>Embiggen</a>
+            </div>
+          </div>
         {{ end }}
-        </ul>
+      </div>
   </article>
 </main>  
 {{ end }}
@@ -32,10 +33,4 @@ window.onload = function() {
   Gifffer();
 }
 </script>
-<!--<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
-<script type="text/javascript" charset="utf-8">
-$(function() {
-    $('.gifs').gifplayer();
-});
-</script>-->
 {{ end }}
