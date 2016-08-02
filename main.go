@@ -701,7 +701,9 @@ func main() {
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	std := alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
+	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
+	
+	//std := alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
 	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
