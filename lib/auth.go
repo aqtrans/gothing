@@ -48,25 +48,10 @@ const UserKey key = 1
 const RoleKey key = 2
 const MsgKey key = 3
 
-// AuthConf: Pass Auth inside config.json
-/*
-   "AuthConf": {
-           "Users": {},
-           "LdapEnabled": true,
-           "LdapPort": 389,
-           "LdapUrl": "frink.es.gy",
-           "LdapUn": "uid",
-           "LdapOu": "People",
-           "LdapDn": "dc=jba,dc=io"
-   }
-*/
-// Then decode and populate this struct using code from the main app
-type AuthConf struct {
-	AdminUser   string
-}
+// AdminUser should be set in the app importing this lib
+var AdminUser string
 
-var Authcfg = AuthConf{}
-
+// Authdb allows an instance of a boltDB to be initialized
 var Authdb *bolt.DB
 
 //var sCookieHandler = securecookie.New(
@@ -468,38 +453,9 @@ func LoginPostHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-/*
-func ldapAuth(un, pw string) bool {
-	//Build DN: uid=admin,ou=People,dc=example,dc=com
-	dn := Authcfg.LdapUn + "=" + un + ",ou=" + Authcfg.LdapConf.LdapOu + "," + Authcfg.LdapConf.LdapDn
-	l := ldap.NewLDAPConnection(Authcfg.LdapConf.LdapUrl, Authcfg.LdapConf.LdapPort)
-	err := l.Connect()
-	if err != nil {
-		utils.Debugln(dn)
-		fmt.Printf("LDAP connection error: %v", err)
-		return false
-	}
-	defer l.Close()
-	err = l.Bind(dn, pw)
-	if err != nil {
-		utils.Debugln(dn)
-		fmt.Printf("error: %v", err)
-		return false
-	}
-	utils.Debugln("Authenticated via LDAP")
-	return true
-}
-*/
-
 // Bundle of all auth functions, checking which are enabled
 func auth(username, password string) bool {
-	/*
-	if Authcfg.LdapEnabled {
-		if ldapAuth(username, password) || boltAuth(username, password) {
-			return true
-		}
-	}
-	*/
+
 	if boltAuth(username, password) {
 		return true
 	}
@@ -815,9 +771,9 @@ func UserEnvMiddle(next http.Handler) http.Handler {
 		// If username is the configured AdminUser, set context to reflect this
 		isAdmin := false
 		log.Println(username)
-		log.Println(Authcfg.AdminUser)
-		if Authcfg.AdminUser != "" && username == Authcfg.AdminUser {
-			utils.Debugln("Setting isAdmin to true due to "+ Authcfg.AdminUser)
+		log.Println(AdminUser)
+		if AdminUser != "" && username == AdminUser {
+			utils.Debugln("Setting isAdmin to true due to "+ AdminUser)
 			isAdmin = true
 		}
 		//log.Println("5")
@@ -853,7 +809,7 @@ func AuthDbInit() error {
 			return fmt.Errorf("create bucket: %s", err)
 		}
 
-		adminUser := Authcfg.AdminUser
+		adminUser := AdminUser
 		if adminUser == "" {
 			adminUser = "admin"
 		}
