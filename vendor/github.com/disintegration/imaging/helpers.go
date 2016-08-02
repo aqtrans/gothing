@@ -5,6 +5,11 @@ This package is based on the standard Go image package and works best along with
 Image manipulation functions provided by the package take any image type
 that implements `image.Image` interface as an input, and return a new image of
 `*image.NRGBA` type (32bit RGBA colors, not premultiplied by alpha).
+
+Imaging package uses parallel goroutines for faster image processing.
+To achieve maximum performance, make sure to allow Go to utilize all CPU cores:
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 */
 package imaging
 
@@ -168,221 +173,186 @@ func New(width, height int, fillColor color.Color) *image.NRGBA {
 // Clone returns a copy of the given image.
 func Clone(img image.Image) *image.NRGBA {
 	srcBounds := img.Bounds()
-	srcMinX := srcBounds.Min.X
-	srcMinY := srcBounds.Min.Y
-
 	dstBounds := srcBounds.Sub(srcBounds.Min)
-	dstW := dstBounds.Dx()
-	dstH := dstBounds.Dy()
+
 	dst := image.NewNRGBA(dstBounds)
 
-	switch src := img.(type) {
+	dstMinX := dstBounds.Min.X
+	dstMinY := dstBounds.Min.Y
+
+	srcMinX := srcBounds.Min.X
+	srcMinY := srcBounds.Min.Y
+	srcMaxX := srcBounds.Max.X
+	srcMaxY := srcBounds.Max.Y
+
+	switch src0 := img.(type) {
 
 	case *image.NRGBA:
 		rowSize := srcBounds.Dx() * 4
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				copy(dst.Pix[di:di+rowSize], src.Pix[si:si+rowSize])
-			}
-		})
+		numRows := srcBounds.Dy()
 
-	case *image.NRGBA64:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		j0 := src0.PixOffset(srcMinX, srcMinY)
 
-					dst.Pix[di+0] = src.Pix[si+0]
-					dst.Pix[di+1] = src.Pix[si+2]
-					dst.Pix[di+2] = src.Pix[si+4]
-					dst.Pix[di+3] = src.Pix[si+6]
+		di := dst.Stride
+		dj := src0.Stride
 
-					di += 4
-					si += 8
-
-				}
-			}
-		})
-
-	case *image.RGBA:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
-
-					a := src.Pix[si+3]
-					dst.Pix[di+3] = a
-					switch a {
-					case 0:
-						dst.Pix[di+0] = 0
-						dst.Pix[di+1] = 0
-						dst.Pix[di+2] = 0
-					case 0xff:
-						dst.Pix[di+0] = src.Pix[si+0]
-						dst.Pix[di+1] = src.Pix[si+1]
-						dst.Pix[di+2] = src.Pix[si+2]
-					default:
-						var tmp uint16
-						tmp = uint16(src.Pix[si+0]) * 0xff / uint16(a)
-						dst.Pix[di+0] = uint8(tmp)
-						tmp = uint16(src.Pix[si+1]) * 0xff / uint16(a)
-						dst.Pix[di+1] = uint8(tmp)
-						tmp = uint16(src.Pix[si+2]) * 0xff / uint16(a)
-						dst.Pix[di+2] = uint8(tmp)
-					}
-
-					di += 4
-					si += 4
-
-				}
-			}
-		})
-
-	case *image.RGBA64:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
-
-					a := src.Pix[si+6]
-					dst.Pix[di+3] = a
-					switch a {
-					case 0:
-						dst.Pix[di+0] = 0
-						dst.Pix[di+1] = 0
-						dst.Pix[di+2] = 0
-					case 0xff:
-						dst.Pix[di+0] = src.Pix[si+0]
-						dst.Pix[di+1] = src.Pix[si+2]
-						dst.Pix[di+2] = src.Pix[si+4]
-					default:
-						var tmp uint16
-						tmp = uint16(src.Pix[si+0]) * 0xff / uint16(a)
-						dst.Pix[di+0] = uint8(tmp)
-						tmp = uint16(src.Pix[si+2]) * 0xff / uint16(a)
-						dst.Pix[di+1] = uint8(tmp)
-						tmp = uint16(src.Pix[si+4]) * 0xff / uint16(a)
-						dst.Pix[di+2] = uint8(tmp)
-					}
-
-					di += 4
-					si += 8
-
-				}
-			}
-		})
-
-	case *image.Gray:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
-
-					c := src.Pix[si]
-					dst.Pix[di+0] = c
-					dst.Pix[di+1] = c
-					dst.Pix[di+2] = c
-					dst.Pix[di+3] = 0xff
-
-					di += 4
-					si += 1
-
-				}
-			}
-		})
-
-	case *image.Gray16:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
-
-					c := src.Pix[si]
-					dst.Pix[di+0] = c
-					dst.Pix[di+1] = c
-					dst.Pix[di+2] = c
-					dst.Pix[di+3] = 0xff
-
-					di += 4
-					si += 2
-
-				}
-			}
-		})
-
-	case *image.YCbCr:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
-
-					srcX := srcMinX + dstX
-					srcY := srcMinY + dstY
-					siy := src.YOffset(srcX, srcY)
-					sic := src.COffset(srcX, srcY)
-					r, g, b := color.YCbCrToRGB(src.Y[siy], src.Cb[sic], src.Cr[sic])
-					dst.Pix[di+0] = r
-					dst.Pix[di+1] = g
-					dst.Pix[di+2] = b
-					dst.Pix[di+3] = 0xff
-
-					di += 4
-
-				}
-			}
-		})
-
-	case *image.Paletted:
-		plen := len(src.Palette)
-		pnew := make([]color.NRGBA, plen)
-		for i := 0; i < plen; i++ {
-			pnew[i] = color.NRGBAModel.Convert(src.Palette[i]).(color.NRGBA)
+		for row := 0; row < numRows; row++ {
+			copy(dst.Pix[i0:i0+rowSize], src0.Pix[j0:j0+rowSize])
+			i0 += di
+			j0 += dj
 		}
 
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				si := src.PixOffset(srcMinX, srcMinY+dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
+	case *image.NRGBA64:
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
 
-					c := pnew[src.Pix[si]]
-					dst.Pix[di+0] = c.R
-					dst.Pix[di+1] = c.G
-					dst.Pix[di+2] = c.B
-					dst.Pix[di+3] = c.A
+				j := src0.PixOffset(x, y)
 
-					di += 4
-					si += 1
+				dst.Pix[i+0] = src0.Pix[j+0]
+				dst.Pix[i+1] = src0.Pix[j+2]
+				dst.Pix[i+2] = src0.Pix[j+4]
+				dst.Pix[i+3] = src0.Pix[j+6]
 
+			}
+		}
+
+	case *image.RGBA:
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
+
+				j := src0.PixOffset(x, y)
+				a := src0.Pix[j+3]
+				dst.Pix[i+3] = a
+
+				switch a {
+				case 0:
+					dst.Pix[i+0] = 0
+					dst.Pix[i+1] = 0
+					dst.Pix[i+2] = 0
+				case 0xff:
+					dst.Pix[i+0] = src0.Pix[j+0]
+					dst.Pix[i+1] = src0.Pix[j+1]
+					dst.Pix[i+2] = src0.Pix[j+2]
+				default:
+					dst.Pix[i+0] = uint8(uint16(src0.Pix[j+0]) * 0xff / uint16(a))
+					dst.Pix[i+1] = uint8(uint16(src0.Pix[j+1]) * 0xff / uint16(a))
+					dst.Pix[i+2] = uint8(uint16(src0.Pix[j+2]) * 0xff / uint16(a))
 				}
 			}
-		})
+		}
+
+	case *image.RGBA64:
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
+
+				j := src0.PixOffset(x, y)
+				a := src0.Pix[j+6]
+				dst.Pix[i+3] = a
+
+				switch a {
+				case 0:
+					dst.Pix[i+0] = 0
+					dst.Pix[i+1] = 0
+					dst.Pix[i+2] = 0
+				case 0xff:
+					dst.Pix[i+0] = src0.Pix[j+0]
+					dst.Pix[i+1] = src0.Pix[j+2]
+					dst.Pix[i+2] = src0.Pix[j+4]
+				default:
+					dst.Pix[i+0] = uint8(uint16(src0.Pix[j+0]) * 0xff / uint16(a))
+					dst.Pix[i+1] = uint8(uint16(src0.Pix[j+2]) * 0xff / uint16(a))
+					dst.Pix[i+2] = uint8(uint16(src0.Pix[j+4]) * 0xff / uint16(a))
+				}
+			}
+		}
+
+	case *image.Gray:
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
+
+				j := src0.PixOffset(x, y)
+				c := src0.Pix[j]
+				dst.Pix[i+0] = c
+				dst.Pix[i+1] = c
+				dst.Pix[i+2] = c
+				dst.Pix[i+3] = 0xff
+
+			}
+		}
+
+	case *image.Gray16:
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
+
+				j := src0.PixOffset(x, y)
+				c := src0.Pix[j]
+				dst.Pix[i+0] = c
+				dst.Pix[i+1] = c
+				dst.Pix[i+2] = c
+				dst.Pix[i+3] = 0xff
+
+			}
+		}
+
+	case *image.YCbCr:
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
+
+				yj := src0.YOffset(x, y)
+				cj := src0.COffset(x, y)
+				r, g, b := color.YCbCrToRGB(src0.Y[yj], src0.Cb[cj], src0.Cr[cj])
+
+				dst.Pix[i+0] = r
+				dst.Pix[i+1] = g
+				dst.Pix[i+2] = b
+				dst.Pix[i+3] = 0xff
+
+			}
+		}
+
+	case *image.Paletted:
+		plen := len(src0.Palette)
+		pnew := make([]color.NRGBA, plen)
+		for i := 0; i < plen; i++ {
+			pnew[i] = color.NRGBAModel.Convert(src0.Palette[i]).(color.NRGBA)
+		}
+
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
+
+				j := src0.PixOffset(x, y)
+				c := pnew[src0.Pix[j]]
+
+				dst.Pix[i+0] = c.R
+				dst.Pix[i+1] = c.G
+				dst.Pix[i+2] = c.B
+				dst.Pix[i+3] = c.A
+
+			}
+		}
 
 	default:
-		parallel(dstH, func(partStart, partEnd int) {
-			for dstY := partStart; dstY < partEnd; dstY++ {
-				di := dst.PixOffset(0, dstY)
-				for dstX := 0; dstX < dstW; dstX++ {
+		i0 := dst.PixOffset(dstMinX, dstMinY)
+		for y := srcMinY; y < srcMaxY; y, i0 = y+1, i0+dst.Stride {
+			for x, i := srcMinX, i0; x < srcMaxX; x, i = x+1, i+4 {
 
-					c := color.NRGBAModel.Convert(img.At(srcMinX+dstX, srcMinY+dstY)).(color.NRGBA)
-					dst.Pix[di+0] = c.R
-					dst.Pix[di+1] = c.G
-					dst.Pix[di+2] = c.B
-					dst.Pix[di+3] = c.A
+				c := color.NRGBAModel.Convert(img.At(x, y)).(color.NRGBA)
 
-					di += 4
+				dst.Pix[i+0] = c.R
+				dst.Pix[i+1] = c.G
+				dst.Pix[i+2] = c.B
+				dst.Pix[i+3] = c.A
 
-				}
 			}
-		})
-
+		}
 	}
 
 	return dst

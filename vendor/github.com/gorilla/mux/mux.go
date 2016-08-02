@@ -5,11 +5,11 @@
 package mux
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"path"
-	"regexp"
+
+	"github.com/gorilla/context"
 )
 
 // NewRouter returns a new router instance.
@@ -46,11 +46,7 @@ type Router struct {
 	namedRoutes map[string]*Route
 	// See Router.StrictSlash(). This defines the flag for new routes.
 	strictSlash bool
-	// See Router.SkipClean(). This defines the flag for new routes.
-	skipClean bool
-	// If true, do not clear the request context after handling the request.
-	// This has no effect when go1.7+ is used, since the context is stored
-	// on the request itself.
+	// If true, do not clear the request context after handling the request
 	KeepContext bool
 }
 
@@ -61,12 +57,6 @@ func (r *Router) Match(req *http.Request, match *RouteMatch) bool {
 			return true
 		}
 	}
-
-	// Closest match for a router (includes sub-routers)
-	if r.NotFoundHandler != nil {
-		match.Handler = r.NotFoundHandler
-		return true
-	}
 	return false
 }
 
@@ -75,34 +65,35 @@ func (r *Router) Match(req *http.Request, match *RouteMatch) bool {
 // When there is a match, the route variables can be retrieved calling
 // mux.Vars(request).
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if !r.skipClean {
-		// Clean path to canonical form and redirect.
-		if p := cleanPath(req.URL.Path); p != req.URL.Path {
+	// Clean path to canonical form and redirect.
+	if p := cleanPath(req.URL.Path); p != req.URL.Path {
 
-			// Added 3 lines (Philip Schlump) - It was dropping the query string and #whatever from query.
-			// This matches with fix in go 1.2 r.c. 4 for same problem.  Go Issue:
-			// http://code.google.com/p/go/issues/detail?id=5252
-			url := *req.URL
-			url.Path = p
-			p = url.String()
+		// Added 3 lines (Philip Schlump) - It was droping the query string and #whatever from query.
+		// This matches with fix in go 1.2 r.c. 4 for same problem.  Go Issue:
+		// http://code.google.com/p/go/issues/detail?id=5252
+		url := *req.URL
+		url.Path = p
+		p = url.String()
 
-			w.Header().Set("Location", p)
-			w.WriteHeader(http.StatusMovedPermanently)
-			return
-		}
+		w.Header().Set("Location", p)
+		w.WriteHeader(http.StatusMovedPermanently)
+		return
 	}
 	var match RouteMatch
 	var handler http.Handler
 	if r.Match(req, &match) {
 		handler = match.Handler
-		req = setVars(req, match.Vars)
-		req = setCurrentRoute(req, match.Route)
+		setVars(req, match.Vars)
+		setCurrentRoute(req, match.Route)
 	}
 	if handler == nil {
-		handler = http.NotFoundHandler()
+		handler = r.NotFoundHandler
+		if handler == nil {
+			handler = http.NotFoundHandler()
+		}
 	}
 	if !r.KeepContext {
-		defer contextClear(req)
+		defer context.Clear(req)
 	}
 	handler.ServeHTTP(w, req)
 }
@@ -137,19 +128,6 @@ func (r *Router) StrictSlash(value bool) *Router {
 	return r
 }
 
-// SkipClean defines the path cleaning behaviour for new routes. The initial
-// value is false. Users should be careful about which routes are not cleaned
-//
-// When true, if the route path is "/path//to", it will remain with the double
-// slash. This is helpful if you have a route like: /fetch/http://xkcd.com/534/
-//
-// When false, the path will be cleaned, so /fetch/http://xkcd.com/534/ will
-// become /fetch/http/xkcd.com/534
-func (r *Router) SkipClean(value bool) *Router {
-	r.skipClean = value
-	return r
-}
-
 // ----------------------------------------------------------------------------
 // parentRoute
 // ----------------------------------------------------------------------------
@@ -174,20 +152,13 @@ func (r *Router) getRegexpGroup() *routeRegexpGroup {
 	return nil
 }
 
-func (r *Router) buildVars(m map[string]string) map[string]string {
-	if r.parent != nil {
-		m = r.parent.buildVars(m)
-	}
-	return m
-}
-
 // ----------------------------------------------------------------------------
 // Route factories
 // ----------------------------------------------------------------------------
 
 // NewRoute registers an empty route.
 func (r *Router) NewRoute() *Route {
-	route := &Route{parent: r, strictSlash: r.strictSlash, skipClean: r.skipClean}
+	route := &Route{parent: r, strictSlash: r.strictSlash}
 	r.routes = append(r.routes, route)
 	return route
 }
@@ -253,61 +224,6 @@ func (r *Router) Schemes(schemes ...string) *Route {
 	return r.NewRoute().Schemes(schemes...)
 }
 
-// BuildVarsFunc registers a new route with a custom function for modifying
-// route variables before building a URL.
-func (r *Router) BuildVarsFunc(f BuildVarsFunc) *Route {
-	return r.NewRoute().BuildVarsFunc(f)
-}
-
-// Walk walks the router and all its sub-routers, calling walkFn for each route
-// in the tree. The routes are walked in the order they were added. Sub-routers
-// are explored depth-first.
-func (r *Router) Walk(walkFn WalkFunc) error {
-	return r.walk(walkFn, []*Route{})
-}
-
-// SkipRouter is used as a return value from WalkFuncs to indicate that the
-// router that walk is about to descend down to should be skipped.
-var SkipRouter = errors.New("skip this router")
-
-// WalkFunc is the type of the function called for each route visited by Walk.
-// At every invocation, it is given the current route, and the current router,
-// and a list of ancestor routes that lead to the current route.
-type WalkFunc func(route *Route, router *Router, ancestors []*Route) error
-
-func (r *Router) walk(walkFn WalkFunc, ancestors []*Route) error {
-	for _, t := range r.routes {
-		if t.regexp == nil || t.regexp.path == nil || t.regexp.path.template == "" {
-			continue
-		}
-
-		err := walkFn(t, r, ancestors)
-		if err == SkipRouter {
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		for _, sr := range t.matchers {
-			if h, ok := sr.(*Router); ok {
-				err := h.walk(walkFn, ancestors)
-				if err != nil {
-					return err
-				}
-			}
-		}
-		if h, ok := t.handler.(*Router); ok {
-			ancestors = append(ancestors, t)
-			err := h.walk(walkFn, ancestors)
-			if err != nil {
-				return err
-			}
-			ancestors = ancestors[:len(ancestors)-1]
-		}
-	}
-	return nil
-}
-
 // ----------------------------------------------------------------------------
 // Context
 // ----------------------------------------------------------------------------
@@ -328,30 +244,26 @@ const (
 
 // Vars returns the route variables for the current request, if any.
 func Vars(r *http.Request) map[string]string {
-	if rv := contextGet(r, varsKey); rv != nil {
+	if rv := context.Get(r, varsKey); rv != nil {
 		return rv.(map[string]string)
 	}
 	return nil
 }
 
 // CurrentRoute returns the matched route for the current request, if any.
-// This only works when called inside the handler of the matched route
-// because the matched route is stored in the request context which is cleared
-// after the handler returns, unless the KeepContext option is set on the
-// Router.
 func CurrentRoute(r *http.Request) *Route {
-	if rv := contextGet(r, routeKey); rv != nil {
+	if rv := context.Get(r, routeKey); rv != nil {
 		return rv.(*Route)
 	}
 	return nil
 }
 
-func setVars(r *http.Request, val interface{}) *http.Request {
-	return contextSet(r, varsKey, val)
+func setVars(r *http.Request, val interface{}) {
+	context.Set(r, varsKey, val)
 }
 
-func setCurrentRoute(r *http.Request, val interface{}) *http.Request {
-	return contextSet(r, routeKey, val)
+func setCurrentRoute(r *http.Request, val interface{}) {
+	context.Set(r, routeKey, val)
 }
 
 // ----------------------------------------------------------------------------
@@ -373,7 +285,6 @@ func cleanPath(p string) string {
 	if p[len(p)-1] == '/' && np != "/" {
 		np += "/"
 	}
-
 	return np
 }
 
@@ -389,45 +300,16 @@ func uniqueVars(s1, s2 []string) error {
 	return nil
 }
 
-// checkPairs returns the count of strings passed in, and an error if
-// the count is not an even number.
-func checkPairs(pairs ...string) (int, error) {
+// mapFromPairs converts variadic string parameters to a string map.
+func mapFromPairs(pairs ...string) (map[string]string, error) {
 	length := len(pairs)
 	if length%2 != 0 {
-		return length, fmt.Errorf(
+		return nil, fmt.Errorf(
 			"mux: number of parameters must be multiple of 2, got %v", pairs)
-	}
-	return length, nil
-}
-
-// mapFromPairsToString converts variadic string parameters to a
-// string to string map.
-func mapFromPairsToString(pairs ...string) (map[string]string, error) {
-	length, err := checkPairs(pairs...)
-	if err != nil {
-		return nil, err
 	}
 	m := make(map[string]string, length/2)
 	for i := 0; i < length; i += 2 {
 		m[pairs[i]] = pairs[i+1]
-	}
-	return m, nil
-}
-
-// mapFromPairsToRegex converts variadic string paramers to a
-// string to regex map.
-func mapFromPairsToRegex(pairs ...string) (map[string]*regexp.Regexp, error) {
-	length, err := checkPairs(pairs...)
-	if err != nil {
-		return nil, err
-	}
-	m := make(map[string]*regexp.Regexp, length/2)
-	for i := 0; i < length; i += 2 {
-		regex, err := regexp.Compile(pairs[i+1])
-		if err != nil {
-			return nil, err
-		}
-		m[pairs[i]] = regex
 	}
 	return m, nil
 }
@@ -442,8 +324,9 @@ func matchInArray(arr []string, value string) bool {
 	return false
 }
 
-// matchMapWithString returns true if the given key/value pairs exist in a given map.
-func matchMapWithString(toCheck map[string]string, toMatch map[string][]string, canonicalKey bool) bool {
+// matchMap returns true if the given key/value pairs exist in a given map.
+func matchMap(toCheck map[string]string, toMatch map[string][]string,
+	canonicalKey bool) bool {
 	for k, v := range toCheck {
 		// Check if key exists.
 		if canonicalKey {
@@ -457,34 +340,6 @@ func matchMapWithString(toCheck map[string]string, toMatch map[string][]string, 
 			valueExists := false
 			for _, value := range values {
 				if v == value {
-					valueExists = true
-					break
-				}
-			}
-			if !valueExists {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// matchMapWithRegex returns true if the given key/value pairs exist in a given map compiled against
-// the given regex
-func matchMapWithRegex(toCheck map[string]*regexp.Regexp, toMatch map[string][]string, canonicalKey bool) bool {
-	for k, v := range toCheck {
-		// Check if key exists.
-		if canonicalKey {
-			k = http.CanonicalHeaderKey(k)
-		}
-		if values := toMatch[k]; values == nil {
-			return false
-		} else if v != nil {
-			// If value was defined as an empty string we only check that the
-			// key exists. Otherwise we also check for equality.
-			valueExists := false
-			for _, value := range values {
-				if v.MatchString(value) {
 					valueExists = true
 					break
 				}

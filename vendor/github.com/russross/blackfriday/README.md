@@ -1,4 +1,4 @@
-Blackfriday [![Build Status](https://travis-ci.org/russross/blackfriday.svg?branch=master)](https://travis-ci.org/russross/blackfriday) [![GoDoc](https://godoc.org/github.com/russross/blackfriday?status.svg)](https://godoc.org/github.com/russross/blackfriday)
+Blackfriday [![Build Status](https://travis-ci.org/russross/blackfriday.svg?branch=master)](https://travis-ci.org/russross/blackfriday)
 ===========
 
 Blackfriday is a [Markdown][1] processor implemented in [Go][2]. It
@@ -10,7 +10,7 @@ punctuation substitutions, etc.), and it is safe for all utf-8
 HTML output is currently supported, along with Smartypants
 extensions. An experimental LaTeX output engine is also included.
 
-It started as a translation from C of [Sundown][3].
+It started as a translation from C of [upskirt][3].
 
 
 Installation
@@ -97,7 +97,7 @@ dependencies and library versions.
 Features
 --------
 
-All features of Sundown are supported, including:
+All features of upskirt are supported, including:
 
 *   **Compatibility**. The Markdown v1.0.3 test suite passes with
     the `--tidy` option.  Without `--tidy`, the differences are
@@ -114,7 +114,7 @@ All features of Sundown are supported, including:
     know and send me the input that does it.
 
     NOTE: "safety" in this context means *runtime safety only*. In order to
-    protect yourself against JavaScript injection in untrusted content, see
+    protect yourself agains JavaScript injection in untrusted content, see
     [this example](https://github.com/russross/blackfriday#sanitize-untrusted-content).
 
 *   **Fast processing**. It is fast enough to render on-demand in
@@ -169,25 +169,6 @@ implements the following extensions:
     You can use 3 or more backticks to mark the beginning of the
     block, and the same number to mark the end of the block.
 
-*   **Definition lists**. A simple definition list is made of a single-line
-    term followed by a colon and the definition for that term.
-
-        Cat
-        : Fluffy animal everyone likes
-        
-        Internet
-        : Vector of transmission for pictures of cats
-
-    Terms must be separated from the previous definition by a blank line.
-
-*   **Footnotes**. A marker in the text that will become a superscript number;
-    a footnote definition that will be placed in a list of footnotes at the
-    end of the document. A footnote looks like this:
-
-        This is a footnote.[^1]
-        
-        [^1]: the footnote text.
-
 *   **Autolinking**. Blackfriday can find URLs that have not been
     explicitly marked as links and turn them into links.
 
@@ -222,7 +203,7 @@ Other renderers
 Blackfriday is structured to allow alternative rendering engines. Here
 are a few of note:
 
-*   [github_flavored_markdown](https://godoc.org/github.com/shurcooL/github_flavored_markdown):
+*   [github_flavored_markdown](https://godoc.org/github.com/shurcooL/go/github_flavored_markdown):
     provides a GitHub Flavored Markdown renderer with fenced code block
     highlighting, clickable header anchor links.
 
@@ -242,8 +223,6 @@ are a few of note:
     point. In particular, it does not do any inline escaping, so input
     that happens to look like LaTeX code will be passed through without
     modification.
-    
-*   [Md2Vim](https://github.com/FooSoft/md2vim): transforms markdown files into vimdoc format.
 
 
 Todo
@@ -259,9 +238,37 @@ Todo
 License
 -------
 
-[Blackfriday is distributed under the Simplified BSD License](LICENSE.txt)
+Blackfriday is distributed under the Simplified BSD License:
+
+> Copyright © 2011 Russ Ross
+> All rights reserved.
+>
+> Redistribution and use in source and binary forms, with or without
+> modification, are permitted provided that the following conditions
+> are met:
+>
+> 1.  Redistributions of source code must retain the above copyright
+>     notice, this list of conditions and the following disclaimer.
+>
+> 2.  Redistributions in binary form must reproduce the above
+>     copyright notice, this list of conditions and the following
+>     disclaimer in the documentation and/or other materials provided with
+>     the distribution.
+>
+> THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+> "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+> LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+> FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+> COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+> INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+> BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+> LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+> CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+> LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+> ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+> POSSIBILITY OF SUCH DAMAGE.
 
 
    [1]: http://daringfireball.net/projects/markdown/ "Markdown"
    [2]: http://golang.org/ "Go Language"
-   [3]: https://github.com/vmg/sundown "Sundown"
+   [3]: http://github.com/tanoku/upskirt "Upskirt"

@@ -1,14 +1,18 @@
 package bpool
 
-// BytePool implements a leaky pool of []byte in the form of a bounded
-// channel.
+/*
+BytePool implements a leaky pool of []byte in the form of a bounded
+channel.
+*/
 type BytePool struct {
 	c chan []byte
 	w int
 }
 
-// NewBytePool creates a new BytePool bounded to the given maxSize, with new
-// byte arrays sized based on width.
+/*
+NewBytePool creates a new BytePool bounded to the given maxSize, with new byte
+arrays sized based on width.
+*/
 func NewBytePool(maxSize int, width int) (bp *BytePool) {
 	return &BytePool{
 		c: make(chan []byte, maxSize),
@@ -16,8 +20,10 @@ func NewBytePool(maxSize int, width int) (bp *BytePool) {
 	}
 }
 
-// Get gets a []byte from the BytePool, or creates a new one if none are
-// available in the pool.
+/*
+Get gets a []byte from the BytePool, or creates a new one if none are available
+in the pool.
+*/
 func (bp *BytePool) Get() (b []byte) {
 	select {
 	case b = <-bp.c:
@@ -29,7 +35,9 @@ func (bp *BytePool) Get() (b []byte) {
 	return
 }
 
-// Put returns the given Buffer to the BytePool.
+/*
+Put returns the given Buffer to the BytePool.
+*/
 func (bp *BytePool) Put(b []byte) {
 	select {
 	case bp.c <- b:
@@ -39,7 +47,9 @@ func (bp *BytePool) Put(b []byte) {
 	}
 }
 
-// Width returns the width of the byte arrays in this pool.
+/*
+Width returns the width of the byte arrays in this pool.
+*/
 func (bp *BytePool) Width() (n int) {
 	return bp.w
 }
