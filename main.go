@@ -701,9 +701,8 @@ func main() {
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
-	
-	//std := alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
+	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
+	std := alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
 	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle, utils.Logger)
 	//stda := alice.New(Auth, Logger)
 
@@ -804,8 +803,8 @@ func main() {
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
-	wildString := "{name}."+viper.GetString("ShortTLD")
-	wild := r.Host(wildString).Subrouter()
+	//wildString := "{name}."+viper.GetString("ShortTLD")
+	wild := r.Host("{name}.es.gy").Subrouter()
 	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
 	//Main Short URL page
 	// Collapsing this into main TLD
@@ -821,12 +820,12 @@ func main() {
 	http.HandleFunc("/favicon.ico", utils.FaviconHandler)
 	http.HandleFunc("/favicon.png", utils.FaviconHandler)
 	http.HandleFunc("/assets/", utils.StaticHandler)
-	/* Used for troubleshooting proxy headers
+	//Used for troubleshooting proxy headers
 	http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.Host)
 		log.Println(r.Header)
 	})
-	*/
+	
 	http.Handle("/", std.Then(r))
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
