@@ -158,28 +158,7 @@ func (a ShortByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
 
 func init() {
 
-	// Viper config
-	viper.SetDefault("Port", "3000")
-	viper.SetDefault("Email", "unused@the.moment")
-	viper.SetDefault("ImgDir", "./data/up-imgs/")
-	viper.SetDefault("FileDir", "./data/up-files/")
-	viper.SetDefault("ThumbDir", "./data/thumbs/")
-	viper.SetDefault("MainTLD", "es.gy")
-	viper.SetDefault("ShortTLD", "es.gy")
-	viper.SetDefault("ImageTLD", "i.es.gy")
-	viper.SetDefault("GifTLD", "big.es.gy")
-	viper.SetDefault("AuthDB", "./data/auth.db")
-	viper.SetDefault("AdminUser", "admin")
-	
-	viper.SetConfigName("conf")
-	viper.AddConfigPath("./data/")
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
-		fmt.Println("No configuration file loaded - using defaults")
-	}
-	viper.SetConfigType("json")
-	viper.WatchConfig()
+
 	/*
 			Port     string
 			Email    string
@@ -641,6 +620,29 @@ func main() {
 	//log.Println(tm)
 	//log.Println(tm.Format(timestamp))
 
+	// Viper config
+	viper.SetDefault("Port", "3000")
+	viper.SetDefault("Email", "unused@the.moment")
+	viper.SetDefault("ImgDir", "./data/up-imgs/")
+	viper.SetDefault("FileDir", "./data/up-files/")
+	viper.SetDefault("ThumbDir", "./data/thumbs/")
+	viper.SetDefault("MainTLD", "es.gy")
+	viper.SetDefault("ShortTLD", "es.gy")
+	viper.SetDefault("ImageTLD", "i.es.gy")
+	viper.SetDefault("GifTLD", "big.es.gy")
+	viper.SetDefault("AuthDB", "./data/auth.db")
+	viper.SetDefault("AdminUser", "admin")
+	
+	viper.SetConfigName("conf")
+	viper.AddConfigPath("./data/")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		fmt.Println("No configuration file loaded - using defaults")
+	}
+	viper.SetConfigType("json")
+	viper.WatchConfig()
+
 	// Open and initialize auth database
 	auth.Open("./data/auth.db")
 	autherr := auth.AuthDbInit()
@@ -652,7 +654,7 @@ func main() {
 	auth.AdminUser = viper.GetString("AdminUser")
 
 	//Check for essential directory existence
-	_, err := os.Stat(viper.GetString("ImgDir"))
+	_, err = os.Stat(viper.GetString("ImgDir"))
 	if err != nil {
 		os.Mkdir(viper.GetString("ImgDir"), 0755)
 	}
