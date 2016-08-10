@@ -58,7 +58,8 @@ var (
 	_24K      int64 = (1 << 20) * 24
 	fLocal    bool
 	debug     bool
-	db, _     = bolt.Open("./data/bolt.db", 0600, nil)
+	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
+	db    *bolt.DB
 	//cfg       = configuration{}
 )
 
@@ -637,6 +638,45 @@ func defaultHandler(next http.Handler) http.Handler {
 	})
 }
 
+func Open(path string) *bolt.DB {
+	var err error
+	db, err = bolt.Open(path, 0600, nil)
+	if err != nil {
+		log.Println(err)
+	}
+	return db
+}
+
+func dbInit() {
+	db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("Files"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("Shorturls"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("Images"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("SubShorturl"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		_, err = tx.CreateBucketIfNotExists([]byte("Screenshots"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -699,34 +739,7 @@ func main() {
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
 	defer db.Close()
-
-	db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte("Files"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte("Shorturls"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte("Images"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte("SubShorturl"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		_, err = tx.CreateBucketIfNotExists([]byte("Screenshots"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		return nil
-	})
+	dbInit()
 
 	flag.Parse()
 	flag.Set("bind", ":3000")

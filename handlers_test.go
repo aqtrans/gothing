@@ -2,21 +2,80 @@ package main
 
 import (
 	"io"
+    "io/ioutil"
+    "os"
 	"testing"
 	"net/http"
 	"net/http/httptest"
+    "github.com/boltdb/bolt"
 )
 
 var (
 	server    *httptest.Server
 	reader    io.Reader //Ignore this for now
 	serverUrl string
+    //db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//m         *mux.Router
 	//req       *http.Request
 	//rr        *httptest.ResponseRecorder
 )
 
+// tempfile returns a temporary file path.
+func tempfile() string {
+	f, err := ioutil.TempFile("", "bolt-")
+	if err != nil {
+		panic(err)
+	}
+	if err := f.Close(); err != nil {
+		panic(err)
+	}
+	if err := os.Remove(f.Name()); err != nil {
+		panic(err)
+	}
+	return f.Name()
+}
+
+type DB struct {
+	*bolt.DB
+}
+
+// MustOpenDB returns a new, open DB at a temporary location.
+func mustOpenDB() *DB {
+	tmpdb, err := bolt.Open(tempfile(), 0666, nil)
+	if err != nil {
+		panic(err)
+	}
+	return &DB{tmpdb}
+}
+
+func (tmpdb *DB) Close() error {
+	defer os.Remove(tmpdb.Path())
+	return tmpdb.DB.Close()
+}
+
+func (tmpdb *DB) MustClose() {
+	if err := tmpdb.Close(); err != nil {
+		panic(err)
+	}
+}
+
+
+
+func TestAuthInit(t *testing.T) {
+	//authDB := mustOpenDB()
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	tmpdb.MustClose()
+}
+
 func TestIndexHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose() 
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/", nil)
@@ -64,6 +123,11 @@ func TestIndexHandler(t *testing.T) {
 }
 
 func TestHelpHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose()  
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/help", nil)
@@ -92,6 +156,11 @@ func TestHelpHandler(t *testing.T) {
 }
 
 func TestLoginPageHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose()  
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/login", nil)
@@ -120,6 +189,11 @@ func TestLoginPageHandler(t *testing.T) {
 }
 
 func TestLookingGlassPageHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose()     
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/lg", nil)
@@ -148,6 +222,11 @@ func TestLookingGlassPageHandler(t *testing.T) {
 }
 
 func TestPastePageHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose()       
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/p", nil)
@@ -176,6 +255,11 @@ func TestPastePageHandler(t *testing.T) {
 }
 
 func TestFileUpPageHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose()       
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/up", nil)
@@ -204,6 +288,11 @@ func TestFileUpPageHandler(t *testing.T) {
 }
 
 func TestImageUpPageHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose()        
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/iup", nil)
@@ -232,6 +321,11 @@ func TestImageUpPageHandler(t *testing.T) {
 }
 
 func TestImageGalleryPageHandler(t *testing.T) {
+	tmpdb := mustOpenDB()
+	t.Log(tmpdb.Path())
+	db = tmpdb.DB
+	dbInit()
+	defer tmpdb.MustClose() 
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/i", nil)
