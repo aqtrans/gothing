@@ -738,6 +738,7 @@ func main() {
 	}
 
 	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
+	db = Open("./data/bolt.db")
 	defer db.Close()
 	dbInit()
 
