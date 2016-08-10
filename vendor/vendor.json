@@ -8,14 +8,23 @@
 			"revisionTime": "2015-01-18T07:55:06-08:00"
 		},
 		{
+			"checksumSHA1": "67Ufp7gCzJyjLVW3iW3og8uVtkw=",
+			"path": "github.com/dimfeld/httppath",
+			"revision": "c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc",
+			"revisionTime": "2014-05-15T16:47:37Z"
+		},
+		{
+			"checksumSHA1": "h9BDYXnyuduC58qYWY+1657zGa0=",
+			"path": "github.com/dimfeld/httptreemux",
+			"revision": "cf13f404cb13ff573314339e15e257cff8818a50",
+			"revisionTime": "2016-05-23T03:51:43Z",
+			"version": "=contextmux",
+			"versionExact": "contextmux"
+		},
+		{
 			"path": "github.com/disintegration/imaging",
 			"revision": "05ebd029ad3e44a269962889e19ba25c262d829c",
 			"revisionTime": "2015-02-04T20:07:40+03:00"
-		},
-		{
-			"path": "github.com/fukata/golang-stats-api-handler",
-			"revision": "e7ee1630fdb679c86ec8e3d0755e3576675fdb10",
-			"revisionTime": "2015-10-23T23:20:13+07:00"
 		},
 		{
 			"path": "github.com/gorilla/context",
@@ -27,11 +36,6 @@
 			"path": "github.com/gorilla/handlers",
 			"revision": "801d6e3b008914ee888c9ab9b1b379b9a56fbf44",
 			"revisionTime": "2016-07-21T04:34:55Z"
-		},
-		{
-			"path": "github.com/gorilla/mux",
-			"revision": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf",
-			"revisionTime": "2014-09-26T08:38:14-07:00"
 		},
 		{
 			"path": "github.com/gorilla/securecookie",
@@ -54,24 +58,15 @@
 			"revisionTime": "2014-11-24T09:47:41Z"
 		},
 		{
-			"path": "github.com/mavricknz/asn1-ber",
-			"revision": "ce3c3d1d8e4190a390fc72f551222783cbd6e55a",
-			"revisionTime": "2014-11-06T21:01:22Z"
-		},
-		{
-			"path": "github.com/mavricknz/ldap",
-			"revision": "6638977d26a6bc5ac0d2a9a5dcbefe02c456ea38",
-			"revisionTime": "2014-12-06T17:11:34Z"
-		},
-		{
 			"path": "github.com/oxtoacart/bpool",
 			"revision": "923fab21d0624a469b877a05bbfc562c1c26c663",
 			"revisionTime": "2015-01-14T08:00:38-06:00"
 		},
 		{
+			"checksumSHA1": "JdYdBoNxMR+CDqTfs78cQmY8JtI=",
 			"path": "github.com/russross/blackfriday",
-			"revision": "7001890e79eb6a002a5c8acfea9746508eb17829",
-			"revisionTime": "2015-01-12T21:54:11+02:00"
+			"revision": "93622da34e54fb6529bfb7c57e710f37a8d9cbd8",
+			"revisionTime": "2016-07-16T15:34:03Z"
 		},
 		{
 			"path": "github.com/shurcooL/sanitized_anchor_name",
