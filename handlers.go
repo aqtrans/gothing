@@ -7,7 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
-	"github.com/gorilla/mux"
+	//"github.com/gorilla/mux"
+	"github.com/dimfeld/httptreemux"
 	"github.com/kennygrant/sanitize"
 	"html/template"
 	"io"
@@ -176,7 +177,7 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "searchHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	term := vars["name"]
 	sterm := regexp.MustCompile(term)
 
@@ -295,11 +296,13 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	title := strings.ToLower(vars["name"])
     
     if title == "www" {
-        indexHandler(w, r)
+        //indexHandler(w, r)
+		http.Redirect(w, r, "//"+viper.GetString("MainTLD"), http.StatusTemporaryRedirect)
+		return
     }
 	/*
 		//The Host that the user queried.
@@ -378,7 +381,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 func pasteHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "pasteHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	title := vars["name"]
 	paste := &Paste{}
 	err := db.View(func(tx *bolt.Tx) error {
@@ -438,7 +441,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "downloadHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
@@ -472,7 +475,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	defer utils.TimeTrack(time.Now(), "downloadImageHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	//fpath := cfg.ImgDir + path.Base(name)
 	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
@@ -546,7 +549,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageThumbHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	fpath := viper.GetString("ImgDir") + path.Base(strings.TrimSuffix(name, ".png"))
 	thumbPath := viper.GetString("ThumbDir") + path.Base(name)
@@ -600,7 +603,7 @@ func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
 
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageDirectHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
     serveContent(w, r, viper.GetString("ImgDir"), name)
     
@@ -610,7 +613,7 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "imageBigHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	smallPath := viper.GetString("ImgDir") + path.Base(name)
     //Check if small image exists:
@@ -648,7 +651,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "viewMarkdownHandler")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	p, err := loadPage(name, w, r)
 	if err != nil {
@@ -773,7 +776,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 func APInewFile(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "APInewFile")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	contentLength := r.ContentLength
 	var reader io.Reader
@@ -1105,7 +1108,7 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 	buf.ReadFrom(paste)
 	bpaste := buf.String()
 	var name = ""
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	varname := vars["name"]
 	if varname != "" {
 		name = varname
@@ -1175,7 +1178,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
     defer utils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	ftype := vars["type"]
 	fname := vars["name"]
     jmsg := ftype + " " + fname
@@ -1423,7 +1426,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var filename string
 	path := viper.GetString("ImgDir")
-	vars := mux.Vars(r)
+	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	formfilename := vars["filename"]
 	contentType := r.Header.Get("Content-Type")
     

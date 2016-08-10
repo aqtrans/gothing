@@ -1,5 +1,8 @@
 package main
 
+// Recent changes:
+// - Moved from gorilla/mux to httptreemux+go1.7 context
+
 // TODO
 // - Guard file/image upload pages from respective filetypes
 // - Add a screenshot sharing route, separate from image gallery
@@ -10,20 +13,18 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	//"expvar"
-	//"runtime"
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"regexp"
+	"context"
+	"github.com/dimfeld/httptreemux"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
 	"github.com/spf13/viper"
-	//"github.com/fukata/golang-stats-api-handler"
 	"html/template"
 
 	"github.com/russross/blackfriday"
-	//"io"
 	"log"
 	"mime"
 	"net/http"
@@ -33,10 +34,9 @@ import (
 	"path/filepath"
 	"sort"
 	"time"
-	//"strings"
 	"strconv"
 
-	"jba.io/go/thing/lib"
+	"jba.io/go/auth"
 	"jba.io/go/utils"
 )
 
@@ -61,6 +61,36 @@ var (
 	db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//cfg       = configuration{}
 )
+
+// HostSwitch multidomain code taken from sample code for httprouter: https://github.com/julienschmidt/httprouter
+// We need an object that implements the http.Handler interface.
+// Therefore we need a type for which we implement the ServeHTTP method.
+// We just use a map here, in which we map host names (with port) to http.Handlers
+type HostSwitch map[string]http.Handler
+
+// Implement the ServerHTTP method on our new type
+func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    // Check if a http.Handler is registered for the given host.
+    // If yes, use it to handle the request.
+	shortregex := regexp.MustCompile("([A-Za-z0-9]+)." + viper.GetString("ShortTLD"))
+	
+    if handler := hs[r.Host]; handler != nil {
+        handler.ServeHTTP(w, r)
+	// Build up subdomain matching
+	// Putting the host match into the params["name"] to be retrieved later
+	} else if shortregex.MatchString(r.Host) {
+		name := shortregex.FindStringSubmatch(r.Host)[1]
+		mymap := map[string]string{
+			"name": name,
+		}
+		ctx := context.WithValue(r.Context(), httptreemux.ParamsContextKey, mymap)
+		//log.Println(r.Context().Value(httptreemux.ParamsContextKey))
+		shortUrlHandler(w, r.WithContext(ctx))
+    } else {
+        // Handle host names for wich no handler is registered
+        http.Error(w, "Forbidden", 403) // Or Redirect?
+    }
+}
 
 //Flags
 //var fLocal = flag.Bool("l", false, "Turn on localhost resolving for Handlers")
@@ -216,9 +246,9 @@ func init() {
 
 func markdownRender(content []byte) []byte {
 	htmlFlags := 0
-	htmlFlags |= blackfriday.HTML_USE_XHTML
-	htmlFlags |= blackfriday.HTML_USE_SMARTYPANTS
-	htmlFlags |= blackfriday.HTML_SMARTYPANTS_FRACTIONS
+	htmlFlags |= blackfriday.HTML_FOOTNOTE_RETURN_LINKS
+	htmlFlags |= blackfriday.HTML_TOC
+	htmlFlags |= blackfriday.HTML_NOFOLLOW_LINKS
 	renderer := blackfriday.HtmlRenderer(htmlFlags, "", "")
 	extensions := 0
 	extensions |= blackfriday.EXTENSION_NO_INTRA_EMPHASIS
@@ -298,16 +328,16 @@ func ParseBool(value string) bool {
 func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
 	defer utils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
-	user, isAdmin := auth.GetUsername(r)
-	msg := auth.GetFlash(r)
-	token := auth.GetToken(r)
+	user, isAdmin := auth.GetUsername(r.Context())
+	msg := auth.GetFlash(r.Context())
+	token := auth.GetToken(r.Context())
 
 	var message string
 	if msg != "" {
 		message = `
 			<div class="alert callout" data-closable>
 			<h5>Alert!</h5>
-			<p>` + template.HTMLEscapeString(msg) + `</p>
+			<p>` + msg + `</p>
 			<button class="close-button" aria-label="Dismiss alert" type="button" data-close>
 				<span aria-hidden="true">&times;</span>
 			</button>
@@ -719,95 +749,107 @@ func main() {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
 
-	r := mux.NewRouter().StrictSlash(true)
-	d := r.Host(viper.GetString("MainTLD")).Subrouter()
+	//r := mux.NewRouter().StrictSlash(true)
+	//d := r.Host(viper.GetString("MainTLD")).Subrouter()
 
+	// Declare various routers used
+	d := httptreemux.New()
+	d.PanicHandler = httptreemux.ShowErrorsPanicHandler
+	i := httptreemux.New()
+	i.PanicHandler = httptreemux.ShowErrorsPanicHandler	
+	big := httptreemux.New()
+	big.PanicHandler = httptreemux.ShowErrorsPanicHandler
+	//wild := httptreemux.New()
+	//wild.PanicHandler = httptreemux.ShowErrorsPanicHandler		
 
 	log.Println("Port: " + viper.GetString("Port"))
 
-	d.HandleFunc("/", indexHandler).Methods("GET")
-	d.HandleFunc("/help", helpHandler).Methods("GET")
-	d.HandleFunc("/priv", auth.AuthMiddle(Readme)).Methods("GET")
-	d.HandleFunc("/readme", Readme).Methods("GET")
-	d.HandleFunc("/changelog", Changelog).Methods("GET")
-	d.HandleFunc("/login", auth.LoginPostHandler).Methods("POST")
-	d.HandleFunc("/login", loginPageHandler).Methods("GET")
-	d.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
-	d.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
-	//d.HandleFunc("/signup", signupPageHandler).Methods("GET")
+	d.GET("/", indexHandler)
+	d.GET("/help", helpHandler)
+	d.GET("/priv", auth.AuthMiddle(Readme))
+	d.GET("/readme", Readme)
+	d.GET("/changelog", Changelog)
+	d.POST("/login", auth.LoginPostHandler)
+	d.GET("/login", loginPageHandler)
+	d.POST("/logout", auth.LogoutHandler)
+	d.GET("/logout", auth.LogoutHandler)
+	//d.GET("/signup", signupPageHandler)
 
-	a := d.PathPrefix("/auth").Subrouter()
-	a.HandleFunc("/login", auth.LoginPostHandler).Methods("POST")
-	a.HandleFunc("/logout", auth.LogoutHandler).Methods("POST")
-	a.HandleFunc("/logout", auth.LogoutHandler).Methods("GET")
-	a.HandleFunc("/signup", auth.SignupPostHandler).Methods("POST")
+	//a := d.PathPrefix("/auth").Subrouter()
+	a := d.NewGroup("/auth")
+	a.POST("/login", auth.LoginPostHandler)
+	a.POST("/logout", auth.LogoutHandler)
+	a.GET("/logout", auth.LogoutHandler)
+	a.POST("/signup", auth.SignupPostHandler)
 
-	admin := d.PathPrefix("/admin").Subrouter()
-	admin.HandleFunc("/", auth.AuthAdminMiddle(adminHandler)).Methods("GET")
-	admin.HandleFunc("/user_signup", auth.AuthAdminMiddle(auth.UserSignupPostHandler)).Methods("POST")
-	admin.HandleFunc("/users", auth.AuthAdminMiddle(adminSignupHandler)).Methods("GET")
-	admin.HandleFunc("/list", auth.AuthAdminMiddle(adminListHandler)).Methods("GET")
-	admin.HandleFunc("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler)).Methods("POST")
-	admin.HandleFunc("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler)).Methods("POST")
+	//admin := d.PathPrefix("/admin").Subrouter()
+	admin := d.NewGroup("/admin")
+	admin.GET("/", auth.AuthAdminMiddle(adminHandler))
+	admin.POST("/user_signup", auth.AuthAdminMiddle(auth.UserSignupPostHandler))
+	admin.GET("/users", auth.AuthAdminMiddle(adminSignupHandler))
+	admin.GET("/list", auth.AuthAdminMiddle(adminListHandler))
+	admin.POST("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler))
+	admin.POST("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler))
 
-	d.HandleFunc("/list", auth.AuthMiddle(listHandler)).Methods("GET")
-	d.HandleFunc("/s", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
-	d.HandleFunc("/short", auth.AuthMiddle(shortenPageHandler)).Methods("GET")
-	d.HandleFunc("/lg", lgHandler).Methods("GET")
-	d.HandleFunc("/p", pastePageHandler).Methods("GET")
-	d.HandleFunc("/p/{name}", pasteHandler).Methods("GET")
-	d.HandleFunc("/up", uploadPageHandler).Methods("GET")
-	d.HandleFunc("/iup", uploadImagePageHandler).Methods("GET")
-	d.HandleFunc("/search/{name}", auth.AuthMiddle(searchHandler)).Methods("GET")
-	d.HandleFunc("/d/{name}", downloadHandler).Methods("GET")
-	d.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
-	d.HandleFunc("/i/{name}", downloadImageHandler).Methods("GET")
-	d.HandleFunc("/md/{name}", viewMarkdownHandler).Methods("GET")
-	d.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
-	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
-	d.HandleFunc("/i", galleryHandler).Methods("GET")
+	d.GET("/list", auth.AuthMiddle(listHandler))
+	d.GET("/s", auth.AuthMiddle(shortenPageHandler))
+	d.GET("/short", auth.AuthMiddle(shortenPageHandler))
+	d.GET("/lg", lgHandler)
+	d.GET("/p", pastePageHandler)
+	d.GET("/p/:name", pasteHandler)
+	d.GET("/up", uploadPageHandler)
+	d.GET("/iup", uploadImagePageHandler)
+	d.GET("/search/:name", auth.AuthMiddle(searchHandler))
+	d.GET("/d/:name", downloadHandler)
+	d.GET("/big/:name", imageBigHandler)
+	d.GET("/i/:name", downloadImageHandler)
+	d.GET("/md/:name", viewMarkdownHandler)
+	d.GET("/thumbs/:name", imageThumbHandler)
+	d.GET("/imagedirect/:name", imageDirectHandler)
+	d.GET("/i", galleryHandler)
 	//d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "LOL", false)}).Methods("GET", "POST")
 	//d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "", false)}).Methods("GET", "POST")
 
 	//CLI API Functions
-	d.HandleFunc("/up/{name}", APInewFile).Methods("POST", "PUT")
-	d.HandleFunc("/up", APInewFile).Methods("POST", "PUT")
-	d.HandleFunc("/p/{name}", APInewPaste).Methods("POST", "PUT")
-	d.HandleFunc("/p", APInewPaste).Methods("POST", "PUT")
-	d.HandleFunc("/lg", APIlgAction).Methods("POST")
+	d.PUT("/up/*name", APInewFile)
+	d.PUT("/up", APInewFile)
+	d.PUT("/p/*name", APInewPaste)
+	d.PUT("/p", APInewPaste)
+	d.POST("/lg", APIlgAction)
 
 	//API Functions
-	api := d.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/delete/{type}/{name}", auth.AuthMiddle(APIdeleteHandler)).Methods("GET")
-	api.HandleFunc("/paste/new", APInewPasteForm).Methods("POST")
-	api.HandleFunc("/file/new", APInewFile).Methods("POST")
-	api.HandleFunc("/file/remote", APInewRemoteFile).Methods("POST")
-	api.HandleFunc("/shorten/new", APInewShortUrlForm).Methods("POST")
-	api.HandleFunc("/lg", APIlgAction).Methods("POST")
-	api.HandleFunc("/image/new", APInewImage).Methods("POST")
-	api.HandleFunc("/image/remote", APInewRemoteImage).Methods("POST")
+	//api := d.PathPrefix("/api").Subrouter()
+	api := d.NewGroup("/api")
+	api.GET("/delete:type/:name", auth.AuthMiddle(APIdeleteHandler))
+	api.POST("/paste/new", APInewPasteForm)
+	api.POST("/file/new", APInewFile)
+	api.POST("/file/remote", APInewRemoteFile)
+	api.POST("/shorten/new", APInewShortUrlForm)
+	api.POST("/lg", APIlgAction)
+	api.POST("/image/new", APInewImage)
+	api.POST("/image/remote", APInewRemoteImage)
 	//Golang-Stats-API
 	//api.HandleFunc("/stats", stats_api.Handler)
-	api.HandleFunc("/vars", utils.HandleExpvars)
+	api.GET("/vars", utils.HandleExpvars)
 
 	//Dedicated image subdomain routes
-	i := r.Host(viper.GetString("ImageTLD")).Subrouter()
-	i.HandleFunc("/", galleryEsgyHandler).Methods("GET")
-	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
-	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
-	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
-	i.HandleFunc("/{name}", downloadImageHandler).Methods("GET")
+	//i := r.Host(viper.GetString("ImageTLD")).Subrouter()
+	i.GET("/", galleryEsgyHandler)
+	i.GET("/thumbs/:name", imageThumbHandler)
+	i.GET("/imagedirect/:name", imageDirectHandler)
+	i.GET("/big/:name", imageBigHandler)
+	i.GET("/:name", downloadImageHandler)
 
 	//Big GIFs
-	big := r.Host(viper.GetString("GifTLD")).Subrouter()
-	big.HandleFunc("/i/{name}", imageDirectHandler).Methods("GET")
-	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
+	//big := r.Host(viper.GetString("GifTLD")).Subrouter()
+	big.GET("/i/:name", imageDirectHandler)
+	big.GET("/:name", imageBigHandler)
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
 	//wildString := "{name}."+viper.GetString("ShortTLD")
-	wild := r.Host("{name}.es.gy").Subrouter()
-	wild.HandleFunc("/", shortUrlHandler).Methods("GET")
+	//wild := r.Host("{name}.es.gy").Subrouter()
+	//wild.GET("/", shortUrlHandler)
 	//Main Short URL page
 	// Collapsing this into main TLD
 	//short := r.Host(viper.GetString("ShortTLD")).Subrouter()
@@ -817,7 +859,7 @@ func main() {
 	//r.PathPrefix("/").Handler(defaultHandler(static))
 
 	//r.PathPrefix("/assets/").HandlerFunc(staticHandler)
-	d.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
+	d.GET("/*name", shortUrlHandler)
 	http.HandleFunc("/robots.txt", utils.RobotsHandler)
 	http.HandleFunc("/favicon.ico", utils.FaviconHandler)
 	http.HandleFunc("/favicon.png", utils.FaviconHandler)
@@ -827,8 +869,13 @@ func main() {
 		log.Println(r.Host)
 		log.Println(r.Header)
 	})
+
+    hs := make(HostSwitch)
+    hs[viper.GetString("MainTLD")] = d
+	hs[viper.GetString("ImageTLD")] = i
+	hs[viper.GetString("GifTLD")] = big
 	
-	http.Handle("/", std.Then(r))
+	http.Handle("/", std.Then(hs))
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
 }
