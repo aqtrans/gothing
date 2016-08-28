@@ -1,5 +1,7 @@
 .DS_Store
 .directory
+bower_components/**
+node_modules/**
 data/**
 thing
 http.log
