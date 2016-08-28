@@ -1,0 +1,287 @@
+@charset 'utf-8';
+
+@import 'settings';
+@import 'foundation';
+@import 'motion-ui';
+
+@include foundation-global-styles;
+// @include foundation-grid;
+@include foundation-flex-grid;
+@include foundation-typography;
+@include foundation-button;
+@include foundation-forms;
+// @include foundation-range-input;
+@include foundation-accordion;
+//@include foundation-accordion-menu;
+@include foundation-badge;
+@include foundation-breadcrumbs;
+@include foundation-button-group;
+@include foundation-callout;
+@include foundation-close-button;
+@include foundation-menu;
+@include foundation-menu-icon;
+//@include foundation-drilldown-menu;
+//@include foundation-dropdown;
+//@include foundation-dropdown-menu;
+//@include foundation-flex-video;
+@include foundation-label;
+@include foundation-media-object;
+//@include foundation-off-canvas;
+//@include foundation-orbit;
+@include foundation-pagination;
+//@include foundation-progress-bar;
+// @include foundation-progress-element;
+// @include foundation-meter-element;
+//@include foundation-slider;
+//@include foundation-sticky;
+@include foundation-reveal;
+@include foundation-switch;
+@include foundation-table;
+@include foundation-tabs;
+@include foundation-thumbnail;
+@include foundation-title-bar;
+@include foundation-tooltip;
+//@include foundation-top-bar;
+@include foundation-visibility-classes;
+//@include foundation-float-classes;
+@include foundation-flex-classes;
+
+@include motion-ui-transitions;
+@include motion-ui-animations;
+
+@import url('https://fonts.googleapis.com/css?family=Khand|Open+Sans|Roboto+Condensed:300italic,400italic,700italic,400,700,300|Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic');
+//@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://use.fontawesome.com/107df40317.css');
+
+@mixin card() {
+    background-color: $almostblack;
+    //border-radius: 3px;
+    box-shadow: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22);    
+}
+
+.material-icons.md-48 { font-size: 3rem; }
+.material-icons.md-16 { font-size: 0.8rem; }
+
+body {
+    @include flex-grid-row;
+    > nav {
+        /*
+        @include flex-grid-column(15%, 0);
+        //max-width: 300px;
+        @include breakpoint(640px down) {
+            @include flex-grid-column(100%);
+        }
+        */
+        @include flex-grid-column(100%);
+        //max-width: 300px;
+        @include breakpoint(640px) {
+            @include flex-grid-column(15%, 0.5rem);
+        }
+        > h5 {
+            font-weight: 100;
+        }
+        > header {
+            font-size: 3rem;
+        }
+        ul {
+            @include menu-base;
+            @include menu-expand;
+            @include menu-direction(vertical);
+            li a:hover {
+                background-color: lighten($body-background, 10%);
+            }
+        }
+        fieldset.fieldset {
+            margin: 0;
+            padding: 0;
+        }        
+    }
+    > section {
+        /*
+        @include flex-grid-column(85%, 0);
+        @include breakpoint(640px down) {
+            @include flex-grid-column(100%);
+        }
+        */
+        @include flex-grid-column(100%);
+        @include breakpoint(640px) {
+            @include flex-grid-column(85%, 0);
+        }
+        > main {
+            article {
+                @include card();
+                padding: 0.5em;
+
+                ul {
+                    list-style-type: none;
+
+                    li header {
+                        font-size: 2rem;
+                    }
+                }
+                pre,code {
+                    white-space: pre-wrap;
+                    background: darken($solarized, 10%);
+                    color: $white;
+                }
+                code {
+                    padding: 0;
+                }
+                pre {
+                    padding: 0.5rem;
+                }
+            }
+            article:first-child {
+                @include flex-grid-row;
+                margin-bottom: 1em;
+                > header {
+                    @include flex-grid-column(shrink);
+                    font-size: 2.6rem;
+                    margin-left: 0.2em;
+                }
+                > div.stats {
+                    @include flex-grid-column(shrink);
+                    ul {
+                        margin: 0;
+                    }
+                    li {
+                        display: inline-block;
+                        border-right: 1px solid transparentize($body-font-color, 0.8);
+                    }
+                    .stat span.warning.label {
+                        margin-right: 0.2em;
+                        margin-left: 0.2em;
+                    }
+                }                
+            }
+        }
+    }
+}
+header {
+    font-family: 'Khand', sans-serif;
+    font-weight: 400;
+    //font-size: 3rem;
+    text-decoration: none;
+    //border-bottom: $card-border;
+    //padding-left: 0.2em;
+    & a, a:hover, a:visited {
+        color: $white;
+        text-decoration: none;
+    }
+}
+
+#gallery img {
+    max-width: 400px;
+}
+
+.accordion-title {
+    font-size: 1rem;
+    &:hover, &:focus, &{
+        background-color: $white;
+        color: $black;
+    }
+}
+
+.badge a, a:hover {
+    color: $white;
+    text-decoration: none;
+}
+
+p {
+    font-weight: 300;
+    font-family: 'Roboto Condensed', sans-serif;
+}
+
+footer {
+    text-align: center;
+    color: transparentize($body-font-color, 0.6);
+    font-weight: 300;    
+}
+
+p.date {
+    color: transparentize($body-font-color, 0.6);
+    font-size: 0.8rem;
+    margin-bottom: 0.5em;
+    > span + span:before {
+        content: "| ";
+        //padding: 0 1em;
+    }
+}
+
+ul.tabs {
+    border: 0;
+    > li.is-active {
+        background-color: $almostblack;
+        a {
+            color: $white;
+        }
+        &:hover {
+            background-color: $almostblack;
+        }
+    }
+}
+
+.accordion-title {
+    font-size: 1rem;
+    &:hover, &:focus, &{
+        background-color: $white;
+        color: $black;
+    }
+}
+
+div.input-wrapper {
+    box-sizing: border-box;
+    display: flex;
+    flex-flow: row nowrap;
+
+    /* Example styling ------------------- */
+    //padding: 0 20px;
+    //margin-top: 10px;
+    height: 2.2em;
+        
+    & > input, & > button {
+      box-sizing: border-box;
+      height: 100%;
+      border: 1px solid #999;
+    }
+
+    & > input {
+      flex: 1 1 auto;
+      border-right: 0;
+      border-radius: 0;
+    }
+
+    & > button {
+      flex-shrink: 0;
+      margin: 0;
+      border-radius: 0;
+    }
+}
+
+#diff pre {
+    background-color: $solarized;
+    code {
+        background-color: $solarized;
+    }
+}
+
+main > article > nav {
+    > ul {
+        margin: 1.5rem;
+    }
+    border: 1px solid transparentize($body-font-color, 0.8);
+    display: table;
+    background-color: $white;
+}
+
+div.usernav {
+    background-color: darken($body-background, 10%);
+}
+
+.tabs-title > a:hover {
+    background-color: $almostblack;
+}
+
+textarea#wikieditor {
+  height: 500px;
+}

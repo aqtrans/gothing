@@ -17,7 +17,6 @@ stages:
   - build
   - test
   - deploy
-  - mirror
 
 install-go:
   stage: install-environment
@@ -28,8 +27,8 @@ install-go:
     - rm -rf $HOME/golang
     - mkdir -p $HOME/gopath/src
     - mkdir -p $HOME/golang
-    - curl https://storage.googleapis.com/golang/go1.7rc6.linux-amd64.tar.gz 2>/dev/null > go1.7rc6.linux-amd64.tar.gz
-    - tar -C $HOME/golang -xzf go1.7rc6.linux-amd64.tar.gz
+    - curl https://storage.googleapis.com/golang/go1.7.linux-amd64.tar.gz 2>/dev/null > go1.7.linux-amd64.tar.gz
+    - tar -C $HOME/golang -xzf go1.7.linux-amd64.tar.gz
     - export GOROOT=$HOME/golang/go
     - export GOPATH=$HOME/gopath
     - export PATH=$GOROOT/bin:$PATH 
@@ -73,14 +72,11 @@ deploy-it:
     - cd $HOME/gopath/src/thing
     - mkdir deploy
     - go get -d
+    - npm install
+    - npm install bower
+    - node_modules/.bin/bower install
+    - npm build    
     - go build -o ./deploy/thing
     - cp -r templates CHANGELOG.md README.md assets deploy/
     - rsync -av --delete --exclude data/ --exclude http.log deploy/ golang@localhost:/home/golang/thing/
     - ssh golang@localhost sudo systemctl restart golang-thing
-
-mirror-to-github:
-  stage: mirror
-  only:
-    - /^github$/
-  script:
-    - git push --mirror git@github.com:aqtrans/gothing.git
