@@ -10,19 +10,19 @@ package main
 // ...only saving if the BoltDB function doesn't error out
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/dimfeld/httptreemux"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/handlers"
-	"regexp"
-	"context"
-	"github.com/dimfeld/httptreemux"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
 	"github.com/spf13/viper"
 	"html/template"
+	"regexp"
 
 	"github.com/russross/blackfriday"
 	"log"
@@ -33,8 +33,8 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"time"
 	"strconv"
+	"time"
 
 	"jba.io/go/auth"
 	"jba.io/go/httputils"
@@ -59,7 +59,7 @@ var (
 	fLocal    bool
 	debug     bool
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
-	db    *bolt.DB
+	db *bolt.DB
 	//cfg       = configuration{}
 )
 
@@ -71,14 +71,14 @@ type HostSwitch map[string]http.Handler
 
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    // Check if a http.Handler is registered for the given host.
-    // If yes, use it to handle the request.
+	// Check if a http.Handler is registered for the given host.
+	// If yes, use it to handle the request.
 	shortregex := regexp.MustCompile("([A-Za-z0-9]+)." + viper.GetString("ShortTLD"))
-	
-    if handler := hs[r.Host]; handler != nil {
-        handler.ServeHTTP(w, r)
-	// Build up subdomain matching
-	// Putting the host match into the params["name"] to be retrieved later
+
+	if handler := hs[r.Host]; handler != nil {
+		handler.ServeHTTP(w, r)
+		// Build up subdomain matching
+		// Putting the host match into the params["name"] to be retrieved later
 	} else if shortregex.MatchString(r.Host) {
 		name := shortregex.FindStringSubmatch(r.Host)[1]
 		mymap := map[string]string{
@@ -87,10 +87,10 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), httptreemux.ParamsContextKey, mymap)
 		//log.Println(r.Context().Value(httptreemux.ParamsContextKey))
 		shortUrlHandler(w, r.WithContext(ctx))
-    } else {
-        // Handle host names for wich no handler is registered
-        http.Error(w, "Forbidden", 403) // Or Redirect?
-    }
+	} else {
+		// Handle host names for wich no handler is registered
+		http.Error(w, "Forbidden", 403) // Or Redirect?
+	}
 }
 
 //Flags
@@ -189,7 +189,6 @@ func (a ShortByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
 
 func init() {
 
-
 	/*
 			Port     string
 			Email    string
@@ -235,7 +234,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	funcMap := template.FuncMap{"prettyDate":httputils.PrettyDate, "safeHTML":httputils.SafeHTML, "imgClass":httputils.ImgClass, "imgExt":httputils.ImgExt}
+	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": httputils.ImgExt}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
@@ -702,7 +701,7 @@ func main() {
 	viper.SetDefault("GifTLD", "big.es.gy")
 	viper.SetDefault("AuthDB", "./data/auth.db")
 	viper.SetDefault("AdminUser", "admin")
-	
+
 	viper.SetConfigName("conf")
 	viper.AddConfigPath("./data/")
 	err := viper.ReadInConfig() // Find and read the config file
@@ -720,7 +719,7 @@ func main() {
 		log.Fatalln(autherr)
 	}
 	defer auth.Authdb.Close()
-	
+
 	auth.AdminUser = viper.GetString("AdminUser")
 
 	//Check for essential directory existence
@@ -746,7 +745,7 @@ func main() {
 	flag.Set("bind", ":3000")
 
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle,httputils.Logger)
-	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle,httputils.Logger)	
+	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle,httputils.Logger)
 	//stda := alice.New(Auth, Logger)
 
@@ -757,8 +756,8 @@ func main() {
 		viper.Set("GifTLD", "big.devd.io")
 
 		log.Println("Listening on devd.io domains due to -l flag...")
-		
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle,httputils.Logger)	
+
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
@@ -770,11 +769,11 @@ func main() {
 	d := httptreemux.New()
 	d.PanicHandler = httptreemux.ShowErrorsPanicHandler
 	i := httptreemux.New()
-	i.PanicHandler = httptreemux.ShowErrorsPanicHandler	
+	i.PanicHandler = httptreemux.ShowErrorsPanicHandler
 	big := httptreemux.New()
 	big.PanicHandler = httptreemux.ShowErrorsPanicHandler
 	//wild := httptreemux.New()
-	//wild.PanicHandler = httptreemux.ShowErrorsPanicHandler		
+	//wild.PanicHandler = httptreemux.ShowErrorsPanicHandler
 
 	log.Println("Port: " + viper.GetString("Port"))
 
@@ -874,21 +873,21 @@ func main() {
 
 	//r.PathPrefix("/assets/").HandlerFunc(staticHandler)
 	d.GET("/*name", shortUrlHandler)
-	http.HandleFunc("/robots.txt",httputils.RobotsHandler)
-	http.HandleFunc("/favicon.ico",httputils.FaviconHandler)
-	http.HandleFunc("/favicon.png",httputils.FaviconHandler)
-	http.HandleFunc("/assets/",httputils.StaticHandler)
+	http.HandleFunc("/robots.txt", httputils.RobotsHandler)
+	http.HandleFunc("/favicon.ico", httputils.FaviconHandler)
+	http.HandleFunc("/favicon.png", httputils.FaviconHandler)
+	http.HandleFunc("/assets/", httputils.StaticHandler)
 	//Used for troubleshooting proxy headers
 	http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.Host)
 		log.Println(r.Header)
 	})
 
-    hs := make(HostSwitch)
-    hs[viper.GetString("MainTLD")] = d
+	hs := make(HostSwitch)
+	hs[viper.GetString("MainTLD")] = d
 	hs[viper.GetString("ImageTLD")] = i
 	hs[viper.GetString("GifTLD")] = big
-	
+
 	http.Handle("/", std.Then(hs))
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 

@@ -10,9 +10,11 @@ import (
 	//"github.com/gorilla/mux"
 	"github.com/dimfeld/httptreemux"
 	"github.com/kennygrant/sanitize"
+	"github.com/spf13/viper"
 	"html/template"
 	"io"
 	"io/ioutil"
+	"jba.io/go/httputils"
 	"log"
 	"mime"
 	"net/http"
@@ -25,9 +27,7 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"github.com/spf13/viper"
-    "jba.io/go/httputils"
-    //"jba.io/go/auth"
+	//"jba.io/go/auth"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -298,12 +298,12 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	shorturl := &Shorturl{}
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	title := strings.ToLower(vars["name"])
-    
-    if title == "www" {
-        //indexHandler(w, r)
+
+	if title == "www" {
+		//indexHandler(w, r)
 		http.Redirect(w, r, "//"+viper.GetString("MainTLD"), http.StatusTemporaryRedirect)
 		return
-    }
+	}
 	/*
 		//The Host that the user queried.
 		host := r.Host
@@ -328,51 +328,51 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 			//log.Println(err)
 		}
-        err := json.Unmarshal(v, &shorturl)
-        if err != nil {
-            log.Println(err)
-        }
-        count := (shorturl.Hits + 1)
-        //If the shorturl is local, just serve whatever file being requested
-        if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
-            log.Println("LONG URL CONTAINS ShortTLD")
-            if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("ImageTLD")) {
-                u, err := url.Parse(shorturl.Long)
-                if err != nil {
-                    log.Println(err)
-                }
-                segments := strings.Split(u.Path, "/")
-                fileName := segments[len(segments)-1]
-                log.Println("Serving " + shorturl.Long + " file directly")
-                http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
-            }
-        } else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
-            log.Println("LONG URL CONTAINS MainTLD")
-            if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("MainTLD")+"/i/") {
-                u, err := url.Parse(shorturl.Long)
-                if err != nil {
-                    log.Println(err)
-                }
-                segments := strings.Split(u.Path, "/")
-                fileName := segments[len(segments)-1]
-                log.Println("Serving " + shorturl.Long + " file directly")
-                http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
-            }
-        } else {
-            http.Redirect(w, r, shorturl.Long, 302)
-        }
-        
-        s := &Shorturl{
-            Created: shorturl.Created,
-            Short:   shorturl.Short,
-            Long:    shorturl.Long,
-            FullURL: shorturl.FullURL,
-            Hits:    count,
-        }
-        encoded, err := json.Marshal(s)
+		err := json.Unmarshal(v, &shorturl)
+		if err != nil {
+			log.Println(err)
+		}
+		count := (shorturl.Hits + 1)
+		//If the shorturl is local, just serve whatever file being requested
+		if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
+			log.Println("LONG URL CONTAINS ShortTLD")
+			if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("ImageTLD")) {
+				u, err := url.Parse(shorturl.Long)
+				if err != nil {
+					log.Println(err)
+				}
+				segments := strings.Split(u.Path, "/")
+				fileName := segments[len(segments)-1]
+				log.Println("Serving " + shorturl.Long + " file directly")
+				http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
+			}
+		} else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
+			log.Println("LONG URL CONTAINS MainTLD")
+			if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("MainTLD")+"/i/") {
+				u, err := url.Parse(shorturl.Long)
+				if err != nil {
+					log.Println(err)
+				}
+				segments := strings.Split(u.Path, "/")
+				fileName := segments[len(segments)-1]
+				log.Println("Serving " + shorturl.Long + " file directly")
+				http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
+			}
+		} else {
+			http.Redirect(w, r, shorturl.Long, 302)
+		}
 
-        //return nil
-        return b.Put([]byte(title), encoded)
+		s := &Shorturl{
+			Created: shorturl.Created,
+			Short:   shorturl.Short,
+			Long:    shorturl.Long,
+			FullURL: shorturl.FullURL,
+			Hits:    count,
+		}
+		encoded, err := json.Marshal(s)
+
+		//return nil
+		return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
 		log.Println(err)
@@ -479,18 +479,18 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	name := vars["name"]
 	//fpath := cfg.ImgDir + path.Base(name)
 	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
-    
-    if name == "favicon.ico" {
-        //log.Println("omg1")
-        http.NotFound(w, r)
-        return
-    }
-    if name == "favicon.png" {
-        //log.Println("omg2")
-        http.NotFound(w, r)
-        return
-    }
-    
+
+	if name == "favicon.ico" {
+		//log.Println("omg1")
+		http.NotFound(w, r)
+		return
+	}
+	if name == "favicon.png" {
+		//log.Println("omg2")
+		http.NotFound(w, r)
+		return
+	}
+
 	extensions := []string{".webm", ".gif", ".jpg", ".jpeg", ".png"}
 	//If this is extensionless, search for the proper file with the extension
 	if filepath.Ext(name) == "" {
@@ -500,11 +500,11 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 				name = name + ext
 				//fpath = cfg.ImgDir + path.Base(name)
 				fpath = filepath.Join(viper.GetString("ImgDir"), path.Base(name))
-                log.Println(name + fpath)
+				log.Println(name + fpath)
 				break
 			} else {
-                log.Println(err)
-            }
+				log.Println(err)
+			}
 		}
 	}
 
@@ -516,7 +516,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 		//If there is no existing key, do not do a thing
 		if v == nil {
 			//http.NotFound(w, r)
-            //log.Println("omg3")
+			//log.Println("omg3")
 			return nil
 		}
 		err := json.Unmarshal(v, &image)
@@ -548,7 +548,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
+	defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	fpath := viper.GetString("ImgDir") + path.Base(strings.TrimSuffix(name, ".png"))
@@ -591,39 +591,39 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
-    f, err := http.Dir(dir).Open(file)
-    if err != nil {
-        http.NotFound(w, r)
-        return
-    }
-    content := io.ReadSeeker(f)
-    http.ServeContent(w, r, file, time.Now(), content)
-    return
+	f, err := http.Dir(dir).Open(file)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	content := io.ReadSeeker(f)
+	http.ServeContent(w, r, file, time.Now(), content)
+	return
 }
 
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
+	defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
-    serveContent(w, r, viper.GetString("ImgDir"), name)
-    
+	serveContent(w, r, viper.GetString("ImgDir"), name)
+
 }
 
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "imageBigHandler")
+	defer httputils.TimeTrack(time.Now(), "imageBigHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	smallPath := viper.GetString("ImgDir") + path.Base(name)
-    //Check if small image exists:
-    _, err := os.Stat(smallPath)
+	//Check if small image exists:
+	_, err := os.Stat(smallPath)
 	if err != nil {
 		http.NotFound(w, r)
-        return
-    }
-    
-    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(`<!doctype html>
                     <html>
                     <head>
@@ -650,7 +650,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "viewMarkdownHandler")
+	defer httputils.TimeTrack(time.Now(), "viewMarkdownHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	p, err := loadPage(name, w, r)
@@ -687,17 +687,17 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "APInewRemoteFile")
+	defer httputils.TimeTrack(time.Now(), "APInewRemoteFile")
 	/*
-    // Check for CSRF token
-    err := auth.CheckToken(w, r)
-    if err != nil {
-        log.Printf("%s", err.Error())
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	   // Check for CSRF token
+	   err := auth.CheckToken(w, r)
+	   if err != nil {
+	       log.Printf("%s", err.Error())
+	       http.Error(w, err.Error(), 500)
+	       return
+	   }
 	*/
-    
+
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
 	if !strings.HasPrefix(remoteURL, "http") {
@@ -725,9 +725,9 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-        setFlash("Failed to save remote file.", w, r)
+		setFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)		
+		panic(err)
 	}
 	defer file.Close()
 	check := http.Client{
@@ -739,7 +739,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-        setFlash("Failed to save remote file.", w, r)
+		setFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -748,7 +748,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-        setFlash("Failed to save remote file.", w, r)
+		setFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -775,7 +775,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewFile(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "APInewFile")
+	defer httputils.TimeTrack(time.Now(), "APInewFile")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	contentLength := r.ContentLength
@@ -802,15 +802,15 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	//log.Println(uptype)
 
 	/*
-    // Check for CSRF token on non-cli uploads
-    if uptype != "cli" {
-        err = auth.CheckToken(w, r)
-        if err != nil {
-            log.Printf("%s", err.Error())
-            http.Error(w, err.Error(), 500)
-            return
-        }
-    }
+	   // Check for CSRF token on non-cli uploads
+	   if uptype != "cli" {
+	       err = auth.CheckToken(w, r)
+	       if err != nil {
+	           log.Printf("%s", err.Error())
+	           http.Error(w, err.Error(), 500)
+	           return
+	       }
+	   }
 	*/
 
 	//Remote File Uploads
@@ -841,7 +841,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-            setFlash("Failed to save file.", w, r)
+			setFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -855,7 +855,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-            setFlash("Failed to save file.", w, r)
+			setFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -865,7 +865,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-            setFlash("Failed to save file.", w, r)
+			setFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			panic(err)
 		}
@@ -1013,90 +1013,90 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 	/*
-    // Check for CSRF token
-    err = auth.CheckToken(w, r)
-    if err != nil {
-        log.Printf("%s", err.Error())
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	   // Check for CSRF token
+	   err = auth.CheckToken(w, r)
+	   if err != nil {
+	       log.Printf("%s", err.Error())
+	       http.Error(w, err.Error(), 500)
+	       return
+	   }
 	*/
-    
-    subdomain := r.PostFormValue("shortSub")
-    log.Println(subdomain)
-    
+
+	subdomain := r.PostFormValue("shortSub")
+	log.Println(subdomain)
+
 	short := r.PostFormValue("short")
 	long := r.PostFormValue("long")
-    
-    if subdomain == "" {
-        if short != "" {
-            short = short
-        } else {
-            dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-            var bytes = make([]byte, 4)
-            rand.Read(bytes)
-            for k, v := range bytes {
-                bytes[k] = dictionary[v%byte(len(dictionary))]
-            }
-            short = string(bytes)
-        }
-        full := "https://" + viper.GetString("ShortTLD") + "/" + short 
-        log.Println("Subdomain is blank, creating a regular short URL.")
-        log.Println(full)
-        s := &Shorturl{
-            Created: time.Now().Unix(),
-            Short:   short,
-            Long:    long,
-            FullURL: full,
-        }
 
-        /*
-            Created string
-            Short 	string
-            Long 	string
-        */
+	if subdomain == "" {
+		if short != "" {
+			short = short
+		} else {
+			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+			var bytes = make([]byte, 4)
+			rand.Read(bytes)
+			for k, v := range bytes {
+				bytes[k] = dictionary[v%byte(len(dictionary))]
+			}
+			short = string(bytes)
+		}
+		full := "https://" + viper.GetString("ShortTLD") + "/" + short
+		log.Println("Subdomain is blank, creating a regular short URL.")
+		log.Println(full)
+		s := &Shorturl{
+			Created: time.Now().Unix(),
+			Short:   short,
+			Long:    long,
+			FullURL: full,
+		}
 
-        err = s.save()
-        if err != nil {
-            log.Println(err)
-            setFlash("Failed to shorten URL.", w, r)
+		/*
+		   Created string
+		   Short 	string
+		   Long 	string
+		*/
+
+		err = s.save()
+		if err != nil {
+			log.Println(err)
+			setFlash("Failed to shorten URL.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
-        }
-        //log.Println("Short: " + s.Short)
-        //log.Println("Long: " + s.Long)
+		}
+		//log.Println("Short: " + s.Short)
+		//log.Println("Long: " + s.Long)
 
 		setFlash("Successfully shortened "+s.FullURL, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-        return
-    }
-        full := "http://" + subdomain + "." + viper.GetString("ShortTLD")
-        log.Println(full)
-        log.Println("Subdomain is not blank, creating a subdomain short URL.")
-        s := &Shorturl{
-            Created: time.Now().Unix(),
-            Short:   subdomain,
-            Long:    long,
-            FullURL: full,
-        }
+		return
+	}
+	full := "http://" + subdomain + "." + viper.GetString("ShortTLD")
+	log.Println(full)
+	log.Println("Subdomain is not blank, creating a subdomain short URL.")
+	s := &Shorturl{
+		Created: time.Now().Unix(),
+		Short:   subdomain,
+		Long:    long,
+		FullURL: full,
+	}
 
-        /*
-            Created string
-            Short 	string
-            Long 	string
-        */
+	/*
+	   Created string
+	   Short 	string
+	   Long 	string
+	*/
 
-        err = s.save()
-        if err != nil {
-            log.Println(err)
-            setFlash("Failed to shorten URL.", w, r)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-        }
-        //log.Println("Short: " + s.Short)
-        //log.Println("Long: " + s.Long)
-
-		setFlash("Successfully shortened "+s.FullURL, w, r)
+	err = s.save()
+	if err != nil {
+		log.Println(err)
+		setFlash("Failed to shorten URL.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-        return
+	}
+	//log.Println("Short: " + s.Short)
+	//log.Println("Long: " + s.Long)
+
+	setFlash("Successfully shortened "+s.FullURL, w, r)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return
 }
 
 //Pastebin handlers
@@ -1140,15 +1140,15 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	/*
-    // Check for CSRF token
-    err = auth.CheckToken(w, r)
-    if err != nil {
-        log.Printf("%s", err.Error())
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	   // Check for CSRF token
+	   err = auth.CheckToken(w, r)
+	   if err != nil {
+	       log.Printf("%s", err.Error())
+	       http.Error(w, err.Error(), 500)
+	       return
+	   }
 	*/
-        
+
 	title := r.PostFormValue("title")
 	if title != "" {
 		title = title
@@ -1176,12 +1176,12 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 
 //Delete stuff
 func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "APIdeleteHandler")
+	defer httputils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	ftype := vars["type"]
 	fname := vars["name"]
-    jmsg := ftype + " " + fname
+	jmsg := ftype + " " + fname
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(jmsg + " has been deleted")
@@ -1243,22 +1243,22 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APIlgAction(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "APIlgAction")
+	defer httputils.TimeTrack(time.Now(), "APIlgAction")
 	url := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
 	/*
-    // Check for CSRF token
-    err = auth.CheckToken(w, r)
-    if err != nil {
-        log.Printf("%s", err.Error())
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	   // Check for CSRF token
+	   err = auth.CheckToken(w, r)
+	   if err != nil {
+	       log.Printf("%s", err.Error())
+	       http.Error(w, err.Error(), 500)
+	       return
+	   }
 	*/
-        
+
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff
 		out, err := exec.Command("ping", "-c10", url).Output()
@@ -1333,20 +1333,20 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "APInewRemoteImage")
+	defer httputils.TimeTrack(time.Now(), "APInewRemoteImage")
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
-    
+
 	/*
-    // Check for CSRF token
-    err := auth.CheckToken(w, r)
-    if err != nil {
-        log.Printf("%s", err.Error())
-        http.Error(w, err.Error(), 500)
-        return
-    }
+	   // Check for CSRF token
+	   err := auth.CheckToken(w, r)
+	   if err != nil {
+	       log.Printf("%s", err.Error())
+	       http.Error(w, err.Error(), 500)
+	       return
+	   }
 	*/
-    
+
 	if !strings.HasPrefix(remoteURL, "http") {
 		log.Println("remoteURL does not contain a URL prefix, so adding http")
 		log.Println(remoteURL)
@@ -1419,7 +1419,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewImage(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "APInewImage")
+	defer httputils.TimeTrack(time.Now(), "APInewImage")
 	contentLength := r.ContentLength
 	var reader io.Reader
 	var f io.WriteCloser
@@ -1429,17 +1429,17 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	formfilename := vars["filename"]
 	contentType := r.Header.Get("Content-Type")
-    
+
 	/*
-    // Check for CSRF token, if not a CLI upload
-    if contentType != "" {
-        err = auth.CheckToken(w, r)
-        if err != nil {
-            log.Printf("%s", err.Error())
-            http.Error(w, err.Error(), 500)
-            return
-        }
-    }
+	   // Check for CSRF token, if not a CLI upload
+	   if contentType != "" {
+	       err = auth.CheckToken(w, r)
+	       if err != nil {
+	           log.Printf("%s", err.Error())
+	           http.Error(w, err.Error(), 500)
+	           return
+	       }
+	   }
 	*/
 
 	if contentType == "" {
@@ -1574,25 +1574,25 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// w.Statuscode = 200
-    
-    // Check if we're uploading a screenshot
-    ss := r.FormValue("screenshot")
-    if ss == "on" {
-        //BoltDB stuff
-        sc := &Screenshot{
-            Created:  time.Now().Unix(),
-            Filename: filename,
-        }
-        err = sc.save()
-        if err != nil {
-            log.Println(err)
-            setFlash("Failed to save screenshot", w, r)
+
+	// Check if we're uploading a screenshot
+	ss := r.FormValue("screenshot")
+	if ss == "on" {
+		//BoltDB stuff
+		sc := &Screenshot{
+			Created:  time.Now().Unix(),
+			Filename: filename,
+		}
+		err = sc.save()
+		if err != nil {
+			log.Println(err)
+			setFlash("Failed to save screenshot", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
-        }
+		}
 		setFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-        return
-    }
+		return
+	}
 
 	//BoltDB stuff
 	imi := &Image{
@@ -1610,7 +1610,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Readme(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "Readme")
+	defer httputils.TimeTrack(time.Now(), "Readme")
 	name := "README"
 	p, err := loadPage(name, w, r)
 	if err != nil {
@@ -1643,7 +1643,7 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 }
 
 func Changelog(w http.ResponseWriter, r *http.Request) {
-    defer httputils.TimeTrack(time.Now(), "Changelog")
+	defer httputils.TimeTrack(time.Now(), "Changelog")
 	name := "CHANGELOG"
 	p, err := loadPage(name, w, r)
 	if err != nil {
