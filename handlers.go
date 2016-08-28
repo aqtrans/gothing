@@ -26,12 +26,12 @@ import (
 	"strings"
 	"time"
 	"github.com/spf13/viper"
-    "jba.io/go/utils"
+    "jba.io/go/httputils"
     //"jba.io/go/auth"
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "indexHandler")
+	defer httputils.TimeTrack(time.Now(), "indexHandler")
 	title := "index"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "index.tmpl", p)
@@ -41,7 +41,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func helpHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "helpHandler")
+	defer httputils.TimeTrack(time.Now(), "helpHandler")
 	title := "Help"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "help.tmpl", p)
@@ -51,7 +51,7 @@ func helpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
-	defer utils.TimeTrack(time.Now(), "loadGalleryPage")
+	defer httputils.TimeTrack(time.Now(), "loadGalleryPage")
 	page, perr := loadPage("Gallery", w, r)
 	if perr != nil {
 		log.Println(perr)
@@ -78,7 +78,7 @@ func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, erro
 }
 
 func galleryHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "galleryHandler")
+	defer httputils.TimeTrack(time.Now(), "galleryHandler")
 	l, err := loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
@@ -91,7 +91,7 @@ func galleryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "galleryEsgyHandler")
+	defer httputils.TimeTrack(time.Now(), "galleryEsgyHandler")
 	l, err := loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
@@ -104,7 +104,7 @@ func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminListHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "galleryListHandler")
+	defer httputils.TimeTrack(time.Now(), "galleryListHandler")
 	//title := "Admin List"
 	l, err := loadGalleryPage(w, r)
 	if err != nil {
@@ -117,7 +117,7 @@ func adminListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "adminHandler")
+	defer httputils.TimeTrack(time.Now(), "adminHandler")
 	title := "Admin Panel"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "admin.tmpl", p)
@@ -127,7 +127,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminSignupHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "adminSignupHandler")
+	defer httputils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Admin Signup"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "admin_user.tmpl", p)
@@ -137,7 +137,7 @@ func adminSignupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminUserPassHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "adminUserPassHandler")
+	defer httputils.TimeTrack(time.Now(), "adminUserPassHandler")
 	title := "Admin Password Change"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "admin_password.tmpl", p)
@@ -147,7 +147,7 @@ func adminUserPassHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func signupPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "adminSignupHandler")
+	defer httputils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Signup"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "signup.tmpl", p)
@@ -157,7 +157,7 @@ func signupPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func lgHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "lgHandler")
+	defer httputils.TimeTrack(time.Now(), "lgHandler")
 	title := "lg"
 	p, err := loadPage(title, w, r)
 	data := struct {
@@ -176,7 +176,7 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "searchHandler")
+	defer httputils.TimeTrack(time.Now(), "searchHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	term := vars["name"]
 	sterm := regexp.MustCompile(term)
@@ -219,7 +219,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "uploadPageHandler")
+	defer httputils.TimeTrack(time.Now(), "uploadPageHandler")
 	title := "up"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "up.tmpl", p)
@@ -229,7 +229,7 @@ func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "uploadImagePageHandler")
+	defer httputils.TimeTrack(time.Now(), "uploadImagePageHandler")
 	title := "upimg"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "upimg.tmpl", p)
@@ -239,7 +239,7 @@ func uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func pastePageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "pastePageHandler")
+	defer httputils.TimeTrack(time.Now(), "pastePageHandler")
 	title := "paste"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "paste.tmpl", p)
@@ -251,7 +251,7 @@ func pastePageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "shortenPageHandler")
+	defer httputils.TimeTrack(time.Now(), "shortenPageHandler")
 	title := "shorten"
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(w, "shorten.tmpl", p)
@@ -263,7 +263,7 @@ func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginPageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "loginPageHandler")
+	defer httputils.TimeTrack(time.Now(), "loginPageHandler")
 	title := "login"
 	p, err := loadPage(title, w, r)
 	data := struct {
@@ -281,7 +281,7 @@ func loginPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func listHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "listHandler")
+	defer httputils.TimeTrack(time.Now(), "listHandler")
 	l, err := loadListPage(w, r)
 	if err != nil {
 		log.Println(err)
@@ -294,7 +294,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 
 //Short URL Handler
 func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "shortUrlHandler")
+	defer httputils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	title := strings.ToLower(vars["name"])
@@ -380,7 +380,7 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func pasteHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "pasteHandler")
+	defer httputils.TimeTrack(time.Now(), "pasteHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	title := vars["name"]
 	paste := &Paste{}
@@ -440,7 +440,7 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func downloadHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "downloadHandler")
+	defer httputils.TimeTrack(time.Now(), "downloadHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
@@ -474,7 +474,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "downloadImageHandler")
+	defer httputils.TimeTrack(time.Now(), "downloadImageHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	//fpath := cfg.ImgDir + path.Base(name)
@@ -548,7 +548,7 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "imageThumbHandler")
+    defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	fpath := viper.GetString("ImgDir") + path.Base(strings.TrimSuffix(name, ".png"))
@@ -602,7 +602,7 @@ func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
 }
 
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "imageDirectHandler")
+    defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
     serveContent(w, r, viper.GetString("ImgDir"), name)
@@ -612,7 +612,7 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 //Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "imageBigHandler")
+    defer httputils.TimeTrack(time.Now(), "imageBigHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	smallPath := viper.GetString("ImgDir") + path.Base(name)
@@ -650,7 +650,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "viewMarkdownHandler")
+    defer httputils.TimeTrack(time.Now(), "viewMarkdownHandler")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	p, err := loadPage(name, w, r)
@@ -687,7 +687,7 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "APInewRemoteFile")
+    defer httputils.TimeTrack(time.Now(), "APInewRemoteFile")
 	/*
     // Check for CSRF token
     err := auth.CheckToken(w, r)
@@ -775,7 +775,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewFile(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "APInewFile")
+    defer httputils.TimeTrack(time.Now(), "APInewFile")
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	name := vars["name"]
 	contentLength := r.ContentLength
@@ -1005,7 +1005,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewShortUrlForm")
+	defer httputils.TimeTrack(time.Now(), "APInewShortUrlForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -1101,7 +1101,7 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 
 //Pastebin handlers
 func APInewPaste(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewPaste")
+	defer httputils.TimeTrack(time.Now(), "APInewPaste")
 	log.Println("Paste request...")
 	paste := r.Body
 	buf := new(bytes.Buffer)
@@ -1134,7 +1134,7 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
-	defer utils.TimeTrack(time.Now(), "APInewPasteForm")
+	defer httputils.TimeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
@@ -1176,7 +1176,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 
 //Delete stuff
 func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "APIdeleteHandler")
+    defer httputils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
 	vars := r.Context().Value(httptreemux.ParamsContextKey).(map[string]string)
 	ftype := vars["type"]
@@ -1243,7 +1243,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func APIlgAction(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "APIlgAction")
+    defer httputils.TimeTrack(time.Now(), "APIlgAction")
 	url := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
@@ -1333,7 +1333,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "APInewRemoteImage")
+    defer httputils.TimeTrack(time.Now(), "APInewRemoteImage")
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
     
@@ -1419,7 +1419,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func APInewImage(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "APInewImage")
+    defer httputils.TimeTrack(time.Now(), "APInewImage")
 	contentLength := r.ContentLength
 	var reader io.Reader
 	var f io.WriteCloser
@@ -1610,7 +1610,7 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func Readme(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "Readme")
+    defer httputils.TimeTrack(time.Now(), "Readme")
 	name := "README"
 	p, err := loadPage(name, w, r)
 	if err != nil {
@@ -1643,7 +1643,7 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 }
 
 func Changelog(w http.ResponseWriter, r *http.Request) {
-    defer utils.TimeTrack(time.Now(), "Changelog")
+    defer httputils.TimeTrack(time.Now(), "Changelog")
 	name := "CHANGELOG"
 	p, err := loadPage(name, w, r)
 	if err != nil {

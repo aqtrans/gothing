@@ -37,7 +37,7 @@ import (
 	"strconv"
 
 	"jba.io/go/auth"
-	"jba.io/go/utils"
+	"jba.io/go/httputils"
 )
 
 type configuration struct {
@@ -219,7 +219,7 @@ func init() {
 	//Flag '-l' enables go.dev and *.dev domain resolution
 	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
 	//Flag '-d' enabled debug logging
-	flag.BoolVar(&utils.Debug, "d", false, "Enabled debug logging")
+	flag.BoolVar(&httputils.Debug, "d", false, "Enabled debug logging")
 
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
@@ -235,12 +235,12 @@ func init() {
 		log.Fatal(err)
 	}
 
-	funcMap := template.FuncMap{"prettyDate": utils.PrettyDate, "safeHTML": utils.SafeHTML, "imgClass": utils.ImgClass, "imgExt": utils.ImgExt}
+	funcMap := template.FuncMap{"prettyDate":httputils.PrettyDate, "safeHTML":httputils.SafeHTML, "imgClass":httputils.ImgClass, "imgExt":httputils.ImgExt}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
 		//DEBUG TEMPLATE LOADING
-		utils.Debugln(files)
+		httputils.Debugln(files)
 		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
 }
@@ -277,7 +277,7 @@ func isAdmin(s string) bool {
 //When behind Nginx, use X-Forwarded-Proto header to retrieve this, then just tack on "://"
 //getScheme(r) should return http:// or https://
 func getScheme(r *http.Request) (scheme string) {
-	defer utils.TimeTrack(time.Now(), "getScheme")
+	defer httputils.TimeTrack(time.Now(), "getScheme")
 	scheme = r.Header.Get("X-Forwarded-Proto") + "://"
 	/*
 		scheme = "http://"
@@ -296,7 +296,7 @@ func setFlash(msg string, w http.ResponseWriter, r *http.Request) {
 }
 
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
-	defer utils.TimeTrack(time.Now(), "renderTemplate")
+	defer httputils.TimeTrack(time.Now(), "renderTemplate")
 	tmpl, ok := templates[name]
 	if !ok {
 		return fmt.Errorf("The template %s does not exist", name)
@@ -318,7 +318,7 @@ func renderTemplate(w http.ResponseWriter, name string, data interface{}) error 
 }
 
 func ParseBool(value string) bool {
-	defer utils.TimeTrack(time.Now(), "ParseBool")
+	defer httputils.TimeTrack(time.Now(), "ParseBool")
 	boolValue, err := strconv.ParseBool(value)
 	if err != nil {
 		return false
@@ -327,7 +327,7 @@ func ParseBool(value string) bool {
 }
 
 func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
-	defer utils.TimeTrack(time.Now(), "loadPage")
+	defer httputils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
 	user, isAdmin := auth.GetUsername(r.Context())
 	msg := auth.GetFlash(r.Context())
@@ -352,7 +352,7 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 }
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	defer utils.TimeTrack(time.Now(), "loadMainPage")
+	defer httputils.TimeTrack(time.Now(), "loadMainPage")
 	p, err := loadPage(title, w, r)
 	if err != nil {
 		return nil, err
@@ -366,7 +366,7 @@ func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interfa
 }
 
 func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
-	defer utils.TimeTrack(time.Now(), "loadListPage")
+	defer httputils.TimeTrack(time.Now(), "loadListPage")
 	page, perr := loadPage("List", w, r)
 	if perr != nil {
 		return nil, perr
@@ -377,7 +377,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("FILES: key=" + string(k) + " value=" + string(v))
+			httputils.Debugln("FILES: key=" + string(k) + " value=" + string(v))
 			var file *File
 			err := json.Unmarshal(v, &file)
 			if err != nil {
@@ -395,7 +395,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("PASTE: key=" + string(k) + " value=" + string(v))
+			httputils.Debugln("PASTE: key=" + string(k) + " value=" + string(v))
 			var paste *Paste
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
@@ -413,7 +413,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("SHORT: key=" + string(k) + " value=" + string(v))
+			httputils.Debugln("SHORT: key=" + string(k) + " value=" + string(v))
 			var short *Shorturl
 			err := json.Unmarshal(v, &short)
 			if err != nil {
@@ -431,7 +431,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("IMAGE: key=" + string(k) + " value=" + string(v))
+			httputils.Debugln("IMAGE: key=" + string(k) + " value=" + string(v))
 			var image *Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
@@ -449,7 +449,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		b.ForEach(func(k, v []byte) error {
-			utils.Debugln("SCREENSHOTS: key=" + string(k) + " value=" + string(v))
+			httputils.Debugln("SCREENSHOTS: key=" + string(k) + " value=" + string(v))
 			var screenshot *Screenshot
 			err := json.Unmarshal(v, &screenshot)
 			if err != nil {
@@ -466,7 +466,7 @@ func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 }
 
 func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
-	defer utils.TimeTrack(time.Now(), "ParseMultipartFormProg")
+	defer httputils.TimeTrack(time.Now(), "ParseMultipartFormProg")
 
 	if r.Form == nil {
 		err := r.ParseForm()
@@ -496,7 +496,7 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 }
 
 func (f *File) save() error {
-	defer utils.TimeTrack(time.Now(), "File.save()")
+	defer httputils.TimeTrack(time.Now(), "File.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
@@ -515,7 +515,7 @@ func (f *File) save() error {
 }
 
 func (s *Shorturl) save() error {
-	defer utils.TimeTrack(time.Now(), "Shorturl.save()")
+	defer httputils.TimeTrack(time.Now(), "Shorturl.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
@@ -532,7 +532,7 @@ func (s *Shorturl) save() error {
 }
 
 func (p *Paste) save() error {
-	defer utils.TimeTrack(time.Now(), "Paste.save()")
+	defer httputils.TimeTrack(time.Now(), "Paste.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
@@ -551,7 +551,7 @@ func (p *Paste) save() error {
 }
 
 func makeThumb(fpath, thumbpath string) {
-	defer utils.TimeTrack(time.Now(), "makeThumb")
+	defer httputils.TimeTrack(time.Now(), "makeThumb")
 	contentType := mime.TypeByExtension(filepath.Ext(path.Base(fpath)))
 	if contentType == "video/webm" {
 		log.Println("WEBM FILE DETECTED")
@@ -579,7 +579,7 @@ func makeThumb(fpath, thumbpath string) {
 }
 
 func (i *Image) save() error {
-	defer utils.TimeTrack(time.Now(), "Image.save()")
+	defer httputils.TimeTrack(time.Now(), "Image.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
@@ -607,7 +607,7 @@ func (i *Image) save() error {
 }
 
 func (s *Screenshot) save() error {
-	defer utils.TimeTrack(time.Now(), "Screenshot.save()")
+	defer httputils.TimeTrack(time.Now(), "Screenshot.save()")
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		encoded, err := json.Marshal(s)
@@ -626,7 +626,7 @@ func (s *Screenshot) save() error {
 }
 
 func defaultHandler(next http.Handler) http.Handler {
-	defer utils.TimeTrack(time.Now(), "defaultHandler")
+	defer httputils.TimeTrack(time.Now(), "defaultHandler")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Host == viper.GetString("ImageTLD") || r.Host == viper.GetString("MainTLD") || r.Host == "www."+viper.GetString("MainTLD") || r.Host == viper.GetString("ShortTLD") || r.Host == viper.GetString("GifTLD") || r.Host == "go.dev" || r.Host == "go.jba.io" {
 			next.ServeHTTP(w, r)
@@ -745,9 +745,9 @@ func main() {
 	flag.Parse()
 	flag.Set("bind", ":3000")
 
-	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)
-	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
-	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle, utils.Logger)
+	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle,httputils.Logger)
+	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle,httputils.Logger)	
+	//std := alice.New(handlers.RecoveryHandler(), auth.XsrfMiddle,httputils.Logger)
 	//stda := alice.New(Auth, Logger)
 
 	if fLocal {
@@ -758,7 +758,7 @@ func main() {
 
 		log.Println("Listening on devd.io domains due to -l flag...")
 		
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, utils.Logger)	
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle,httputils.Logger)	
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
@@ -844,7 +844,7 @@ func main() {
 	api.POST("/image/remote", APInewRemoteImage)
 	//Golang-Stats-API
 	//api.HandleFunc("/stats", stats_api.Handler)
-	api.GET("/vars", utils.HandleExpvars)
+	//api.GET("/vars",httputils.HandleExpvars)
 
 	//Dedicated image subdomain routes
 	//i := r.Host(viper.GetString("ImageTLD")).Subrouter()
@@ -874,10 +874,10 @@ func main() {
 
 	//r.PathPrefix("/assets/").HandlerFunc(staticHandler)
 	d.GET("/*name", shortUrlHandler)
-	http.HandleFunc("/robots.txt", utils.RobotsHandler)
-	http.HandleFunc("/favicon.ico", utils.FaviconHandler)
-	http.HandleFunc("/favicon.png", utils.FaviconHandler)
-	http.HandleFunc("/assets/", utils.StaticHandler)
+	http.HandleFunc("/robots.txt",httputils.RobotsHandler)
+	http.HandleFunc("/favicon.ico",httputils.FaviconHandler)
+	http.HandleFunc("/favicon.png",httputils.FaviconHandler)
+	http.HandleFunc("/assets/",httputils.StaticHandler)
 	//Used for troubleshooting proxy headers
 	http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.Host)
