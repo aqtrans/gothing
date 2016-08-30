@@ -713,7 +713,7 @@ func main() {
 	viper.WatchConfig()
 
 	// Open and initialize auth database
-	auth.Open("./data/auth.db")
+	auth.Authdb = auth.Open("./data/auth.db")
 	autherr := auth.AuthDbInit()
 	if autherr != nil {
 		log.Fatalln(autherr)
@@ -807,8 +807,8 @@ func main() {
 	d.GET("/list", auth.AuthMiddle(listHandler))
 	d.GET("/s", auth.AuthMiddle(shortenPageHandler))
 	d.GET("/short", auth.AuthMiddle(shortenPageHandler))
-	d.GET("/lg", lgHandler)
-	d.GET("/p", pastePageHandler)
+	d.GET("/lg", auth.AuthMiddle(lgHandler))
+	d.GET("/p", auth.AuthMiddle(pastePageHandler))
 	d.GET("/p/:name", pasteHandler)
 	d.GET("/up", uploadPageHandler)
 	d.GET("/iup", uploadImagePageHandler)
