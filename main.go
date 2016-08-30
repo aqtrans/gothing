@@ -870,7 +870,7 @@ func main() {
 	//API Functions
 	//api := d.PathPrefix("/api").Subrouter()
 	api := d.NewGroup("/api")
-	api.GET("/delete:type/:name", auth.AuthMiddle(APIdeleteHandler))
+	api.GET("/delete/:type/:name", auth.AuthMiddle(APIdeleteHandler))
 	api.POST("/paste/new", APInewPasteForm)
 	api.POST("/file/new", APInewFile)
 	api.POST("/file/remote", APInewRemoteFile)
