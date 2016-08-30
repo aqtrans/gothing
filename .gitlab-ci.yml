@@ -48,6 +48,8 @@ build-my-project:
     - export PATH=$GOPATH/bin:$PATH  
     - cd $HOME/gopath/src/thing
     - go get -d
+    - go get github.com/GeertJohan/go.rice/rice
+    - rice embed-go
     - go build
 
 test-my-project:
@@ -72,10 +74,12 @@ deploy-it:
     - cd $HOME/gopath/src/thing
     - mkdir deploy
     - go get -d
+    - go get github.com/GeertJohan/go.rice/rice
     - npm install
     - npm install bower
     - node_modules/.bin/bower install
-    - npm build    
+    - npm build
+    - rice embed-go
     - go build -o ./deploy/thing
     - cp -r templates CHANGELOG.md README.md assets deploy/
     - rsync -av --delete --exclude data/ --exclude http.log deploy/ golang@localhost:/home/golang/thing/

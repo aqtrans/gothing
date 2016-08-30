@@ -10,10 +10,12 @@ package main
 // ...only saving if the BoltDB function doesn't error out
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/GeertJohan/go.rice"
 	"github.com/boltdb/bolt"
 	"github.com/dimfeld/httptreemux"
 	"github.com/disintegration/imaging"
@@ -223,24 +225,6 @@ func init() {
 	bufpool = bpool.NewBufferPool(64)
 	if templates == nil {
 		templates = make(map[string]*template.Template)
-	}
-	templatesDir := "./templates/"
-	layouts, err := filepath.Glob(templatesDir + "layouts/*.tmpl")
-	if err != nil {
-		log.Fatal(err)
-	}
-	includes, err := filepath.Glob(templatesDir + "includes/*.tmpl")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": httputils.ImgExt}
-
-	for _, layout := range layouts {
-		files := append(includes, layout)
-		//DEBUG TEMPLATE LOADING
-		httputils.Debugln(files)
-		templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
 }
 
@@ -676,6 +660,54 @@ func dbInit() {
 	})
 }
 
+func riceInit() error {
+	// Parent templates directory named 'templates'
+	templateBox, err := rice.FindBox("templates")
+	if err != nil {
+		return err
+	}
+	// Child directory 'templates/includes' containing the base templates
+	includes, err := templateBox.Open("includes")
+	if err != nil {
+		return err
+	}
+	includeDir, err := includes.Readdir(-1)
+	if err != nil {
+		return err
+	}
+	// Child directory 'templates/layouts' containing individual page layouts
+	layouts, err := templateBox.Open("layouts")
+	if err != nil {
+		return err
+	}
+	layoutsDir, err := layouts.Readdir(-1)
+	if err != nil {
+		return err
+	}
+	var boxT []string
+	var templateIBuff bytes.Buffer
+	for _, v := range includeDir {
+		boxT = append(boxT, "includes/"+v.Name())
+		iString, _ := templateBox.String("includes/" + v.Name())
+		templateIBuff.WriteString(iString)
+	}
+
+	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": httputils.ImgExt}
+
+	// Here we are prefacing every layout with what should be every includes/ .tmpl file
+	// Ex: includes/sidebar.tmpl includes/bottom.tmpl includes/base.tmpl layouts/list.tmpl
+	// **THIS IS VERY IMPORTANT TO ALLOW MY BASE TEMPLATE TO WORK**
+	for _, layout := range layoutsDir {
+		boxT = append(boxT, "layouts/"+layout.Name())
+		//DEBUG TEMPLATE LOADING
+		//utils.Debugln(files)
+		lString, _ := templateBox.String("layouts/" + layout.Name())
+		fstring := templateIBuff.String() + lString
+		templates[layout.Name()] = template.Must(template.New(layout.Name()).Funcs(funcMap).Parse(fstring))
+	}
+	return nil
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -721,6 +753,11 @@ func main() {
 	defer auth.Authdb.Close()
 
 	auth.AdminUser = viper.GetString("AdminUser")
+	httputils.AssetsBox = rice.MustFindBox("assets")
+	err = riceInit()
+	if err != nil {
+		log.Fatalln(err)
+	}	
 
 	//Check for essential directory existence
 	_, err = os.Stat(viper.GetString("ImgDir"))
