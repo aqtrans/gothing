@@ -1023,7 +1023,6 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 	*/
 
 	subdomain := r.PostFormValue("shortSub")
-	log.Println(subdomain)
 
 	short := r.PostFormValue("short")
 	long := r.PostFormValue("long")
@@ -1133,21 +1132,7 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
 
-// processCaptcha accepts the http.Request object, finds the reCaptcha form variables which
-// were input and sent by HTTP POST to the server, then calls the recaptcha package's Confirm()
-// method, which returns a boolean indicating whether or not the client answered the form correctly.
-func processCaptcha(request *http.Request) (result bool) {
-	result = false
-	var err error
-	recaptchaResponse, responseFound := request.Form["g-recaptcha-response"]
-	if responseFound {
-		result, err = Confirm(request.RemoteAddr, recaptchaResponse[0])
-		if err != nil {
-			result = false
-		}
-	}
-	return
-}
+
 
 func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPasteForm")
@@ -1164,14 +1149,8 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	       return
 	   }
 	*/
-	captcha := processCaptcha(r)
-	if !captcha {
-		http.NotFound(w, r)
-		return
-	}
-	if captcha {
-		log.Println("Captcha verified")
-	}
+
+	processCaptcha(w, r)
 
 	title := r.PostFormValue("title")
 	if title != "" {
@@ -1282,6 +1261,8 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 	       return
 	   }
 	*/
+
+	processCaptcha(w, r)
 
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff

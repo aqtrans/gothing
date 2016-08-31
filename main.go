@@ -91,12 +91,12 @@ func check(remoteip, response string) (r RecaptchaResponse, err error) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Read error: could not read body: %s", err)
+		log.Printf("Read error: could not read body: %s", err)
 		return
 	}
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		log.Println("Read error: got invalid JSON: %s", err)
+		log.Printf("Read error: got invalid JSON: %s", err)
 		return
 	}
 	return
@@ -110,6 +110,25 @@ func check(remoteip, response string) (r RecaptchaResponse, err error) {
 func Confirm(remoteip, response string) (result bool, err error) {
 	resp,err := check(remoteip, response)
 	result = resp.Success
+	return
+}
+
+// processCaptcha accepts the http.Request object, finds the reCaptcha form variables which
+// were input and sent by HTTP POST to the server, then calls the recaptcha package's Confirm()
+// method, which returns a boolean indicating whether or not the client answered the form correctly.
+func processCaptcha(w http.ResponseWriter, r *http.Request) {
+	recaptchaResponse, responseFound := r.Form["g-recaptcha-response"]
+	if responseFound {
+		result, err := Confirm(r.RemoteAddr, recaptchaResponse[0])
+		if err != nil {
+			http.Error(w, "No.", http.StatusServiceUnavailable)
+			return
+		}
+		if !result {
+			http.Error(w, "No.", http.StatusServiceUnavailable)
+			return			
+		}
+	}
 	return
 }
 
@@ -892,8 +911,8 @@ func main() {
 	d.GET("/list", auth.AuthMiddle(listHandler))
 	d.GET("/s", auth.AuthMiddle(shortenPageHandler))
 	d.GET("/short", auth.AuthMiddle(shortenPageHandler))
-	d.GET("/lg", auth.AuthMiddle(lgHandler))
-	d.GET("/p", auth.AuthMiddle(pastePageHandler))
+	d.GET("/lg", lgHandler)
+	d.GET("/p", pastePageHandler)
 	d.GET("/p/:name", pasteHandler)
 	d.GET("/up", uploadPageHandler)
 	d.GET("/iup", uploadImagePageHandler)
