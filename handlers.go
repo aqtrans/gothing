@@ -1133,6 +1133,22 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
 
+// processCaptcha accepts the http.Request object, finds the reCaptcha form variables which
+// were input and sent by HTTP POST to the server, then calls the recaptcha package's Confirm()
+// method, which returns a boolean indicating whether or not the client answered the form correctly.
+func processCaptcha(request *http.Request) (result bool) {
+	result = false
+	var err error
+	recaptchaResponse, responseFound := request.Form["g-recaptcha-response"]
+	if responseFound {
+		result, err = Confirm(request.RemoteAddr, recaptchaResponse[0])
+		if err != nil {
+			result = false
+		}
+	}
+	return
+}
+
 func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
@@ -1148,6 +1164,14 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	       return
 	   }
 	*/
+	captcha := processCaptcha(r)
+	if !captcha {
+		http.NotFound(w, r)
+		return
+	}
+	if captcha {
+		log.Println("Captcha verified")
+	}
 
 	title := r.PostFormValue("title")
 	if title != "" {
