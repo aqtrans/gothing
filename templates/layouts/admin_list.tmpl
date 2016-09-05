@@ -1,9 +1,16 @@
-{{ define "title" }}<title>Image Gallery - {{.Page.TheName}}</title>{{ end }}
+{{ define "title" }}<title>Admin List - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}
 <main>
 <article>
-    <header>Image Gallery</header>
+    <header>Admin List</header>
 </article>
+
+  <ul class="tabs">
+    <li class="tabs-title"><a href="/admin"><i class="fa fa-lock" aria-hidden="true"></i> Main</a></li>
+    <li class="tabs-title"><a href="/admin/users"><i class="fa fa-users" aria-hidden="true"></i> Manage Users</a></li>
+    <li class="tabs-title is-active"><a href="#"><i class="fa fa-git" aria-hidden="true"></i> Manage Stuff</a></li>
+    <li class="tabs-title"><a href="/admin/config"><i class="fa fa-wrench" aria-hidden="true"></i> Manage Config</a></li>
+  </ul>
   <article>  
         <h2>Images</h2>
         <table>
