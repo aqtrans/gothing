@@ -14,11 +14,10 @@
       <form action="/up" method="post" enctype="multipart/form-data" class="dropzone" id="fileup">
       <div class="row collapse">
         <div class="small-6 columns">
-          <input type="text" name="local-file-name" placeholder="Optional filename">
+          <input type="file" name="file" id="file">
         </div>
         <div class="small-4 columns">      
-          <label for="file">Filename:</label>
-          <input type="file" name="file" id="file">
+          <input type="text" name="local-file-name" placeholder="Optional filename">
           <input type="hidden" name="token" value="{{.Page.Token}}">
         </div>
         <div class="small-2 columns">

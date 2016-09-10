@@ -9,16 +9,18 @@
         {{range .Images}}
         {{$imgext := .Filename|imgExt}}
           <div class="columns">
-            {{if eq $imgext "gif"}}
-            <img class="{{.Filename|imgClass}}" data-gifffer="/imagedirect/{{.Filename}}">
-            {{else if eq $imgext "webm"}}
-            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
-            {{else}}
-            <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
-            {{end}}
-            <div class="button-group">
-            <a href="/{{.Filename}}" class="small button"><i class='fa fa-external-link'></i>Link</a>
-            <a href="/big/{{.Filename}}" class="small button"><i class='fa fa-arrows-alt'></i>Embiggen</a>
+            <div class="thumbnail">
+              {{if eq $imgext "gif"}}
+              <img class="{{.Filename|imgClass}}" data-gifffer="/imagedirect/{{.Filename}}">
+              {{else if eq $imgext "webm"}}
+              <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
+              {{else}}
+              <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
+              {{end}}
+              <div class="button-group">
+              <a href="/{{.Filename}}" class="small button"><i class='fa fa-external-link'></i>Link</a>
+              <a href="/big/{{.Filename}}" class="small button"><i class='fa fa-arrows-alt'></i>Embiggen</a>
+              </div>
             </div>
           </div>
         {{ end }}
