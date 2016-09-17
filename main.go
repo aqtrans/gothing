@@ -775,6 +775,15 @@ func riceInit() error {
 	return nil
 }
 
+// Simple function to get the httptreemux params, setting it blank if there aren't any
+func getParams(c context.Context) map[string]string {
+	params, ok := c.Value(httptreemux.ParamsContextKey).(map[string]string)
+	if !ok {
+		params = make(map[string]string)
+	}
+	return params
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
