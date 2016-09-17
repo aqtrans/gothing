@@ -11,7 +11,7 @@
     <div class="accordion-content" data-tab-content>
       <h3>Upload a local file</h3>
       <hr />
-      <form action="/up" method="PUT" enctype="multipart/form-data" class="dropzone" id="fileup">
+      <form action="/api/file/new" method="post" enctype="multipart/form-data" class="dropzone" id="fileup">
       <div class="row collapse">
         <div class="small-6 columns">
           <input type="file" name="file" id="file">
@@ -32,7 +32,7 @@
     <div class="accordion-content" data-tab-content>
       <h3>Upload a file from a remote URL</h3>
       <hr />
-      <form method="PUT" action="/up" id="remotefileup">
+      <form method="post" action="/api/file/remote" id="remotefileup">
       <div class="row collapse">
       <div class="small-6 columns">
         <input type="text" name="remote" placeholder="Enter your URL...">
