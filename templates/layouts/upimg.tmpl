@@ -19,7 +19,7 @@
           <div class="small-4 columns">
             <label for="file">Filename:</label>
             <input type="file" name="file" id="file">
-            <input type="hidden" name="token" value="{{.Page.Token}}">
+            {{.Page.Token}}
           </div>
           <div class="small-2 columns">
             <input type="submit" name="submit" value="Submit" class="button success">
@@ -41,7 +41,7 @@
           </div>
           <div class="small-4 columns">
             <input type="text" name="remote-image-name" placeholder="Optional filename">
-            <input type="hidden" name="token" value="{{.Page.Token}}">
+            {{.Page.Token}}
           </div>    
           <div class="small-2 columns">
             <input type="submit" name="submit" value="Submit" class="button success postfix">

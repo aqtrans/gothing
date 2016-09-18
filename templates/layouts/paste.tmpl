@@ -7,7 +7,7 @@
   <article>  
         <form action="/api/paste/new" method="POST">
         Title:<input type="text" name="title"><br>
-        <input type="hidden" name="token" value="{{.Page.Token}}">
+        {{.Page.Token}}
         <textarea name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
         <div class="g-recaptcha" data-sitekey="6LclI-8SAAAAAL0v_AeZPbAYUq8s3WIaFKP_PlO9"></div>
         <input type="submit" value="Submit" class="button success">
