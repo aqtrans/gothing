@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
     "github.com/boltdb/bolt"
+    "jba.io/go/httputils"
+    "github.com/GeertJohan/go.rice"
 )
 
 var (
@@ -70,12 +72,25 @@ func TestAuthInit(t *testing.T) {
 	tmpdb.MustClose()
 }
 
+func TestRiceInit(t *testing.T) {
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestIndexHandler(t *testing.T) {
 	tmpdb := mustOpenDB()
 	t.Log(tmpdb.Path())
 	db = tmpdb.DB
 	dbInit()
 	defer tmpdb.MustClose() 
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/", nil)
@@ -127,7 +142,12 @@ func TestHelpHandler(t *testing.T) {
 	t.Log(tmpdb.Path())
 	db = tmpdb.DB
 	dbInit()
-	defer tmpdb.MustClose()  
+	defer tmpdb.MustClose()
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/help", nil)
@@ -161,6 +181,11 @@ func TestLoginPageHandler(t *testing.T) {
 	db = tmpdb.DB
 	dbInit()
 	defer tmpdb.MustClose()  
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/login", nil)
@@ -194,6 +219,11 @@ func TestLookingGlassPageHandler(t *testing.T) {
 	db = tmpdb.DB
 	dbInit()
 	defer tmpdb.MustClose()     
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/lg", nil)
@@ -227,6 +257,11 @@ func TestPastePageHandler(t *testing.T) {
 	db = tmpdb.DB
 	dbInit()
 	defer tmpdb.MustClose()       
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/p", nil)
@@ -259,7 +294,12 @@ func TestFileUpPageHandler(t *testing.T) {
 	t.Log(tmpdb.Path())
 	db = tmpdb.DB
 	dbInit()
-	defer tmpdb.MustClose()       
+	defer tmpdb.MustClose()   
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}        
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/up", nil)
@@ -293,6 +333,11 @@ func TestImageUpPageHandler(t *testing.T) {
 	db = tmpdb.DB
 	dbInit()
 	defer tmpdb.MustClose()        
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/iup", nil)
@@ -326,6 +371,11 @@ func TestImageGalleryPageHandler(t *testing.T) {
 	db = tmpdb.DB
 	dbInit()
 	defer tmpdb.MustClose() 
+    httputils.AssetsBox = rice.MustFindBox("assets")
+	err := riceInit()
+	if err != nil {
+		t.Fatal(err)
+	}    
     // Create a request to pass to our handler. We don't have any query parameters for now, so we'll
     // pass 'nil' as the third parameter.
     req, err := http.NewRequest("GET", "/i", nil)
