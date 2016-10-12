@@ -27,25 +27,10 @@
 			"revisionTime": "2015-02-04T20:07:40+03:00"
 		},
 		{
-			"path": "github.com/gorilla/context",
-			"revision": "215affda49addc4c8ef7e2534915df2c8c35c6cd",
-			"revisionTime": "2014-12-17T08:02:51-08:00"
-		},
-		{
 			"checksumSHA1": "6/9VW/AyJyjRXLu+nbhqGYvOO2k=",
 			"path": "github.com/gorilla/handlers",
 			"revision": "801d6e3b008914ee888c9ab9b1b379b9a56fbf44",
 			"revisionTime": "2016-07-21T04:34:55Z"
-		},
-		{
-			"path": "github.com/gorilla/securecookie",
-			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370",
-			"revisionTime": "2015-08-20T16:29:58+08:00"
-		},
-		{
-			"path": "github.com/gorilla/sessions",
-			"revision": "aa5e036e6c44aec69a32eb41097001978b29ad31",
-			"revisionTime": "2014-06-13T12:43:57-07:00"
 		},
 		{
 			"path": "github.com/justinas/alice",
