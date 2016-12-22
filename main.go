@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+
 	"github.com/GeertJohan/go.rice"
 	"github.com/boltdb/bolt"
 	"github.com/dimfeld/httptreemux"
@@ -22,12 +23,14 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
-	"github.com/aqtrans/ctx-csrf"
-	"github.com/spf13/viper"
+	//"github.com/aqtrans/ctx-csrf"
 	"html/template"
 	"regexp"
 
-	"github.com/russross/blackfriday"
+	"github.com/gorilla/csrf"
+	"github.com/spf13/viper"
+
+	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
@@ -37,9 +40,10 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"io/ioutil"
 	"strconv"
 	"time"
+
+	"github.com/russross/blackfriday"
 
 	"jba.io/go/auth"
 	"jba.io/go/httputils"
@@ -109,7 +113,7 @@ func check(remoteip, response string) (r RecaptchaResponse, err error) {
 // the client answered the reCaptcha input question correctly.
 // It returns a boolean value indicating whether or not the client answered correctly.
 func Confirm(remoteip, response string) (result bool, err error) {
-	resp,err := check(remoteip, response)
+	resp, err := check(remoteip, response)
 	result = resp.Success
 	return
 }
@@ -127,7 +131,7 @@ func processCaptcha(w http.ResponseWriter, r *http.Request) {
 		}
 		if !result {
 			http.Error(w, "No.", http.StatusServiceUnavailable)
-			return			
+			return
 		}
 	}
 	return
@@ -384,7 +388,7 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 	user, isAdmin := auth.GetUsername(r.Context())
 	msg := auth.GetFlash(r.Context())
 	//token := auth.GetToken(r.Context())
-	token := csrf.TemplateField(r.Context(), r)
+	token := csrf.TemplateField(r)
 
 	var message string
 	if msg != "" {
@@ -836,7 +840,7 @@ func main() {
 	err = riceInit()
 	if err != nil {
 		log.Fatalln(err)
-	}	
+	}
 
 	//Check for essential directory existence
 	_, err = os.Stat(viper.GetString("ImgDir"))
