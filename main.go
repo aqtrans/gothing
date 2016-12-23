@@ -816,6 +816,7 @@ func main() {
 	viper.SetDefault("GifTLD", "big.es.gy")
 	viper.SetDefault("AuthDB", "./data/auth.db")
 	viper.SetDefault("AdminUser", "admin")
+	viper.SetDefault("AdminPass", "admin")
 
 	viper.SetConfigName("conf")
 	viper.AddConfigPath("./data/")
