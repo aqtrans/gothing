@@ -827,6 +827,12 @@ func main() {
 	viper.SetConfigType("json")
 	viper.WatchConfig()
 
+	auth.AdminUser = viper.GetString("AdminUser")
+	auth.AdminPass = viper.GetString("AdminPass")
+	// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
+	auth.HashKey = []byte("yyCF3ZXOneAPxOspTrmU8x9JxEP2XrZQCkJDkehrhBp6p765fiL55teT7Dt4Fbkp")
+	auth.BlockKey = []byte("BqHzSVBFbpSZdvaDfy4jXf3OgA8Oe1mR")
+
 	// Open and initialize auth database
 	auth.Authdb = auth.Open("./data/auth.db")
 	autherr := auth.AuthDbInit()
@@ -835,8 +841,8 @@ func main() {
 	}
 	defer auth.Authdb.Close()
 
-	auth.AdminUser = viper.GetString("AdminUser")
 	httputils.AssetsBox = rice.MustFindBox("assets")
+
 	err = riceInit()
 	if err != nil {
 		log.Fatalln(err)
