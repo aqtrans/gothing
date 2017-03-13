@@ -16,6 +16,9 @@ import (
 	"flag"
 	"fmt"
 
+	"html/template"
+	"regexp"
+
 	"github.com/GeertJohan/go.rice"
 	"github.com/boltdb/bolt"
 	"github.com/dimfeld/httptreemux"
@@ -23,9 +26,6 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
-	//"github.com/aqtrans/ctx-csrf"
-	"html/template"
-	"regexp"
 
 	"github.com/gorilla/csrf"
 	"github.com/spf13/viper"
@@ -62,6 +62,7 @@ type configuration struct {
 }
 
 var (
+	authState *auth.AuthState
 	bufpool   *bpool.BufferPool
 	templates map[string]*template.Template
 	_24K      int64 = (1 << 20) * 24
@@ -348,7 +349,7 @@ func getScheme(r *http.Request) (scheme string) {
 }
 
 func setFlash(msg string, w http.ResponseWriter, r *http.Request) {
-	auth.SetSession("flash", msg, w, r)
+	authState.SetSession("flash", msg, w, r)
 }
 
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
@@ -830,17 +831,23 @@ func main() {
 
 	auth.AdminUser = viper.GetString("AdminUser")
 	auth.AdminPass = viper.GetString("AdminPass")
-	// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
-	auth.HashKey = []byte("yyCF3ZXOneAPxOspTrmU8x9JxEP2XrZQCkJDkehrhBp6p765fiL55teT7Dt4Fbkp")
-	auth.BlockKey = []byte("BqHzSVBFbpSZdvaDfy4jXf3OgA8Oe1mR")
+	/*
+		// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
+		auth.HashKey = []byte("yyCF3ZXOneAPxOspTrmU8x9JxEP2XrZQCkJDkehrhBp6p765fiL55teT7Dt4Fbkp")
+		auth.BlockKey = []byte("BqHzSVBFbpSZdvaDfy4jXf3OgA8Oe1mR")
 
-	// Open and initialize auth database
-	auth.Authdb = auth.Open("./data/auth.db")
-	autherr := auth.AuthDbInit()
-	if autherr != nil {
-		log.Fatalln(autherr)
+		// Open and initialize auth database
+		auth.Authdb = auth.Open("./data/auth.db")
+		autherr := auth.AuthDbInit()
+		if autherr != nil {
+			log.Fatalln(autherr)
+		}
+		defer auth.Authdb.Close()
+	*/
+	authState, err = auth.NewAuthState("./data/auth.db")
+	if err != nil {
+		log.Fatalln(err)
 	}
-	defer auth.Authdb.Close()
 
 	httputils.AssetsBox = rice.MustFindBox("assets")
 
@@ -872,7 +879,7 @@ func main() {
 	flag.Set("bind", ":3000")
 
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-	std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
+	std := alice.New(handlers.RecoveryHandler(), authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
 
 	if fLocal {
 		viper.Set("MainTLD", "main.devd.io")
@@ -881,7 +888,7 @@ func main() {
 		viper.Set("GifTLD", "big.devd.io")
 
 		log.Println("Listening on devd.io domains due to -l flag...")
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
@@ -904,43 +911,43 @@ func main() {
 
 	d.GET("/", indexHandler)
 	d.GET("/help", helpHandler)
-	d.GET("/priv", auth.AuthMiddle(Readme))
+	d.GET("/priv", authState.AuthMiddle(Readme))
 	d.GET("/readme", Readme)
 	d.GET("/changelog", Changelog)
-	d.POST("/login", auth.LoginPostHandler)
+	d.POST("/login", authState.LoginPostHandler)
 	d.GET("/login", loginPageHandler)
-	d.POST("/logout", auth.LogoutHandler)
-	d.GET("/logout", auth.LogoutHandler)
+	d.POST("/logout", authState.LogoutHandler)
+	d.GET("/logout", authState.LogoutHandler)
 	//d.GET("/signup", signupPageHandler)
 
 	//a := d.PathPrefix("/auth").Subrouter()
 	a := d.NewGroup("/auth")
-	a.POST("/login", auth.LoginPostHandler)
-	a.POST("/logout", auth.LogoutHandler)
-	a.GET("/logout", auth.LogoutHandler)
-	a.POST("/signup", auth.SignupPostHandler)
+	a.POST("/login", authState.LoginPostHandler)
+	a.POST("/logout", authState.LogoutHandler)
+	a.GET("/logout", authState.LogoutHandler)
+	a.POST("/signup", authState.SignupPostHandler)
 
 	//admin := d.PathPrefix("/admin").Subrouter()
 	admin := d.NewGroup("/admin")
-	admin.GET("/", auth.AuthAdminMiddle(adminHandler))
-	admin.POST("/users", auth.AuthAdminMiddle(auth.UserSignupPostHandler))
+	admin.GET("/", authState.AuthAdminMiddle(adminHandler))
+	admin.POST("/users", authState.AuthAdminMiddle(authState.UserSignupPostHandler))
 	//admin.POST("/user_signup", auth.AuthAdminMiddle(auth.UserSignupPostHandler))
-	admin.GET("/users", auth.AuthAdminMiddle(adminSignupHandler))
-	admin.GET("/list", auth.AuthAdminMiddle(adminListHandler))
+	admin.GET("/users", authState.AuthAdminMiddle(adminSignupHandler))
+	admin.GET("/list", authState.AuthAdminMiddle(adminListHandler))
 	//admin.POST("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler))
 	//admin.POST("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler))
-	admin.POST("/user/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler))
-	admin.POST("/user/delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler))
+	admin.POST("/user/password_change", authState.AuthAdminMiddle(authState.AdminUserPassChangePostHandler))
+	admin.POST("/user/delete", authState.AuthAdminMiddle(authState.AdminUserDeletePostHandler))
 
-	d.GET("/list", auth.AuthMiddle(listHandler))
-	d.GET("/s", auth.AuthMiddle(shortenPageHandler))
-	d.GET("/short", auth.AuthMiddle(shortenPageHandler))
+	d.GET("/list", authState.AuthMiddle(listHandler))
+	d.GET("/s", authState.AuthMiddle(shortenPageHandler))
+	d.GET("/short", authState.AuthMiddle(shortenPageHandler))
 	d.GET("/lg", lgHandler)
 	d.GET("/p", pastePageHandler)
 	d.GET("/p/:name", pasteHandler)
 	d.GET("/up", uploadPageHandler)
 	d.GET("/iup", uploadImagePageHandler)
-	d.GET("/search/:name", auth.AuthMiddle(searchHandler))
+	d.GET("/search/:name", authState.AuthMiddle(searchHandler))
 	d.GET("/d/:name", downloadHandler)
 	d.GET("/big/:name", imageBigHandler)
 	d.GET("/i/:name", downloadImageHandler)
@@ -961,7 +968,7 @@ func main() {
 	//API Functions
 	//api := d.PathPrefix("/api").Subrouter()
 	api := d.NewGroup("/api")
-	api.GET("/delete/:type/:name", auth.AuthMiddle(APIdeleteHandler))
+	api.GET("/delete/:type/:name", authState.AuthMiddle(APIdeleteHandler))
 	api.POST("/paste/new", APInewPasteForm)
 	api.POST("/file/new", APInewFile)
 	api.POST("/file/remote", APInewRemoteFile)
