@@ -27,8 +27,8 @@ install-go:
     - rm -rf $HOME/golang
     - mkdir -p $HOME/gopath/src
     - mkdir -p $HOME/golang
-    - curl https://storage.googleapis.com/golang/go1.7.1.linux-amd64.tar.gz 2>/dev/null > go1.7.1.linux-amd64.tar.gz
-    - tar -C $HOME/golang -xzf go1.7.1.linux-amd64.tar.gz
+    - curl https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz 2>/dev/null > go1.8.linux-amd64.tar.gz
+    - tar -C $HOME/golang -xzf go1.8.linux-amd64.tar.gz
     - export GOROOT=$HOME/golang/go
     - export GOPATH=$HOME/gopath
     - export PATH=$GOROOT/bin:$PATH 
