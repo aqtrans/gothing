@@ -178,7 +178,10 @@ header {
     padding-left: 0.2em;
     padding-right: 0.2em;
     .thumbnail {
-        border-color: $almostblack;
+        box-shadow: 0;
+    }
+    div.button-group a.button {
+        flex: 1 0 auto;
     }
 }
 
