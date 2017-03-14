@@ -8,8 +8,7 @@
       <div id="gallery" class="row">
         {{range .Images}}
         {{$imgext := .Filename|imgExt}}
-        	<div class="columns flex-child-shrink">
-            <div>
+        	<div class="images">
               {{if eq $imgext "gif"}}
               <img class="gifplayer" data-gif="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
               {{else if eq $imgext "webm"}}
@@ -21,7 +20,6 @@
               <a href="/i/{{.Filename}}" class="small button"><i class='fa fa-external-link'></i>Link</a>
               <a href="/big/{{.Filename}}" class="small button"><i class='fa fa-arrows-alt'></i>Embiggen</a>
               </div>
-            </div>
           </div>
         {{ end }}
       </div>
