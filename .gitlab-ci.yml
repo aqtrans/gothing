@@ -79,6 +79,7 @@ deploy-it:
     - npm install bower
     - node_modules/.bin/bower install
     - npm build
+    - node_modules/.bin/gulp sass    
     - rice embed-go
     - go build -o ./deploy/thing
     - cp -r templates CHANGELOG.md README.md assets deploy/
