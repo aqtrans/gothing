@@ -29,10 +29,8 @@
 </main>  
 {{ end }}
 {{ define "extra_scripts" }}
-<script src="/assets/js/gifffer.min.js" type="text/javascript"></script>
+<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
 <script type="text/javascript" charset="utf-8">
-window.onload = function() {
-  Gifffer();
-}
+    $('.gifplayer').gifplayer();
 </script>
 {{ end }}
