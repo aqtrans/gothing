@@ -824,8 +824,6 @@ func main() {
 	viper.SetConfigType("json")
 	viper.WatchConfig()
 
-	auth.AdminUser = viper.GetString("AdminUser")
-	auth.AdminPass = viper.GetString("AdminPass")
 	/*
 		// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
 		auth.HashKey = []byte("yyCF3ZXOneAPxOspTrmU8x9JxEP2XrZQCkJDkehrhBp6p765fiL55teT7Dt4Fbkp")
@@ -839,7 +837,7 @@ func main() {
 		}
 		defer auth.Authdb.Close()
 	*/
-	authState, err = auth.NewAuthState("./data/auth.db")
+	authState, err = auth.NewAuthState("./data/auth.db", viper.GetString("AdminUser"))
 	if err != nil {
 		log.Fatalln(err)
 	}
