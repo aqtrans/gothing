@@ -6,15 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/boltdb/bolt"
 	//"github.com/gorilla/mux"
 	//"github.com/dimfeld/httptreemux"
-	"github.com/kennygrant/sanitize"
-	"github.com/spf13/viper"
 	"html/template"
 	"io"
 	"io/ioutil"
-	"jba.io/go/httputils"
 	"log"
 	"mime"
 	"net/http"
@@ -27,6 +25,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/kennygrant/sanitize"
+	"github.com/spf13/viper"
+	"jba.io/go/httputils"
 	//"jba.io/go/auth"
 )
 
@@ -688,15 +690,6 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 
 func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewRemoteFile")
-	/*
-	   // Check for CSRF token
-	   err := auth.CheckToken(w, r)
-	   if err != nil {
-	       log.Printf("%s", err.Error())
-	       http.Error(w, err.Error(), 500)
-	       return
-	   }
-	*/
 
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
@@ -800,18 +793,6 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		uptype = "form"
 	}
 	//log.Println(uptype)
-
-	/*
-	   // Check for CSRF token on non-cli uploads
-	   if uptype != "cli" {
-	       err = auth.CheckToken(w, r)
-	       if err != nil {
-	           log.Printf("%s", err.Error())
-	           http.Error(w, err.Error(), 500)
-	           return
-	       }
-	   }
-	*/
 
 	//Remote File Uploads
 	if uptype == "remote" {
@@ -1012,15 +993,6 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		setFlash("Failed to shorten URL.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	/*
-	   // Check for CSRF token
-	   err = auth.CheckToken(w, r)
-	   if err != nil {
-	       log.Printf("%s", err.Error())
-	       http.Error(w, err.Error(), 500)
-	       return
-	   }
-	*/
 
 	subdomain := r.PostFormValue("shortSub")
 
@@ -1132,23 +1104,12 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
 
-
-
 func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
-	/*
-	   // Check for CSRF token
-	   err = auth.CheckToken(w, r)
-	   if err != nil {
-	       log.Printf("%s", err.Error())
-	       http.Error(w, err.Error(), 500)
-	       return
-	   }
-	*/
 
 	processCaptcha(w, r)
 
@@ -1252,15 +1213,6 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	/*
-	   // Check for CSRF token
-	   err = auth.CheckToken(w, r)
-	   if err != nil {
-	       log.Printf("%s", err.Error())
-	       http.Error(w, err.Error(), 500)
-	       return
-	   }
-	*/
 
 	processCaptcha(w, r)
 
@@ -1341,16 +1293,6 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewRemoteImage")
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
-
-	/*
-	   // Check for CSRF token
-	   err := auth.CheckToken(w, r)
-	   if err != nil {
-	       log.Printf("%s", err.Error())
-	       http.Error(w, err.Error(), 500)
-	       return
-	   }
-	*/
 
 	if !strings.HasPrefix(remoteURL, "http") {
 		log.Println("remoteURL does not contain a URL prefix, so adding http")
@@ -1434,18 +1376,6 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	params := getParams(r.Context())
 	formfilename := params["filename"]
 	contentType := r.Header.Get("Content-Type")
-
-	/*
-	   // Check for CSRF token, if not a CLI upload
-	   if contentType != "" {
-	       err = auth.CheckToken(w, r)
-	       if err != nil {
-	           log.Printf("%s", err.Error())
-	           http.Error(w, err.Error(), 500)
-	           return
-	       }
-	   }
-	*/
 
 	if contentType == "" {
 		log.Println("Content-type blank, so this should be a CLI upload...")

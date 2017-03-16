@@ -388,7 +388,6 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 	//timer.Step("loadpageFunc")
 	user, isAdmin := auth.GetUsername(r.Context())
 	msg := auth.GetFlash(r.Context())
-	//token := auth.GetToken(r.Context())
 	token := csrf.TemplateField(r)
 
 	var message string
