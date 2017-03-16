@@ -63,21 +63,34 @@ func (tmpdb *DB) MustClose() {
 	}
 }
 
-/*
-func newState() *auth.AuthState {
-	authDB := mustOpenDB()
-	defer authDB.MustClose()
-	authState, err := auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
+type TestAuthDB struct {
+	*auth.DB
+}
+
+// MustOpenDB returns a new, open DB at a temporary location.
+func mustOpenAuthDB() *TestAuthDB {
+	tmpdb, err := bolt.Open(tempfile(), 0666, nil)
 	if err != nil {
 		panic(err)
 	}
-	return authState
+	return &TestAuthDB{&auth.DB{tmpdb}}
 }
-*/
+
+func (tmpdb *TestAuthDB) Close() error {
+	//log.Println(tmpdb.Path())
+	defer os.Remove(tmpdb.Path())
+	return tmpdb.DB.Close()
+}
+
+func (tmpdb *TestAuthDB) MustClose() {
+	if err := tmpdb.Close(); err != nil {
+		panic(err)
+	}
+}
 
 func TestAuthInit(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -99,7 +112,7 @@ func TestRiceInit(t *testing.T) {
 
 func TestIndexHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +177,7 @@ func TestIndexHandler(t *testing.T) {
 
 func TestHelpHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -210,7 +223,7 @@ func TestHelpHandler(t *testing.T) {
 
 func TestLoginPageHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -256,7 +269,7 @@ func TestLoginPageHandler(t *testing.T) {
 
 func TestLookingGlassPageHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -302,7 +315,7 @@ func TestLookingGlassPageHandler(t *testing.T) {
 
 func TestPastePageHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -348,7 +361,7 @@ func TestPastePageHandler(t *testing.T) {
 
 func TestFileUpPageHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -394,7 +407,7 @@ func TestFileUpPageHandler(t *testing.T) {
 
 func TestImageUpPageHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -440,7 +453,7 @@ func TestImageUpPageHandler(t *testing.T) {
 
 func TestImageGalleryPageHandler(t *testing.T) {
 	var err error
-	authDB := mustOpenDB()
+	authDB := mustOpenAuthDB()
 	authState, err = auth.NewAuthStateWithDB(authDB.DB, tempfile(), "admin")
 	if err != nil {
 		t.Fatal(err)
