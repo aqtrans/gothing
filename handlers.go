@@ -718,7 +718,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		setFlash("Failed to save remote file.", w, r)
+		authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -732,7 +732,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		setFlash("Failed to save remote file.", w, r)
+		authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -741,7 +741,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		setFlash("Failed to save remote file.", w, r)
+		authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -755,7 +755,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	err = fi.save()
 	if err != nil {
 		log.Println(err)
-		setFlash("Failed to save remote file.", w, r)
+		authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
@@ -763,7 +763,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
 
-	setFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w, r)
+	authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -822,7 +822,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-			setFlash("Failed to save file.", w, r)
+			authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -836,7 +836,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-			setFlash("Failed to save file.", w, r)
+			authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -846,7 +846,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-			setFlash("Failed to save file.", w, r)
+			authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			panic(err)
 		}
@@ -936,7 +936,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("ParseMultiform reader error")
 			log.Println(err)
-			setFlash("Failed to save file.", w, r)
+			authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -945,7 +945,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 		if err != nil {
 			fmt.Println(err)
-			setFlash("Failed to save file.", w, r)
+			authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		if r.FormValue("local-file-name") != "" {
@@ -956,7 +956,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
-			setFlash("Failed to save file.", w, r)
+			authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -973,14 +973,14 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 	err = fi.save()
 	if err != nil {
 		log.Println(err)
-		setFlash("Failed to save file.", w, r)
+		authState.SetFlash("Failed to save file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
 	if uptype == "cli" {
 		fmt.Fprintf(w, "https://"+viper.GetString("MainTLD")+"/d/"+filename)
 	} else {
-		setFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w, r)
+		authState.SetFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -990,7 +990,7 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-		setFlash("Failed to shorten URL.", w, r)
+		authState.SetFlash("Failed to shorten URL.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
@@ -1030,13 +1030,13 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		err = s.save()
 		if err != nil {
 			log.Println(err)
-			setFlash("Failed to shorten URL.", w, r)
+			authState.SetFlash("Failed to shorten URL.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		//log.Println("Short: " + s.Short)
 		//log.Println("Long: " + s.Long)
 
-		setFlash("Successfully shortened "+s.FullURL, w, r)
+		authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1059,13 +1059,13 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 	err = s.save()
 	if err != nil {
 		log.Println(err)
-		setFlash("Failed to shorten URL.", w, r)
+		authState.SetFlash("Failed to shorten URL.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 	//log.Println("Short: " + s.Short)
 	//log.Println("Long: " + s.Long)
 
-	setFlash("Successfully shortened "+s.FullURL, w, r)
+	authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }
@@ -1138,7 +1138,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, getScheme(r)+r.Host+"/p/"+title, 302)
 }
 
-//Delete stuff
+//APIdeleteHandler deletes a given /{type}/{name}
 func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
@@ -1161,7 +1161,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		setFlash("Successfully deleted "+jmsg, w, r)
+		authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "image" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1178,7 +1178,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		setFlash("Successfully deleted "+jmsg, w, r)
+		authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "paste" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1188,7 +1188,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		setFlash("Successfully deleted "+jmsg, w, r)
+		authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "shorturl" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1198,10 +1198,10 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		setFlash("Successfully deleted "+jmsg, w, r)
+		authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else {
-		setFlash("Failed to delete "+jmsg, w, r)
+		authState.SetFlash("Failed to delete "+jmsg, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -1320,7 +1320,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		setFlash("Failed to save remote image", w, r)
+		authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1334,7 +1334,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		setFlash("Failed to save remote image", w, r)
+		authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1343,7 +1343,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		setFlash("Failed to save remote image", w, r)
+		authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1357,11 +1357,11 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	err = imi.save()
 	if err != nil {
 		log.Println(err)
-		setFlash("Failed to save remote image", w, r)
+		authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	setFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w, r)
+	authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -1521,10 +1521,10 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 		err = sc.save()
 		if err != nil {
 			log.Println(err)
-			setFlash("Failed to save screenshot", w, r)
+			authState.SetFlash("Failed to save screenshot", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
-		setFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
+		authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1537,10 +1537,10 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 	err = imi.save()
 	if err != nil {
 		log.Println(err)
-		setFlash("Failed to save image", w, r)
+		authState.SetFlash("Failed to save image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	setFlash("Successfully saved image "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
+	authState.SetFlash("Successfully saved image "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

@@ -348,10 +348,6 @@ func getScheme(r *http.Request) (scheme string) {
 	return scheme
 }
 
-func setFlash(msg string, w http.ResponseWriter, r *http.Request) {
-	authState.SetSession("flash", msg, w, r)
-}
-
 func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
 	defer httputils.TimeTrack(time.Now(), "renderTemplate")
 	tmpl, ok := templates[name]
