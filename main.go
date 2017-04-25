@@ -186,7 +186,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		ctx := context.WithValue(r.Context(), httptreemux.ParamsContextKey, mymap)
 		//log.Println(r.Context().Value(httptreemux.ParamsContextKey))
-		hs.env.shortUrlHandler(w, r.WithContext(ctx))
+		hs.theEnv.shortUrlHandler(w, r.WithContext(ctx))
 	} else {
 		// Handle host names for wich no handler is registered
 		log.Println(r.Host)
