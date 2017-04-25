@@ -846,6 +846,20 @@ func main() {
 		}
 		defer auth.Authdb.Close()
 	*/
+
+	dataDir, err := os.Stat("./data/")
+	if os.IsNotExist(err) {
+		err = os.Mkdir("data", 0755)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+	if os.IsExist(err) {
+		if !dataDir.IsDir() {
+			log.Fatalln("./data/ is not a directory. This is where misc data is stored.")
+		}
+	}
+
 	anAuthState, err := auth.NewAuthState("./data/auth.db", viper.GetString("AdminUser"))
 	if err != nil {
 		log.Fatalln(err)
