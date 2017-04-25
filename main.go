@@ -1048,6 +1048,6 @@ func main() {
 	}
 
 	http.Handle("/", std.Then(hs))
-	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
+	http.ListenAndServe("0.0.0.0:"+viper.GetString("Port"), nil)
 
 }
