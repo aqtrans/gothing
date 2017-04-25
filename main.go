@@ -73,8 +73,6 @@ type thingDB struct {
 var (
 	bufpool *bpool.BufferPool
 	_24K    int64 = (1 << 20) * 24
-	fLocal  bool
-	debug   bool
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//cfg       = configuration{}
 )
@@ -315,11 +313,6 @@ func init() {
 
 	//viper.Unmarshal(&cfg)
 	//viper.UnmarshalKey("AuthConf", &auth.Authcfg)
-
-	//Flag '-l' enables go.dev and *.dev domain resolution
-	flag.BoolVar(&fLocal, "l", false, "Turn on localhost resolving for Handlers")
-	//Flag '-d' enabled debug logging
-	flag.BoolVar(&httputils.Debug, "d", false, "Enabled debug logging")
 
 	bufpool = bpool.NewBufferPool(64)
 }
@@ -823,6 +816,9 @@ func main() {
 	viper.SetDefault("AdminUser", "admin")
 	viper.SetDefault("AdminPass", "admin")
 	viper.SetDefault("dbPath", "./data/bolt.db")
+	viper.SetDefault("Dev", false)
+	viper.SetDefault("Insecure", false)
+	viper.SetDefault("Debug", false)
 
 	viper.SetConfigName("conf")
 	viper.SetConfigType("json")
@@ -834,6 +830,10 @@ func main() {
 	}
 	viper.SetEnvPrefix("gothing")
 	viper.AutomaticEnv()
+
+	if viper.GetBool("Debug") {
+		httputils.Debug = true
+	}
 
 	/*
 		// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
@@ -902,13 +902,20 @@ func main() {
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
 
-	if fLocal {
+	if viper.GetBool("Dev") {
 		viper.Set("MainTLD", "main.devd.io")
 		viper.Set("ShortTLD", "devd.io")
 		viper.Set("ImageTLD", "i.devd.io")
 		viper.Set("GifTLD", "big.devd.io")
 
 		log.Println("Listening on devd.io domains due to -l flag...")
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
+	} else {
+		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
+	}
+
+	if viper.GetBool("Insecure") {
 		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
