@@ -163,9 +163,11 @@ func processCaptcha(w http.ResponseWriter, r *http.Request) {
 // Therefore we need a type for which we implement the ServeHTTP method.
 // We just use a map here, in which we map host names (with port) to http.Handlers
 type HostSwitch struct {
-	hostMap map[string]http.Handler
-	env     *thingEnv
+	hostMap HostMap
+	theEnv  *thingEnv
 }
+
+type HostMap map[string]http.Handler
 
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -1035,10 +1037,15 @@ func main() {
 		log.Println(r.Header)
 	})
 
-	hs := new(HostSwitch)
-	hs.hostMap[viper.GetString("MainTLD")] = d
-	hs.hostMap[viper.GetString("ImageTLD")] = i
-	hs.hostMap[viper.GetString("GifTLD")] = big
+	hm := make(HostMap)
+	hm[viper.GetString("MainTLD")] = d
+	hm[viper.GetString("ImageTLD")] = i
+	hm[viper.GetString("GifTLD")] = big
+
+	hs := &HostSwitch{
+		hostMap: hm,
+		theEnv:  env,
+	}
 
 	http.Handle("/", std.Then(hs))
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
