@@ -370,7 +370,12 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 				http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
 			}
 		} else {
-			http.Redirect(w, r, shorturl.Long, 302)
+			destURL := shorturl.Long
+			// If the destination is not a full URL, make it so
+			if !strings.HasPrefix(destURL, "http") {
+				destURL = "http://" + destURL
+			}
+			http.Redirect(w, r, destURL, 302)
 		}
 
 		s := &Shorturl{
