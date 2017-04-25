@@ -916,7 +916,7 @@ func main() {
 	}
 
 	if viper.GetBool("Insecure") {
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+		std = alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
