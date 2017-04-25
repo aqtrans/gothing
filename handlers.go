@@ -32,32 +32,35 @@ import (
 	//"jba.io/go/auth"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "indexHandler")
 	title := "index"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "index.tmpl", p)
+	err := renderTemplate(env, w, "index.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func helpHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) helpHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "helpHandler")
 	title := "Help"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "help.tmpl", p)
+	err := renderTemplate(env, w, "help.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
+func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
 	defer httputils.TimeTrack(time.Now(), "loadGalleryPage")
 	page, perr := loadPage("Gallery", w, r)
 	if perr != nil {
 		log.Println(perr)
 	}
+
+	db := env.getDB()
+	defer env.closeDB()
 
 	var images []*Image
 	//Lets try this with boltDB now!
@@ -79,86 +82,86 @@ func loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, erro
 	return &GalleryPage{Page: page, Images: images}, nil
 }
 
-func galleryHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) galleryHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "galleryHandler")
-	l, err := loadGalleryPage(w, r)
+	l, err := env.loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
 
-	err = renderTemplate(w, "gallery.tmpl", l)
+	err = renderTemplate(env, w, "gallery.tmpl", l)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) galleryEsgyHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "galleryEsgyHandler")
-	l, err := loadGalleryPage(w, r)
+	l, err := env.loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
 
-	err = renderTemplate(w, "gallery-esgy.tmpl", l)
+	err = renderTemplate(env, w, "gallery-esgy.tmpl", l)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func adminListHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) adminListHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "galleryListHandler")
 	//title := "Admin List"
-	l, err := loadGalleryPage(w, r)
+	l, err := env.loadGalleryPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
-	err = renderTemplate(w, "admin_list.tmpl", l)
+	err = renderTemplate(env, w, "admin_list.tmpl", l)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func adminHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) adminHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminHandler")
 	title := "Admin Panel"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "admin.tmpl", p)
+	err := renderTemplate(env, w, "admin.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func adminSignupHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) adminSignupHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Admin Signup"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "admin_user.tmpl", p)
+	err := renderTemplate(env, w, "admin_user.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func adminUserPassHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) adminUserPassHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminUserPassHandler")
 	title := "Admin Password Change"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "admin_password.tmpl", p)
+	err := renderTemplate(env, w, "admin_password.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func signupPageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) signupPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Signup"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "signup.tmpl", p)
+	err := renderTemplate(env, w, "signup.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func lgHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) lgHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "lgHandler")
 	title := "lg"
 	p, err := loadPage(title, w, r)
@@ -171,13 +174,13 @@ func lgHandler(w http.ResponseWriter, r *http.Request) {
 		title,
 		"",
 	}
-	err = renderTemplate(w, "lg.tmpl", data)
+	err = renderTemplate(env, w, "lg.tmpl", data)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func searchHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "searchHandler")
 	params := getParams(r.Context())
 	term := params["name"]
@@ -185,6 +188,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	file := &File{}
 	paste := &Paste{}
+
+	db := env.getDB()
+	defer env.closeDB()
 
 	//Lets try this with boltDB now!
 	db.View(func(tx *bolt.Tx) error {
@@ -220,31 +226,31 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func uploadPageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "uploadPageHandler")
 	title := "up"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "up.tmpl", p)
+	err := renderTemplate(env, w, "up.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "uploadImagePageHandler")
 	title := "upimg"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "upimg.tmpl", p)
+	err := renderTemplate(env, w, "upimg.tmpl", p)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func pastePageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) pastePageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "pastePageHandler")
 	title := "paste"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "paste.tmpl", p)
+	err := renderTemplate(env, w, "paste.tmpl", p)
 	r.ParseForm()
 	//log.Println(r.Form)
 	if err != nil {
@@ -252,11 +258,11 @@ func pastePageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "shortenPageHandler")
 	title := "shorten"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(w, "shorten.tmpl", p)
+	err := renderTemplate(env, w, "shorten.tmpl", p)
 	r.ParseForm()
 	//log.Println(r.Form)
 	if err != nil {
@@ -264,7 +270,7 @@ func shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func loginPageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) loginPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "loginPageHandler")
 	title := "login"
 	p, err := loadPage(title, w, r)
@@ -275,31 +281,34 @@ func loginPageHandler(w http.ResponseWriter, r *http.Request) {
 		p,
 		title,
 	}
-	err = renderTemplate(w, "login.tmpl", data)
+	err = renderTemplate(env, w, "login.tmpl", data)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 }
 
-func listHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) listHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "listHandler")
-	l, err := loadListPage(w, r)
+	l, err := env.loadListPage(w, r)
 	if err != nil {
 		log.Println(err)
 	}
-	err = renderTemplate(w, "list.tmpl", l)
+	err = renderTemplate(env, w, "list.tmpl", l)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
 //Short URL Handler
-func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
 	params := getParams(r.Context())
 	title := strings.ToLower(params["name"])
+
+	db := env.getDB()
+	defer env.closeDB()
 
 	if title == "www" {
 		//indexHandler(w, r)
@@ -381,11 +390,13 @@ func shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func pasteHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "pasteHandler")
 	params := getParams(r.Context())
 	title := params["name"]
 	paste := &Paste{}
+	db := env.getDB()
+	defer env.closeDB()
 	err := db.View(func(tx *bolt.Tx) error {
 		v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
@@ -441,12 +452,15 @@ func pasteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func downloadHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "downloadHandler")
 	params := getParams(r.Context())
 	name := params["name"]
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
+
+	db := env.getDB()
+	defer env.closeDB()
 
 	//Attempt to increment file hit counter...
 	file := &File{}
@@ -475,7 +489,7 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "downloadImageHandler")
 	params := getParams(r.Context())
 	name := params["name"]
@@ -509,6 +523,8 @@ func downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	db := env.getDB()
+	defer env.closeDB()
 
 	//Attempt to increment file hit counter...
 	image := &Image{}
@@ -651,7 +667,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
                     </html>`))
 }
 
-func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "viewMarkdownHandler")
 	vars := getParams(r.Context())
 	name := vars["name"]
@@ -681,14 +697,14 @@ func viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 		name,
 		mdhtml,
 	}
-	err = renderTemplate(w, "md.tmpl", data)
+	err = renderTemplate(env, w, "md.tmpl", data)
 	if err != nil {
 		log.Println(err)
 	}
 	log.Println(name + " Page rendered!")
 }
 
-func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewRemoteFile")
 
 	remoteURL := r.FormValue("remote")
@@ -718,7 +734,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -732,7 +748,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -741,7 +757,7 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -752,10 +768,10 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = fi.save()
+	err = fi.save(env)
 	if err != nil {
 		log.Println(err)
-		authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
@@ -763,11 +779,11 @@ func APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
 
-	authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w, r)
+	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func APInewFile(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewFile")
 	params := getParams(r.Context())
 	name := params["name"]
@@ -822,7 +838,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-			authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -836,7 +852,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-			authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -846,7 +862,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-			authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			panic(err)
 		}
@@ -936,7 +952,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("ParseMultiform reader error")
 			log.Println(err)
-			authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -945,7 +961,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 		if err != nil {
 			fmt.Println(err)
-			authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		if r.FormValue("local-file-name") != "" {
@@ -956,7 +972,7 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
-			authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -970,27 +986,27 @@ func APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = fi.save()
+	err = fi.save(env)
 	if err != nil {
 		log.Println(err)
-		authState.SetFlash("Failed to save file.", w, r)
+		env.authState.SetFlash("Failed to save file.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
 	if uptype == "cli" {
 		fmt.Fprintf(w, "https://"+viper.GetString("MainTLD")+"/d/"+filename)
 	} else {
-		authState.SetFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w, r)
+		env.authState.SetFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
-func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewShortUrlForm")
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-		authState.SetFlash("Failed to shorten URL.", w, r)
+		env.authState.SetFlash("Failed to shorten URL.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
@@ -1027,16 +1043,16 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 		   Long 	string
 		*/
 
-		err = s.save()
+		err = s.save(env)
 		if err != nil {
 			log.Println(err)
-			authState.SetFlash("Failed to shorten URL.", w, r)
+			env.authState.SetFlash("Failed to shorten URL.", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		//log.Println("Short: " + s.Short)
 		//log.Println("Long: " + s.Long)
 
-		authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
+		env.authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1056,22 +1072,22 @@ func APInewShortUrlForm(w http.ResponseWriter, r *http.Request) {
 	   Long 	string
 	*/
 
-	err = s.save()
+	err = s.save(env)
 	if err != nil {
 		log.Println(err)
-		authState.SetFlash("Failed to shorten URL.", w, r)
+		env.authState.SetFlash("Failed to shorten URL.", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 	//log.Println("Short: " + s.Short)
 	//log.Println("Long: " + s.Long)
 
-	authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
+	env.authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }
 
 //Pastebin handlers
-func APInewPaste(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPaste")
 	log.Println("Paste request...")
 	paste := r.Body
@@ -1097,14 +1113,14 @@ func APInewPaste(w http.ResponseWriter, r *http.Request) {
 		Title:   name,
 		Content: bpaste,
 	}
-	err := p.save()
+	err := p.save(env)
 	if err != nil {
 		log.Println(err)
 	}
 	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
 
-func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
 	if err != nil {
@@ -1131,7 +1147,7 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		Title:   title,
 		Content: paste,
 	}
-	err = p.save()
+	err = p.save(env)
 	if err != nil {
 		log.Println(err)
 	}
@@ -1139,13 +1155,17 @@ func APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 }
 
 //APIdeleteHandler deletes a given /{type}/{name}
-func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
 	params := getParams(r.Context())
 	ftype := params["type"]
 	fname := params["name"]
 	jmsg := ftype + " " + fname
+
+	db := env.getDB()
+	defer env.closeDB()
+
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
 			log.Println(jmsg + " has been deleted")
@@ -1161,7 +1181,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "image" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1178,7 +1198,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "paste" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1188,7 +1208,7 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "shorturl" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1198,15 +1218,15 @@ func APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else {
-		authState.SetFlash("Failed to delete "+jmsg, w, r)
+		env.authState.SetFlash("Failed to delete "+jmsg, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
 
-func APIlgAction(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APIlgAction")
 	url := r.PostFormValue("url")
 	err := r.ParseForm()
@@ -1234,7 +1254,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 			title,
 			outs,
 		}
-		err = renderTemplate(w, "lg.tmpl", data)
+		err = renderTemplate(env, w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
 		}
@@ -1256,7 +1276,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 			title,
 			outs,
 		}
-		err = renderTemplate(w, "lg.tmpl", data)
+		err = renderTemplate(env, w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
 		}
@@ -1278,7 +1298,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 			title,
 			outs,
 		}
-		err = renderTemplate(w, "lg.tmpl", data)
+		err = renderTemplate(env, w, "lg.tmpl", data)
 		if err != nil {
 			log.Println(err)
 		}
@@ -1289,7 +1309,7 @@ func APIlgAction(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewRemoteImage")
 	remoteURL := r.FormValue("remote-image")
 	finURL := remoteURL
@@ -1320,7 +1340,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1334,7 +1354,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1343,7 +1363,7 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1354,18 +1374,18 @@ func APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = imi.save()
+	err = imi.save(env)
 	if err != nil {
 		log.Println(err)
-		authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w, r)
+	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func APInewImage(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewImage")
 	contentLength := r.ContentLength
 	var reader io.Reader
@@ -1518,13 +1538,13 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
-		err = sc.save()
+		err = sc.save(env)
 		if err != nil {
 			log.Println(err)
-			authState.SetFlash("Failed to save screenshot", w, r)
+			env.authState.SetFlash("Failed to save screenshot", w, r)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
-		authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
+		env.authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1534,17 +1554,17 @@ func APInewImage(w http.ResponseWriter, r *http.Request) {
 		Created:  time.Now().Unix(),
 		Filename: filename,
 	}
-	err = imi.save()
+	err = imi.save(env)
 	if err != nil {
 		log.Println(err)
-		authState.SetFlash("Failed to save image", w, r)
+		env.authState.SetFlash("Failed to save image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	authState.SetFlash("Successfully saved image "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
+	env.authState.SetFlash("Successfully saved image "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func Readme(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) Readme(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "Readme")
 	name := "README"
 	p, err := loadPage(name, w, r)
@@ -1570,14 +1590,14 @@ func Readme(w http.ResponseWriter, r *http.Request) {
 		name,
 		mdhtml,
 	}
-	err = renderTemplate(w, "md.tmpl", data)
+	err = renderTemplate(env, w, "md.tmpl", data)
 	if err != nil {
 		log.Println(err)
 	}
 	log.Println(name + " Page rendered!")
 }
 
-func Changelog(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "Changelog")
 	name := "CHANGELOG"
 	p, err := loadPage(name, w, r)
@@ -1603,9 +1623,73 @@ func Changelog(w http.ResponseWriter, r *http.Request) {
 		name,
 		mdhtml,
 	}
-	err = renderTemplate(w, "md.tmpl", data)
+	err = renderTemplate(env, w, "md.tmpl", data)
 	if err != nil {
 		log.Println(err)
 	}
 	log.Println(name + " Page rendered!")
+}
+
+func (env *thingEnv) LoginPostHandler(w http.ResponseWriter, r *http.Request) {
+
+	switch r.Method {
+	case "GET":
+		// This should be handled in a separate function inside your app
+		/*
+			// Serve login page, replacing loginPageHandler
+			defer timeTrack(time.Now(), "loginPageHandler")
+			title := "login"
+			user := GetUsername(r)
+			//p, err := loadPage(title, r)
+			data := struct {
+				UN  string
+				Title string
+			}{
+				user,
+				title,
+			}
+			err := renderTemplate(w, "login.tmpl", data)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		*/
+	case "POST":
+
+		// Handle login POST request
+		username := template.HTMLEscapeString(r.FormValue("username"))
+		password := template.HTMLEscapeString(r.FormValue("password"))
+		referer, _ := url.Parse(r.Referer())
+
+		// Check if we have a ?url= query string, from AuthMiddle
+		// Otherwise, just use the referrer
+		var r2 string
+		r2 = referer.Query().Get("url")
+		if r2 == "" {
+			r2 = r.Referer()
+			// if r.Referer is blank, just redirect to index
+			if r.Referer() == "" || referer.RequestURI() == "/login" {
+				r2 = "/"
+			}
+		}
+
+		// Login authentication
+		if env.authState.BoltAuth(username, password) {
+			env.authState.SetSession("user", username, w, r)
+			env.authState.SetSession("flash", "User '"+username+"' successfully logged in.", w, r)
+			http.Redirect(w, r, r2, http.StatusSeeOther)
+			return
+		}
+		env.authState.SetSession("flash", "User '"+username+"' failed to login. <br> Please check your credentials and try again.", w, r)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+
+	case "PUT":
+		// Update an existing record.
+	case "DELETE":
+		// Remove the record.
+	default:
+		// Give an error message.
+	}
+
 }

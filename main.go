@@ -10,7 +10,6 @@ package main
 // ...only saving if the BoltDB function doesn't error out
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -19,7 +18,6 @@ import (
 	"html/template"
 	"regexp"
 
-	"github.com/GeertJohan/go.rice"
 	"github.com/boltdb/bolt"
 	"github.com/dimfeld/httptreemux"
 	"github.com/disintegration/imaging"
@@ -61,17 +59,39 @@ type configuration struct {
 	GifTLD   string
 }
 
-var (
+type thingEnv struct {
+	Bolt      *thingDB
 	authState *auth.AuthState
-	bufpool   *bpool.BufferPool
 	templates map[string]*template.Template
-	_24K      int64 = (1 << 20) * 24
-	fLocal    bool
-	debug     bool
+}
+
+type thingDB struct {
+	db   *bolt.DB
+	path string
+}
+
+var (
+	bufpool *bpool.BufferPool
+	_24K    int64 = (1 << 20) * 24
+	fLocal  bool
+	debug   bool
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
-	db *bolt.DB
 	//cfg       = configuration{}
 )
+
+func (env *thingEnv) getDB() *bolt.DB {
+	//log.Println(state.BoltDB.path)
+	db, err := bolt.Open(env.Bolt.path, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		log.Fatalln(err)
+	}
+	env.Bolt.db = db
+	return env.Bolt.db
+}
+
+func (env *thingEnv) closeDB() {
+	env.Bolt.db.Close()
+}
 
 // ReCAPTCHA from https://github.com/dasJ/go-recaptcha/blob/440394abc3ecd036b93a54837015d5fe9d64645f/recaptcha.go
 type RecaptchaResponse struct {
@@ -142,7 +162,10 @@ func processCaptcha(w http.ResponseWriter, r *http.Request) {
 // We need an object that implements the http.Handler interface.
 // Therefore we need a type for which we implement the ServeHTTP method.
 // We just use a map here, in which we map host names (with port) to http.Handlers
-type HostSwitch map[string]http.Handler
+type HostSwitch struct {
+	hostMap map[string]http.Handler
+	env     *thingEnv
+}
 
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +173,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If yes, use it to handle the request.
 	shortregex := regexp.MustCompile("([A-Za-z0-9]+)." + viper.GetString("ShortTLD"))
 
-	if handler := hs[r.Host]; handler != nil {
+	if handler := hs.hostMap[r.Host]; handler != nil {
 		handler.ServeHTTP(w, r)
 		// Build up subdomain matching
 		// Putting the host match into the params["name"] to be retrieved later
@@ -161,7 +184,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		ctx := context.WithValue(r.Context(), httptreemux.ParamsContextKey, mymap)
 		//log.Println(r.Context().Value(httptreemux.ParamsContextKey))
-		shortUrlHandler(w, r.WithContext(ctx))
+		hs.env.shortUrlHandler(w, r.WithContext(ctx))
 	} else {
 		// Handle host names for wich no handler is registered
 		log.Println(r.Host)
@@ -297,9 +320,6 @@ func init() {
 	flag.BoolVar(&httputils.Debug, "d", false, "Enabled debug logging")
 
 	bufpool = bpool.NewBufferPool(64)
-	if templates == nil {
-		templates = make(map[string]*template.Template)
-	}
 }
 
 func markdownRender(content []byte) []byte {
@@ -348,9 +368,9 @@ func getScheme(r *http.Request) (scheme string) {
 	return scheme
 }
 
-func renderTemplate(w http.ResponseWriter, name string, data interface{}) error {
+func renderTemplate(env *thingEnv, w http.ResponseWriter, name string, data interface{}) error {
 	defer httputils.TimeTrack(time.Now(), "renderTemplate")
-	tmpl, ok := templates[name]
+	tmpl, ok := env.templates[name]
 	if !ok {
 		return fmt.Errorf("The template %s does not exist", name)
 	}
@@ -418,12 +438,15 @@ func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interfa
 	return data, nil
 }
 
-func loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
+func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	defer httputils.TimeTrack(time.Now(), "loadListPage")
 	page, perr := loadPage("List", w, r)
 	if perr != nil {
 		return nil, perr
 	}
+
+	db := env.getDB()
+	defer env.closeDB()
 
 	var files []*File
 	//Lets try this with boltDB now!
@@ -548,8 +571,12 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	return nil
 }
 
-func (f *File) save() error {
+func (f *File) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "File.save()")
+
+	db := env.getDB()
+	defer env.closeDB()
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
@@ -567,8 +594,11 @@ func (f *File) save() error {
 	return nil
 }
 
-func (s *Shorturl) save() error {
+func (s *Shorturl) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Shorturl.save()")
+
+	db := env.getDB()
+	defer env.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
@@ -584,8 +614,10 @@ func (s *Shorturl) save() error {
 	return nil
 }
 
-func (p *Paste) save() error {
+func (p *Paste) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Paste.save()")
+	db := env.getDB()
+	defer env.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
@@ -631,8 +663,10 @@ func makeThumb(fpath, thumbpath string) {
 	return
 }
 
-func (i *Image) save() error {
+func (i *Image) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Image.save()")
+	db := env.getDB()
+	defer env.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
@@ -659,8 +693,10 @@ func (i *Image) save() error {
 	return nil
 }
 
-func (s *Screenshot) save() error {
+func (s *Screenshot) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Screenshot.save()")
+	db := env.getDB()
+	defer env.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		encoded, err := json.Marshal(s)
@@ -691,16 +727,9 @@ func defaultHandler(next http.Handler) http.Handler {
 	})
 }
 
-func Open(path string) *bolt.DB {
-	var err error
-	db, err = bolt.Open(path, 0600, nil)
-	if err != nil {
-		log.Println(err)
-	}
-	return db
-}
-
-func dbInit() {
+func (env *thingEnv) dbInit() {
+	db := env.getDB()
+	defer env.closeDB()
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
 		if err != nil {
@@ -730,36 +759,16 @@ func dbInit() {
 	})
 }
 
-func riceInit() error {
-	// Parent templates directory named 'templates'
-	templateBox, err := rice.FindBox("templates")
+func tmplInit(env *thingEnv) error {
+
+	templatesDir := "./templates/"
+	layouts, err := filepath.Glob(templatesDir + "layouts/*.tmpl")
 	if err != nil {
-		return err
+		panic(err)
 	}
-	// Child directory 'templates/includes' containing the base templates
-	includes, err := templateBox.Open("includes")
+	includes, err := filepath.Glob(templatesDir + "includes/*.tmpl")
 	if err != nil {
-		return err
-	}
-	includeDir, err := includes.Readdir(-1)
-	if err != nil {
-		return err
-	}
-	// Child directory 'templates/layouts' containing individual page layouts
-	layouts, err := templateBox.Open("layouts")
-	if err != nil {
-		return err
-	}
-	layoutsDir, err := layouts.Readdir(-1)
-	if err != nil {
-		return err
-	}
-	var boxT []string
-	var templateIBuff bytes.Buffer
-	for _, v := range includeDir {
-		boxT = append(boxT, "includes/"+v.Name())
-		iString, _ := templateBox.String("includes/" + v.Name())
-		templateIBuff.WriteString(iString)
+		panic(err)
 	}
 
 	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": httputils.ImgExt}
@@ -767,13 +776,11 @@ func riceInit() error {
 	// Here we are prefacing every layout with what should be every includes/ .tmpl file
 	// Ex: includes/sidebar.tmpl includes/bottom.tmpl includes/base.tmpl layouts/list.tmpl
 	// **THIS IS VERY IMPORTANT TO ALLOW MY BASE TEMPLATE TO WORK**
-	for _, layout := range layoutsDir {
-		boxT = append(boxT, "layouts/"+layout.Name())
+	for _, layout := range layouts {
+		files := append(includes, layout)
 		//DEBUG TEMPLATE LOADING
-		//utils.Debugln(files)
-		lString, _ := templateBox.String("layouts/" + layout.Name())
-		fstring := templateIBuff.String() + lString
-		templates[layout.Name()] = template.Must(template.New(layout.Name()).Funcs(funcMap).Parse(fstring))
+		//httputils.Debugln(files)
+		env.templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
 	}
 	return nil
 }
@@ -801,7 +808,7 @@ func main() {
 	//log.Println(tm.Format(timestamp))
 
 	// Viper config
-	viper.SetDefault("Port", "3000")
+	viper.SetDefault("Port", "5000")
 	viper.SetDefault("Email", "unused@the.moment")
 	viper.SetDefault("ImgDir", "./data/up-imgs/")
 	viper.SetDefault("FileDir", "./data/up-files/")
@@ -813,16 +820,18 @@ func main() {
 	viper.SetDefault("AuthDB", "./data/auth.db")
 	viper.SetDefault("AdminUser", "admin")
 	viper.SetDefault("AdminPass", "admin")
+	viper.SetDefault("dbPath", "./data/bolt.db")
 
 	viper.SetConfigName("conf")
+	viper.SetConfigType("json")
 	viper.AddConfigPath("./data/")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
 		fmt.Println("No configuration file loaded - using defaults")
 	}
-	viper.SetConfigType("json")
-	viper.WatchConfig()
+	viper.SetEnvPrefix("gothing")
+	viper.AutomaticEnv()
 
 	/*
 		// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
@@ -837,14 +846,20 @@ func main() {
 		}
 		defer auth.Authdb.Close()
 	*/
-	authState, err = auth.NewAuthState("./data/auth.db", viper.GetString("AdminUser"))
+	anAuthState, err := auth.NewAuthState("./data/auth.db", viper.GetString("AdminUser"))
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	httputils.AssetsBox = rice.MustFindBox("assets")
+	var aThingDB *bolt.DB
 
-	err = riceInit()
+	env := &thingEnv{
+		Bolt:      &thingDB{aThingDB, viper.GetString("dbPath")},
+		authState: anAuthState,
+		templates: make(map[string]*template.Template),
+	}
+
+	err = tmplInit(env)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -863,16 +878,13 @@ func main() {
 		os.Mkdir(viper.GetString("ThumbDir"), 0755)
 	}
 
-	//var db, _ = bolt.Open("./bolt.db", 0600, nil)
-	db = Open("./data/bolt.db")
-	defer db.Close()
-	dbInit()
+	env.dbInit()
 
 	flag.Parse()
-	flag.Set("bind", ":3000")
+	//flag.Set("bind", ":3000")
 
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-	std := alice.New(handlers.RecoveryHandler(), authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
+	std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
 
 	if fLocal {
 		viper.Set("MainTLD", "main.devd.io")
@@ -881,7 +893,7 @@ func main() {
 		viper.Set("GifTLD", "big.devd.io")
 
 		log.Println("Listening on devd.io domains due to -l flag...")
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
@@ -902,84 +914,84 @@ func main() {
 
 	log.Println("Port: " + viper.GetString("Port"))
 
-	d.GET("/", indexHandler)
-	d.GET("/help", helpHandler)
-	d.GET("/priv", authState.AuthMiddle(Readme))
-	d.GET("/readme", Readme)
-	d.GET("/changelog", Changelog)
-	d.POST("/login", authState.LoginPostHandler)
-	d.GET("/login", loginPageHandler)
-	d.POST("/logout", authState.LogoutHandler)
-	d.GET("/logout", authState.LogoutHandler)
+	d.GET("/", env.indexHandler)
+	d.GET("/help", env.helpHandler)
+	d.GET("/priv", env.authState.AuthMiddle(env.Readme))
+	d.GET("/readme", env.Readme)
+	d.GET("/changelog", env.Changelog)
+	d.POST("/login", env.authState.LoginPostHandler)
+	d.GET("/login", env.loginPageHandler)
+	d.POST("/logout", env.authState.LogoutHandler)
+	d.GET("/logout", env.authState.LogoutHandler)
 	//d.GET("/signup", signupPageHandler)
 
 	//a := d.PathPrefix("/auth").Subrouter()
 	a := d.NewGroup("/auth")
-	a.POST("/login", authState.LoginPostHandler)
-	a.POST("/logout", authState.LogoutHandler)
-	a.GET("/logout", authState.LogoutHandler)
-	a.POST("/signup", authState.SignupPostHandler)
+	a.POST("/login", env.authState.LoginPostHandler)
+	a.POST("/logout", env.authState.LogoutHandler)
+	a.GET("/logout", env.authState.LogoutHandler)
+	a.POST("/signup", env.authState.SignupPostHandler)
 
 	//admin := d.PathPrefix("/admin").Subrouter()
 	admin := d.NewGroup("/admin")
-	admin.GET("/", authState.AuthAdminMiddle(adminHandler))
-	admin.POST("/users", authState.AuthAdminMiddle(authState.UserSignupPostHandler))
+	admin.GET("/", env.authState.AuthAdminMiddle(env.adminHandler))
+	admin.POST("/users", env.authState.AuthAdminMiddle(env.authState.UserSignupPostHandler))
 	//admin.POST("/user_signup", auth.AuthAdminMiddle(auth.UserSignupPostHandler))
-	admin.GET("/users", authState.AuthAdminMiddle(adminSignupHandler))
-	admin.GET("/list", authState.AuthAdminMiddle(adminListHandler))
+	admin.GET("/users", env.authState.AuthAdminMiddle(env.adminSignupHandler))
+	admin.GET("/list", env.authState.AuthAdminMiddle(env.adminListHandler))
 	//admin.POST("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler))
 	//admin.POST("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler))
-	admin.POST("/user/password_change", authState.AuthAdminMiddle(authState.AdminUserPassChangePostHandler))
-	admin.POST("/user/delete", authState.AuthAdminMiddle(authState.AdminUserDeletePostHandler))
+	admin.POST("/user/password_change", env.authState.AuthAdminMiddle(env.authState.AdminUserPassChangePostHandler))
+	admin.POST("/user/delete", env.authState.AuthAdminMiddle(env.authState.AdminUserDeletePostHandler))
 
-	d.GET("/list", authState.AuthMiddle(listHandler))
-	d.GET("/s", authState.AuthMiddle(shortenPageHandler))
-	d.GET("/short", authState.AuthMiddle(shortenPageHandler))
-	d.GET("/lg", lgHandler)
-	d.GET("/p", pastePageHandler)
-	d.GET("/p/:name", pasteHandler)
-	d.GET("/up", uploadPageHandler)
-	d.GET("/iup", uploadImagePageHandler)
-	d.GET("/search/:name", authState.AuthMiddle(searchHandler))
-	d.GET("/d/:name", downloadHandler)
+	d.GET("/list", env.authState.AuthMiddle(env.listHandler))
+	d.GET("/s", env.authState.AuthMiddle(env.shortenPageHandler))
+	d.GET("/short", env.authState.AuthMiddle(env.shortenPageHandler))
+	d.GET("/lg", env.lgHandler)
+	d.GET("/p", env.pastePageHandler)
+	d.GET("/p/:name", env.pasteHandler)
+	d.GET("/up", env.uploadPageHandler)
+	d.GET("/iup", env.uploadImagePageHandler)
+	d.GET("/search/:name", env.authState.AuthMiddle(env.searchHandler))
+	d.GET("/d/:name", env.downloadHandler)
 	d.GET("/big/:name", imageBigHandler)
-	d.GET("/i/:name", downloadImageHandler)
-	d.GET("/md/:name", viewMarkdownHandler)
+	d.GET("/i/:name", env.downloadImageHandler)
+	d.GET("/md/:name", env.viewMarkdownHandler)
 	d.GET("/thumbs/:name", imageThumbHandler)
 	d.GET("/imagedirect/:name", imageDirectHandler)
-	d.GET("/i", galleryHandler)
+	d.GET("/i", env.galleryHandler)
 	//d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "LOL", false)}).Methods("GET", "POST")
 	//d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "", false)}).Methods("GET", "POST")
 
 	//CLI API Functions
-	d.PUT("/up/*name", APInewFile)
-	d.PUT("/up", APInewFile)
-	d.PUT("/p/*name", APInewPaste)
-	d.PUT("/p", APInewPaste)
-	d.POST("/lg", APIlgAction)
+	d.PUT("/up/*name", env.APInewFile)
+	d.PUT("/up", env.APInewFile)
+	d.PUT("/p/*name", env.APInewPaste)
+	d.PUT("/p", env.APInewPaste)
+	d.POST("/lg", env.APIlgAction)
 
 	//API Functions
 	//api := d.PathPrefix("/api").Subrouter()
 	api := d.NewGroup("/api")
-	api.GET("/delete/:type/:name", authState.AuthMiddle(APIdeleteHandler))
-	api.POST("/paste/new", APInewPasteForm)
-	api.POST("/file/new", APInewFile)
-	api.POST("/file/remote", APInewRemoteFile)
-	api.POST("/shorten/new", APInewShortUrlForm)
-	api.POST("/lg", APIlgAction)
-	api.POST("/image/new", APInewImage)
-	api.POST("/image/remote", APInewRemoteImage)
+	api.GET("/delete/:type/:name", env.authState.AuthMiddle(env.APIdeleteHandler))
+	api.POST("/paste/new", env.APInewPasteForm)
+	api.POST("/file/new", env.APInewFile)
+	api.POST("/file/remote", env.APInewRemoteFile)
+	api.POST("/shorten/new", env.APInewShortUrlForm)
+	api.POST("/lg", env.APIlgAction)
+	api.POST("/image/new", env.APInewImage)
+	api.POST("/image/remote", env.APInewRemoteImage)
 	//Golang-Stats-API
 	//api.HandleFunc("/stats", stats_api.Handler)
 	//api.GET("/vars",httputils.HandleExpvars)
 
 	//Dedicated image subdomain routes
 	//i := r.Host(viper.GetString("ImageTLD")).Subrouter()
-	i.GET("/", galleryEsgyHandler)
+	i.GET("/", env.galleryEsgyHandler)
 	i.GET("/thumbs/:name", imageThumbHandler)
 	i.GET("/imagedirect/:name", imageDirectHandler)
 	i.GET("/big/:name", imageBigHandler)
-	i.GET("/:name", downloadImageHandler)
+	i.GET("/:name", env.downloadImageHandler)
 
 	//Big GIFs
 	//big := r.Host(viper.GetString("GifTLD")).Subrouter()
@@ -1000,21 +1012,19 @@ func main() {
 	//r.PathPrefix("/").Handler(defaultHandler(static))
 
 	//r.PathPrefix("/assets/").HandlerFunc(staticHandler)
-	d.GET("/*name", shortUrlHandler)
-	http.HandleFunc("/robots.txt", httputils.RobotsHandler)
-	http.HandleFunc("/favicon.ico", httputils.FaviconHandler)
-	http.HandleFunc("/favicon.png", httputils.FaviconHandler)
-	http.HandleFunc("/assets/", httputils.StaticHandler)
+	d.GET("/*name", env.shortUrlHandler)
+
+	httputils.StaticInit()
 	//Used for troubleshooting proxy headers
 	http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
 		log.Println(r.Host)
 		log.Println(r.Header)
 	})
 
-	hs := make(HostSwitch)
-	hs[viper.GetString("MainTLD")] = d
-	hs[viper.GetString("ImageTLD")] = i
-	hs[viper.GetString("GifTLD")] = big
+	hs := new(HostSwitch)
+	hs.hostMap[viper.GetString("MainTLD")] = d
+	hs.hostMap[viper.GetString("ImageTLD")] = i
+	hs.hostMap[viper.GetString("GifTLD")] = big
 
 	http.Handle("/", std.Then(hs))
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
