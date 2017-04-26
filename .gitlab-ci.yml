@@ -1,87 +1,102 @@
-# See docs/examples here:
-# http://doc.gitlab.com/ce/ci/quick_start/README.html
-# http://doc.gitlab.com/ce/ci/yaml/README.html
+image: aqtrans/golang-npm:latest
 
-# GitLab CI template for Go tests. Note this installs
-# a new working copy of Go (1.5.2 in this case) 
-# in a non-standard path such that sudo/root is not 
-# needed for the install stage.
+cache:
+  untracked: true
+  key: "$CI_BUILD_REF_NAME"
+  paths:
+    - vendor/
 
-# note that this particular install-environment stage
-# is overly verbose in order to debug anything tricky
-# or weird in your environment - feel free to trim it 
-# down as needed
+before_script:
+  - ln -s /builds /go/src/jba.io
+  - cd /go/src/jba.io/go/thing
+  # Install ssh-agent if not already installed, it is required by Docker.
+  # (change apt-get to yum if you use a CentOS-based image)
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+
+  # Run ssh-agent (inside the build environment)
+  - eval $(ssh-agent -s)
+
+  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
+  - ssh-add <(echo "$SSH_PRIVATE_KEY")
+
+  # For Docker builds disable host key checking. Be aware that by adding that
+  # you are suspectible to man-in-the-middle attacks.
+  # WARNING: Use this only with the Docker executor, if you use it with shell
+  # you will overwrite your user's SSH config.
+  # - mkdir -p ~/.ssh
+  # - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  # In order to properly check the server's host key, assuming you created the
+  # SSH_SERVER_HOSTKEYS variable previously, uncomment the following two lines
+  # instead.
+  - mkdir -p ~/.ssh
+  - '[[ -f /.dockerenv ]] && echo "$SSH_SERVER_HOSTKEYS" > ~/.ssh/known_hosts'
 
 stages:
   - install-environment
   - build
   - test
-  - deploy
+  - deploy  
 
 install-go:
   stage: install-environment
   script:
-    - export CURRENT_BUILD_PATH=$(pwd)
-    - echo $PATH
-    - rm -rf $HOME/gopath
-    - rm -rf $HOME/golang
-    - mkdir -p $HOME/gopath/src
-    - mkdir -p $HOME/golang
-    - curl https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz 2>/dev/null > go1.8.linux-amd64.tar.gz
-    - tar -C $HOME/golang -xzf go1.8.linux-amd64.tar.gz
-    - export GOROOT=$HOME/golang/go
-    - export GOPATH=$HOME/gopath
-    - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOPATH/bin:$PATH
-    - ln -s $CI_PROJECT_DIR $GOPATH/src/thing
     - go version
     - echo $PATH
+    - echo $GOPATH
     - go env
     - which go
 
 build-my-project:
   stage: build
   script:
-    - export GOROOT=$HOME/golang/go
-    - export GOPATH=$HOME/gopath
-    - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOPATH/bin:$PATH  
-    - cd $HOME/gopath/src/thing
+    - /bin/sh ./build_css.sh  
+    - go get -u github.com/kardianos/govendor 
+    - govendor sync
     - go get -d
-    - go get github.com/GeertJohan/go.rice/rice
-    - rice embed-go
-    - go build
+    - go build -o ./thing
+
+  artifacts:
+    paths:
+      - thing
+      - assets/css/thing.css
+      - assets/css/thing.css.map
+      - vendor/
 
 test-my-project:
   stage: test
   script:
-    - export GOROOT=$HOME/golang/go
-    - export GOPATH=$HOME/gopath
-    - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOPATH/bin:$PATH  
-    - cd $HOME/gopath/src/thing
-    - go test
+    - go get -d  
+    - go test -v
+    - go test -race
 
-deploy-it:
+deploy_staging:
   stage: deploy
-  only: 
-    - master@go/thing
   script:
-    - export GOROOT=$HOME/golang/go
-    - export GOPATH=$HOME/gopath
-    - export PATH=$GOROOT/bin:$PATH 
-    - export PATH=$GOPATH/bin:$PATH  
-    - cd $HOME/gopath/src/thing
-    - mkdir deploy
-    - go get -d
-    - go get github.com/GeertJohan/go.rice/rice
-    - npm install
-    - npm install bower
-    - node_modules/.bin/bower install
-    - npm build
-    - node_modules/.bin/gulp sass    
-    - rice embed-go
-    - go build -o ./deploy/thing
-    - cp -r templates CHANGELOG.md README.md assets deploy/
-    - rsync -av --delete --exclude data/ --exclude http.log deploy/ golang@localhost:/home/golang/thing/
-    - ssh golang@localhost sudo systemctl restart golang-thing
+    # Push to the Dokku server
+    - cd /builds/go/thing
+    - git checkout $CI_COMMIT_REF_NAME
+    - git status
+    - git remote add lisa-dokku ssh://dokku@192.168.1.100:42424/gothing
+    - git branch
+    - git push lisa-dokku $CI_COMMIT_REF_NAME:master
+  environment:
+    name: staging
+    url: https://gothing.lisa.es.gy
+  when: manual
+
+deploy_prod:
+  stage: deploy
+  script:
+    # Push to the Dokku server
+    - cd /builds/go/thing
+    - git checkout master
+    - git status
+    - git remote add frink-dokku dokku@frink.es.gy:gothing
+    - git branch
+    - git push frink-dokku master 
+  environment:
+    name: production
+    url: https://es.gy
+  #when: manual
+  only:
+    - master@go/thing
