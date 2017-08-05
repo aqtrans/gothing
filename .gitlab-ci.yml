@@ -1,7 +1,6 @@
-image: aqtrans/golang-npm:latest
+image: golang:latest
 
 cache:
-  untracked: true
   key: "$CI_BUILD_REF_NAME"
   paths:
     - vendor/
@@ -9,25 +8,9 @@ cache:
 before_script:
   - ln -s /builds /go/src/jba.io
   - cd /go/src/jba.io/go/thing
-  # Install ssh-agent if not already installed, it is required by Docker.
-  # (change apt-get to yum if you use a CentOS-based image)
   - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-
-  # Run ssh-agent (inside the build environment)
   - eval $(ssh-agent -s)
-
-  # Add the SSH key stored in SSH_PRIVATE_KEY variable to the agent store
   - ssh-add <(echo "$SSH_PRIVATE_KEY")
-
-  # For Docker builds disable host key checking. Be aware that by adding that
-  # you are suspectible to man-in-the-middle attacks.
-  # WARNING: Use this only with the Docker executor, if you use it with shell
-  # you will overwrite your user's SSH config.
-  # - mkdir -p ~/.ssh
-  # - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
-  # In order to properly check the server's host key, assuming you created the
-  # SSH_SERVER_HOSTKEYS variable previously, uncomment the following two lines
-  # instead.
   - mkdir -p ~/.ssh
   - '[[ -f /.dockerenv ]] && echo "$SSH_SERVER_HOSTKEYS" > ~/.ssh/known_hosts'
 
@@ -49,12 +32,17 @@ install-go:
 build-my-project:
   stage: build
   script:
-    - /bin/sh ./build_css.sh  
-    - go get -u github.com/kardianos/govendor 
+    - curl -sL https://deb.nodesource.com/setup_6.x | bash -
+    - apt-get update -y && apt-get install -y nodejs
+    - npm install -g bower gulp    
+    - /bin/sh ./build_css.sh
+    - go get -u github.com/kardianos/govendor
     - govendor sync
     - go get -d
     - go build -o ./thing
-
+  cache:
+    paths:
+      - bower_components/
   artifacts:
     paths:
       - thing
@@ -64,39 +52,38 @@ build-my-project:
 
 test-my-project:
   stage: test
+  coverage: '/coverage: \d+\.\d+/'
   script:
     - go get -d  
     - go test -v
     - go test -race
+    - go test -cover
 
 deploy_staging:
   stage: deploy
   script:
-    # Push to the Dokku server
-    - cd /builds/go/thing
-    - git checkout $CI_COMMIT_REF_NAME
-    - git status
-    - git remote add lisa-dokku ssh://dokku@192.168.1.100:42424/gothing
-    - git branch
-    - git push lisa-dokku $CI_COMMIT_REF_NAME:master
+    - apt-get update -y && apt-get install -y rsync
+    - /bin/bash ./deploy.sh golang@leela.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
   environment:
     name: staging
-    url: https://gothing.lisa.es.gy
+    url: http://thing.leela.es.gy
   when: manual
 
 deploy_prod:
   stage: deploy
   script:
-    # Push to the Dokku server
-    - cd /builds/go/thing
-    - git checkout master
-    - git status
-    - git remote add frink-dokku dokku@frink.es.gy:gothing
-    - git branch
-    - git push frink-dokku master 
+    - apt-get update -y && apt-get install -y rsync
+    - /bin/sh ./deploy.sh golang@frink.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
+    # Backup old app
+    #- ssh golang@frink.es.gy mv /home/golang/wiki/ /home/golang/wiki.old/
+    # rsync to fresh folder
+    #- rsync -av --delete --exclude data/ --exclude vendor/ --exclude http.log ./ golang@frink.es.gy:/home/golang/wiki/
+    # Copy data/ from old to new
+    #- ssh golang@frink.es.gy cp -rp /home/golang/wiki.old/data /home/golang/wiki/
+    # Restart 
+    #- ssh golang@frink.es.gy sudo systemctl restart golang@wiki
   environment:
     name: production
     url: https://es.gy
-  #when: manual
   only:
-    - master@go/thing
+    - master
