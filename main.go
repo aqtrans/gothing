@@ -61,7 +61,7 @@ type configuration struct {
 
 type thingEnv struct {
 	Bolt      *thingDB
-	authState *auth.AuthState
+	authState *auth.State
 	templates map[string]*template.Template
 }
 
