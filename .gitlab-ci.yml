@@ -61,9 +61,25 @@ test-my-project:
 
 deploy_staging:
   stage: deploy
+  variables:
+    DEPLOY_HOST: 'golang@leela.es.gy'
   script:
+    - echo $DEPLOY_HOST
+    - echo $CI_PROJECT_NAME
     - apt-get update -y && apt-get install -y rsync
-    - /bin/bash ./deploy.sh golang@leela.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
+    # Remove previous backup of app
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then rm -rfv $CI_PROJECT_NAME.old; fi'"
+    # Stop app, to release DB locks 
+    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME
+    # Backup old app
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then mv -v $CI_PROJECT_NAME{,.old}; fi'"
+    # rsync to fresh folder
+    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME
+    # Copy data/ from old to new
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then cp -rp $CI_PROJECT_NAME.old/data $CI_PROJECT_NAME/; fi'"
+    # Restart app
+    - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
+    #- /bin/bash ./deploy.sh golang@leela.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
   environment:
     name: staging
     url: http://thing.leela.es.gy
@@ -71,9 +87,25 @@ deploy_staging:
 
 deploy_prod:
   stage: deploy
+  variables:
+    DEPLOY_HOST: 'golang@frink.es.gy'
   script:
+    - echo $DEPLOY_HOST
+    - echo $CI_PROJECT_NAME
     - apt-get update -y && apt-get install -y rsync
-    - /bin/sh ./deploy.sh golang@frink.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
+    # Remove previous backup of app
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then rm -rfv $CI_PROJECT_NAME.old; fi'"
+    # Stop app, to release DB locks 
+    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME
+    # Backup old app
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then mv -v $CI_PROJECT_NAME{,.old}; fi'"
+    # rsync to fresh folder
+    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME
+    # Copy data/ from old to new
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then cp -rp $CI_PROJECT_NAME.old/data $CI_PROJECT_NAME/; fi'"
+    # Restart app
+    - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
+    #- /bin/sh ./deploy.sh golang@frink.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
     # Backup old app
     #- ssh golang@frink.es.gy mv /home/golang/wiki/ /home/golang/wiki.old/
     # rsync to fresh folder
