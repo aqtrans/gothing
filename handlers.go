@@ -1565,7 +1565,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		env.authState.SetFlash("Failed to save image", w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	env.authState.SetFlash("Successfully saved image "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
+	env.authState.SetFlash("Successfully saved image "+filename+": <a href=https://"+viper.GetString("MainTLD")+"/i/"+filename+"></a>", w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
