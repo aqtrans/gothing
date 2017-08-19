@@ -171,7 +171,8 @@ header {
 }
 
 #gallery img {
-    max-width: 400px;
+    //max-width: 400px;
+    flex: 0 0 400px;
 }
 
 div.images {
