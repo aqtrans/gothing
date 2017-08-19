@@ -62,24 +62,23 @@ test-my-project:
 deploy_staging:
   stage: deploy
   variables:
-    DEPLOY_HOST: 'golang@leela.es.gy'
+    DEPLOY_HOST: 'golang@192.168.1.100'
   script:
     - echo $DEPLOY_HOST
     - echo $CI_PROJECT_NAME
     - apt-get update -y && apt-get install -y rsync
-    # Remove previous backup of app
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then rm -rfv $CI_PROJECT_NAME.old; fi'"
-    # Stop app, to release DB locks 
-    - ssh $DEPLOY_HOST systemctl --user stop golang@$CI_PROJECT_NAME
-    # Backup old app
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then mv -v $CI_PROJECT_NAME{,.old}; fi'"
     # rsync to fresh folder
-    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME
-    # Copy data/ from old to new
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then cp -rp $CI_PROJECT_NAME.old/data $CI_PROJECT_NAME/; fi'"
+    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME.$CI_COMMIT_SHA
+    # Stop app, to release DB locks 
+    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME    
+    # Copy data/ from current to new
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
+    # If current symlink exists, remove it
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -L $CI_PROJECT_NAME; then rm $CI_PROJECT_NAME; fi'"
+    # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME
     # Restart app
-    - ssh $DEPLOY_HOST systemctl --user start golang@$CI_PROJECT_NAME
-    #- /bin/bash ./deploy.sh golang@leela.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
   environment:
     name: staging
     url: http://thing.leela.es.gy
@@ -93,27 +92,18 @@ deploy_prod:
     - echo $DEPLOY_HOST
     - echo $CI_PROJECT_NAME
     - apt-get update -y && apt-get install -y rsync
-    # Remove previous backup of app
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then rm -rfv $CI_PROJECT_NAME.old; fi'"
-    # Stop app, to release DB locks 
-    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME
-    # Backup old app
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then mv -v $CI_PROJECT_NAME{,.old}; fi'"
     # rsync to fresh folder
-    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME
-    # Copy data/ from old to new
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then cp -rp $CI_PROJECT_NAME.old/data $CI_PROJECT_NAME/; fi'"
+    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME.$CI_COMMIT_SHA
+    # Stop app, to release DB locks 
+    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME    
+    # Copy data/ from current to new
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
+    # If current symlink exists, remove it
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -L $CI_PROJECT_NAME; then rm $CI_PROJECT_NAME; fi'"
+    # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME
     # Restart app
     - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
-    #- /bin/sh ./deploy.sh golang@frink.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
-    # Backup old app
-    #- ssh golang@frink.es.gy mv /home/golang/wiki/ /home/golang/wiki.old/
-    # rsync to fresh folder
-    #- rsync -av --delete --exclude data/ --exclude vendor/ --exclude http.log ./ golang@frink.es.gy:/home/golang/wiki/
-    # Copy data/ from old to new
-    #- ssh golang@frink.es.gy cp -rp /home/golang/wiki.old/data /home/golang/wiki/
-    # Restart 
-    #- ssh golang@frink.es.gy sudo systemctl restart golang@wiki
   environment:
     name: production
     url: https://es.gy
