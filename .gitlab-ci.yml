@@ -1,4 +1,4 @@
-image: golang:latest
+image: aqtrans/golang-npm:latest
 
 cache:
   key: "$CI_BUILD_REF_NAME"
@@ -32,9 +32,9 @@ install-go:
 build-my-project:
   stage: build
   script:
-    - curl -sL https://deb.nodesource.com/setup_6.x | bash -
-    - apt-get update -y && apt-get install -y nodejs
-    - npm install -g bower gulp    
+    #- curl -sL https://deb.nodesource.com/setup_6.x | bash -
+    #- apt-get update -y && apt-get install -y nodejs
+    #- npm install -g bower gulp    
     - /bin/sh ./build_css.sh
     - go get -u github.com/kardianos/govendor
     - govendor sync
@@ -70,7 +70,7 @@ deploy_staging:
     # Remove previous backup of app
     - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then rm -rfv $CI_PROJECT_NAME.old; fi'"
     # Stop app, to release DB locks 
-    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST systemctl --user stop golang@$CI_PROJECT_NAME
     # Backup old app
     - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then mv -v $CI_PROJECT_NAME{,.old}; fi'"
     # rsync to fresh folder
@@ -78,7 +78,7 @@ deploy_staging:
     # Copy data/ from old to new
     - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.old; then cp -rp $CI_PROJECT_NAME.old/data $CI_PROJECT_NAME/; fi'"
     # Restart app
-    - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST systemctl --user start golang@$CI_PROJECT_NAME
     #- /bin/bash ./deploy.sh golang@leela.es.gy golang@$CI_PROJECT_NAME $CI_PROJECT_NAME
   environment:
     name: staging
