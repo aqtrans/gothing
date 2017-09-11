@@ -12,8 +12,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
+	"github.com/spf13/pflag"
 
 	"html/template"
 	"regexp"
@@ -73,6 +73,7 @@ type thingDB struct {
 var (
 	bufpool *bpool.BufferPool
 	_24K    int64 = (1 << 20) * 24
+	dataDir string
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//cfg       = configuration{}
 )
@@ -313,6 +314,9 @@ func init() {
 
 	//viper.Unmarshal(&cfg)
 	//viper.UnmarshalKey("AuthConf", &auth.Authcfg)
+
+	pflag.StringVar(&dataDir, "DataDir", "./data/", "Path to store permanent data in.")
+	pflag.Parse()
 
 	bufpool = bpool.NewBufferPool(64)
 }
@@ -823,6 +827,15 @@ func main() {
 	viper.SetConfigName("conf")
 	viper.SetConfigType("json")
 	viper.AddConfigPath("./data/")
+	if dataDir != "./data/" {
+		viper.AddConfigPath("./data2/")
+		viper.Set("ImgDir", filepath.Join(dataDir, "/up-imgs/"))
+		viper.Set("FileDir", filepath.Join(dataDir, "/up-files/"))
+		viper.Set("ThumbDir", filepath.Join(dataDir, "/thumbs/"))
+		viper.Set("AuthDB", filepath.Join(dataDir, "/auth.db"))
+		viper.Set("dbPath", filepath.Join(dataDir, "/bolt.db"))
+		log.Println("omg", dataDir)
+	}
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
@@ -849,20 +862,20 @@ func main() {
 		defer auth.Authdb.Close()
 	*/
 
-	dataDir, err := os.Stat("./data/")
+	dataDir1, err := os.Stat(dataDir)
 	if os.IsNotExist(err) {
-		err = os.Mkdir("data", 0755)
+		err = os.Mkdir(dataDir, 0755)
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
 	if os.IsExist(err) {
-		if !dataDir.IsDir() {
+		if !dataDir1.IsDir() {
 			log.Fatalln("./data/ is not a directory. This is where misc data is stored.")
 		}
 	}
 
-	anAuthState, err := auth.NewAuthState("./data/auth.db", viper.GetString("AdminUser"))
+	anAuthState, err := auth.NewAuthState(viper.GetString("AuthDB"), viper.GetString("AdminUser"))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -895,9 +908,6 @@ func main() {
 	}
 
 	env.dbInit()
-
-	flag.Parse()
-	//flag.Set("bind", ":3000")
 
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
