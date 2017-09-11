@@ -78,7 +78,7 @@ deploy_staging:
     # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
     - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME
     # Restart app
-    - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST systemctl --user start golang@$CI_PROJECT_NAME
   environment:
     name: staging
     url: http://thing.leela.es.gy
