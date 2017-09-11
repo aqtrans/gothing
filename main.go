@@ -187,7 +187,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//log.Println(r.Context().Value(httptreemux.ParamsContextKey))
 		hs.theEnv.shortUrlHandler(w, r.WithContext(ctx))
 	} else {
-		// Handle host names for wich no handler is registered
+		// Handle host names for which no handler is registered
 		log.Println(r.Host)
 		http.Error(w, "Forbidden", 403) // Or Redirect?
 	}
@@ -913,10 +913,10 @@ func main() {
 	std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
 
 	if viper.GetBool("Dev") {
-		viper.Set("MainTLD", "main.devd.io")
-		viper.Set("ShortTLD", "devd.io")
-		viper.Set("ImageTLD", "i.devd.io")
-		viper.Set("GifTLD", "big.devd.io")
+		viper.Set("MainTLD", "go.dev")
+		viper.Set("ShortTLD", "go.dev")
+		viper.Set("ImageTLD", "i.go.dev")
+		viper.Set("GifTLD", "big.go.dev")
 
 		log.Println("Listening on devd.io domains due to -l flag...")
 		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
@@ -1065,6 +1065,6 @@ func main() {
 	}
 
 	http.Handle("/", std.Then(hs))
-	http.ListenAndServe("0.0.0.0:"+viper.GetString("Port"), nil)
+	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
 }
