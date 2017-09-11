@@ -828,7 +828,7 @@ func main() {
 	viper.SetConfigType("json")
 	viper.AddConfigPath("./data/")
 	if dataDir != "./data/" {
-		viper.AddConfigPath("./data2/")
+		viper.AddConfigPath(dataDir)
 		viper.Set("ImgDir", filepath.Join(dataDir, "/up-imgs/"))
 		viper.Set("FileDir", filepath.Join(dataDir, "/up-files/"))
 		viper.Set("ThumbDir", filepath.Join(dataDir, "/thumbs/"))
