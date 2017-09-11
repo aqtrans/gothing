@@ -1,4 +1,4 @@
-image: aqtrans/golang-npm:latest
+image: golang:latest
 
 cache:
   key: "$CI_BUILD_REF_NAME"
@@ -32,9 +32,9 @@ install-go:
 build-my-project:
   stage: build
   script:
-    #- curl -sL https://deb.nodesource.com/setup_6.x | bash -
-    #- apt-get update -y && apt-get install -y nodejs
-    #- npm install -g bower gulp    
+    - curl -sL https://deb.nodesource.com/setup_6.x | bash -
+    - apt-get update -y && apt-get install -y nodejs
+    - npm install -g bower gulp    
     - /bin/sh ./build_css.sh
     - go get -u github.com/kardianos/govendor
     - govendor sync
@@ -72,7 +72,7 @@ deploy_staging:
     # Stop app, to release DB locks 
     - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME    
     # Copy data/ from current to new
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
+    #- ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
     # If current symlink exists, remove it
     - ssh $DEPLOY_HOST /bin/bash -c "'if test -L $CI_PROJECT_NAME; then rm $CI_PROJECT_NAME; fi'"
     # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
@@ -97,7 +97,7 @@ deploy_prod:
     # Stop app, to release DB locks 
     - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME    
     # Copy data/ from current to new
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
+    #- ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
     # If current symlink exists, remove it
     - ssh $DEPLOY_HOST /bin/bash -c "'if test -L $CI_PROJECT_NAME; then rm $CI_PROJECT_NAME; fi'"
     # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
