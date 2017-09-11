@@ -355,7 +355,17 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 				segments := strings.Split(u.Path, "/")
 				fileName := segments[len(segments)-1]
 				log.Println("Serving " + shorturl.Long + " file directly")
-				http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
+				http.ServeFile(w, r, "/"+filepath.Join(viper.GetString("ImgDir"), fileName))
+			}
+			if strings.HasPrefix(shorturl.Long, "https://"+viper.GetString("ImageTLD")) {
+				u, err := url.Parse(shorturl.Long)
+				if err != nil {
+					log.Println(err)
+				}
+				segments := strings.Split(u.Path, "/")
+				fileName := segments[len(segments)-1]
+				log.Println("Serving " + shorturl.Long + " file directly")
+				http.ServeFile(w, r, "/"+filepath.Join(viper.GetString("ImgDir"), fileName))
 			}
 		} else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
 			log.Println("LONG URL CONTAINS MainTLD")
@@ -367,7 +377,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 				segments := strings.Split(u.Path, "/")
 				fileName := segments[len(segments)-1]
 				log.Println("Serving " + shorturl.Long + " file directly")
-				http.ServeFile(w, r, viper.GetString("ImgDir")+fileName)
+				http.ServeFile(w, r, "/"+filepath.Join(viper.GetString("ImgDir"), fileName))
 			}
 		} else {
 			destURL := shorturl.Long
@@ -488,7 +498,7 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 			Hits:     count,
 		}
 		encoded, err := json.Marshal(fi)
-		http.ServeFile(w, r, fpath)
+		http.ServeFile(w, r, "/"+fpath)
 		return b.Put([]byte(name), encoded)
 	})
 
@@ -564,7 +574,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 					    <body><video src=/imagedirect/` + name + ` autoplay loop muted></video></body>
 					    </html>`))
 	} else {
-		http.ServeFile(w, r, fpath)
+		http.ServeFile(w, r, "/"+fpath)
 	}
 }
 
@@ -574,8 +584,8 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
 	params := getParams(r.Context())
 	name := params["name"]
-	fpath := viper.GetString("ImgDir") + path.Base(strings.TrimSuffix(name, ".png"))
-	thumbPath := viper.GetString("ThumbDir") + path.Base(name)
+	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(strings.TrimSuffix(name, ".png")))
+	thumbPath := filepath.Join(viper.GetString("ThumbDir"), path.Base(name))
 
 	//log.Println("name:"+ name)
 	//log.Println("fpath:"+ fpath)
@@ -585,7 +595,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 	//If so, serve it directly
 	if _, err := os.Stat(thumbPath); err == nil {
 		log.Println("Pre-existing thumbnail already found, serving it...")
-		http.ServeFile(w, r, viper.GetString("ThumbDir")+path.Base(name))
+		http.ServeFile(w, r, "/"+filepath.Join(viper.GetString("ThumbDir"), path.Base(name)))
 	} else {
 		log.Println("Thumbnail not found. Running thumbnail function...")
 		makeThumb(fpath, thumbPath)
@@ -608,9 +618,8 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 		//Trying with imaging library now
 
-		http.ServeFile(w, r, viper.GetString("ThumbDir")+path.Base(name))
+		http.ServeFile(w, r, "/"+filepath.Join(viper.GetString("ThumbDir"), path.Base(name)))
 	}
-
 }
 
 func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
@@ -638,7 +647,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageBigHandler")
 	vars := getParams(r.Context())
 	name := vars["name"]
-	smallPath := viper.GetString("ImgDir") + path.Base(name)
+	smallPath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
 	//Check if small image exists:
 	_, err := os.Stat(smallPath)
 	if err != nil {
