@@ -13,14 +13,12 @@
       <hr />
         <form action="/api/shorten/new" method="POST" id="shorturl">
         <div class="input-group">
-            <span class="input-group-label">http://</span>
-            <input class="input-group-field" type="text" name="shortSub" placeholder="Enter your short URL...">
-            <span class="input-group-label">.es.gy</span> 
+            <input class="input-group-field" type="text" name="long" placeholder="Enter the full destination URL...">
         </div>
         <div class="input-group">
-            <span class="input-group-label">http://</span>
-            <input class="input-group-field" type="text" name="long" placeholder="Enter the destination URL...">
-        </div>
+            <input class="input-group-field" type="text" name="shortSub" placeholder="Enter your short URL...">
+            <span class="input-group-label">.es.gy</span> 
+        </div>        
         <div class="input-group">
             {{.Page.Token}}
             <input type="submit" class="button success" value="Submit">
@@ -35,13 +33,12 @@
       <hr />
         <form action="/api/shorten/new" method="POST" id="shorturl2">
         <div class="input-group">
-            <span class="input-group-label">http://es.gy/</span>
-            <input class="input-group-field" type="text" name="short" placeholder="Enter your short URL...">
+            <input class="input-group-field" type="text" name="long" placeholder="Enter the full destination URL...">
         </div>
         <div class="input-group">
-            <span class="input-group-label">http://</span>
-            <input class="input-group-field" type="text" name="long" placeholder="Enter the destination URL...">
-        </div>
+            <span class="input-group-label">http://es.gy/</span>
+            <input class="input-group-field" type="text" name="short" placeholder="Enter your short URL...">
+        </div>        
         <div class="input-group">
             {{.Page.Token}}
             <input type="submit" class="button success" value="Submit">
