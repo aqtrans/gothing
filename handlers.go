@@ -1689,12 +1689,12 @@ func (env *thingEnv) LoginPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Login authentication
 		if env.authState.BoltAuth(username, password) {
-			env.authState.SetSession("user", username, w, r)
-			env.authState.SetSession("flash", "User '"+username+"' successfully logged in.", w, r)
+			env.authState.SetSession("user", username, w)
+			env.authState.SetSession("flash", "User '"+username+"' successfully logged in.", w)
 			http.Redirect(w, r, r2, http.StatusSeeOther)
 			return
 		}
-		env.authState.SetSession("flash", "User '"+username+"' failed to login. <br> Please check your credentials and try again.", w, r)
+		env.authState.SetSession("flash", "User '"+username+"' failed to login. <br> Please check your credentials and try again.", w)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 
