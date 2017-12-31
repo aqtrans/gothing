@@ -36,8 +36,11 @@ build-my-project:
     - apt-get update -y && apt-get install -y nodejs
     - npm install -g bower gulp    
     - /bin/sh ./build_css.sh
-    - go get -u github.com/kardianos/govendor
-    - govendor sync
+    #- go get -u github.com/kardianos/govendor
+    #- govendor sync
+    - curl -o dep -sL https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64
+    - chmod +x dep
+    - ./dep ensure
     - go get -d
     - go build -o ./thing
   cache:

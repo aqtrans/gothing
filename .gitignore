@@ -6,3 +6,4 @@ data/**
 thing
 http.log
 rice-box.go
+vendor/*

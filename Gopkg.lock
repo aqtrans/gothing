@@ -1,0 +1,175 @@
+memo = "bc363d8441c23c7601162ae591ad7d6a6283e1f03f19d29ccfa1eb4ca39bc0b8"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/boltdb/bolt"
+  packages = ["."]
+  revision = "e9cf4fae01b5a8ff89d0ec6b32f0d9c9f79aefdd"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dimfeld/httptreemux"
+  packages = ["."]
+  revision = "86f7c217d9043ebc6adfd8e2ed04a0bb1e1db651"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/disintegration/imaging"
+  packages = ["."]
+  revision = "05ebd029ad3e44a269962889e19ba25c262d829c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/fsnotify/fsnotify"
+  packages = ["."]
+  revision = "7d7316ed6e1ed2de075aab8dfc76de5d158d66e1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gorilla/context"
+  packages = ["."]
+  revision = "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gorilla/csrf"
+  packages = ["."]
+  revision = "69581736821c33d85bbf378f42f6ad864dbd85de"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gorilla/handlers"
+  packages = ["."]
+  revision = "801d6e3b008914ee888c9ab9b1b379b9a56fbf44"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gorilla/securecookie"
+  packages = ["."]
+  revision = "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/hcl"
+  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  revision = "630949a3c5fa3c613328e1b8256052cbc2327c9b"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/justinas/alice"
+  packages = ["."]
+  revision = "1051eaf52fcafdd87ead59d28b065f1fcb8274ec"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/kennygrant/sanitize"
+  packages = ["."]
+  revision = "8537026bec4fbc794c27e1a1c07029541122706a"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/magiconair/properties"
+  packages = ["."]
+  revision = "b3b15ef068fd0b17ddf408a23669f20811d194d2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  revision = "53818660ed4955e899c0bcafa97299a388bd7c8e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/oxtoacart/bpool"
+  packages = ["."]
+  revision = "4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pelletier/go-buffruneio"
+  packages = ["."]
+  revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  revision = "13d49d4606eb801b8f01ae542b4afc4c6ee3d84a"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "248dadf4e9068a0b3e79f02ed0a610d935de5302"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/russross/blackfriday"
+  packages = ["."]
+  revision = "5f33e7b7878355cd2b7e6b8eefc48a5472c69f70"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/shurcooL/sanitized_anchor_name"
+  packages = ["."]
+  revision = "1dba4b3954bc059efc3991ec364f9f9a35f597d2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/afero"
+  packages = [".","mem"]
+  revision = "9be650865eab0c12963d8753212f4f9c66cdcf12"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/cast"
+  packages = ["."]
+  revision = "ce135a4ebeee6cfe9a26c93ee0d37825f26113c7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/jwalterweatherman"
+  packages = ["."]
+  revision = "fa7ca7e836cf3a8bb4ebf799f472c12d7e903d66"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "9ff6c6923cfffbcd502984b8e0c80539a94968b7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/viper"
+  packages = ["."]
+  revision = "7538d73b4eb9511d85a9f1dfef202eeb8ac260f4"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/image"
+  packages = ["bmp","tiff","tiff/lzw"]
+  revision = "e20db36d77bd0cb36cea8fe49d5c37d82d21591f"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["html","html/atom"]
+  revision = "a6577fac2d73be281a500b310739095313165611"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "429f518978ab01db8bb6f44b66785088e7fba58b"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/text"
+  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
+  revision = "f28f36722d5ef2f9655ad3de1f248e3e52ad5ebd"
+
+[[projects]]
+  branch = "master"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "a3f3340b5840cee44f372bddb5880fcbc419b46a"
