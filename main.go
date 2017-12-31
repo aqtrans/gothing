@@ -183,6 +183,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mymap := map[string]string{
 			"name": name,
 		}
+		
 		ctx := context.WithValue(r.Context(), httptreemux.ParamsContextKey, mymap)
 		//log.Println(r.Context().Value(httptreemux.ParamsContextKey))
 		hs.theEnv.shortUrlHandler(w, r.WithContext(ctx))
@@ -911,21 +912,21 @@ func main() {
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
 
-	if viper.GetBool("Dev") {
-		viper.Set("MainTLD", "go.dev")
-		viper.Set("ShortTLD", "go.dev")
-		viper.Set("ImageTLD", "i.go.dev")
-		viper.Set("GifTLD", "big.go.dev")
-
-		log.Println("Listening on devd.io domains due to -l flag...")
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+	if viper.GetBool("Insecure") {
+		std = alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
-	}
+	}	
 
-	if viper.GetBool("Insecure") {
-		std = alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+	if viper.GetBool("Dev") {
+		viper.Set("MainTLD", "main.devd.io")
+		viper.Set("ShortTLD", "s.devd.io")
+		viper.Set("ImageTLD", "i.devd.io")
+		viper.Set("GifTLD", "big.devd.io")
+
+		log.Println("Listening on devd.io domains due to -l flag...")
+		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
