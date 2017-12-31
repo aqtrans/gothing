@@ -251,7 +251,6 @@ type Screenshot struct {
 type Shorturl struct {
 	Created int64
 	Short   string
-	FullURL string
 	Long    string
 	Hits    int64
 }
@@ -936,11 +935,11 @@ func main() {
 	//d := r.Host(viper.GetString("MainTLD")).Subrouter()
 
 	// Declare various routers used
-	d := httptreemux.New()
+	d := httptreemux.NewContextMux()
 	d.PanicHandler = httptreemux.ShowErrorsPanicHandler
-	i := httptreemux.New()
+	i := httptreemux.NewContextMux()
 	i.PanicHandler = httptreemux.ShowErrorsPanicHandler
-	big := httptreemux.New()
+	big := httptreemux.NewContextMux()
 	big.PanicHandler = httptreemux.ShowErrorsPanicHandler
 	//wild := httptreemux.New()
 	//wild.PanicHandler = httptreemux.ShowErrorsPanicHandler

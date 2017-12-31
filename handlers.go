@@ -328,6 +328,9 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		    //in a new array
 		    subdomain = string(host_parts[0])
 		}*/
+	
+	var destURL string
+	
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		v := b.Get([]byte(title))
@@ -342,8 +345,19 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal(v, &shorturl)
 		if err != nil {
 			log.Println(err)
+			return err
 		}
-		count := (shorturl.Hits + 1)
+		
+		destURL = shorturl.Long
+		
+		// If shorturl.Long begins with /, assume it is a file/image/screenshot to be served locally
+		//    This is to replace the rest of the if/else now-commented out:
+		if strings.HasPrefix(shorturl.Long, "/") {
+			destURL = "//"+viper.GetString("MainTLD")+shorturl.Long
+			//http.Redirect(w, r, "//"+viper.GetString("MainTLD")+shorturl.Long, 302)
+		}
+	
+		/*
 		//If the shorturl is local, just serve whatever file being requested
 		if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
 			log.Println("LONG URL CONTAINS ShortTLD")
@@ -387,21 +401,30 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			http.Redirect(w, r, destURL, 302)
 		}
+		*/
 
 		s := &Shorturl{
 			Created: shorturl.Created,
 			Short:   shorturl.Short,
 			Long:    shorturl.Long,
-			FullURL: shorturl.FullURL,
-			Hits:    count,
+			Hits:    shorturl.Hits + 1,
 		}
 		encoded, err := json.Marshal(s)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
 
-		//return nil
 		return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
 		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		if !strings.HasPrefix(destURL, "http") {
+			destURL = "http://" + destURL
+		}
+		http.Redirect(w, r, destURL, 302)		
 	}
 }
 
@@ -1030,9 +1053,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 	long := r.PostFormValue("long")
 
 	if subdomain == "" {
-		if short != "" {
-			short = short
-		} else {
+		if short == "" {
 			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 			var bytes = make([]byte, 4)
 			rand.Read(bytes)
@@ -1048,14 +1069,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 			Created: time.Now().Unix(),
 			Short:   short,
 			Long:    long,
-			FullURL: full,
 		}
-
-		/*
-		   Created string
-		   Short 	string
-		   Long 	string
-		*/
 
 		err = s.save(env)
 		if err != nil {
@@ -1066,7 +1080,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		//log.Println("Short: " + s.Short)
 		//log.Println("Long: " + s.Long)
 
-		env.authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
+		env.authState.SetFlash("Successfully shortened "+s.Long, w, r)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1077,14 +1091,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		Created: time.Now().Unix(),
 		Short:   subdomain,
 		Long:    long,
-		FullURL: full,
 	}
-
-	/*
-	   Created string
-	   Short 	string
-	   Long 	string
-	*/
 
 	err = s.save(env)
 	if err != nil {
@@ -1095,7 +1102,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 	//log.Println("Short: " + s.Short)
 	//log.Println("Long: " + s.Long)
 
-	env.authState.SetFlash("Successfully shortened "+s.FullURL, w, r)
+	env.authState.SetFlash("Successfully shortened "+s.Long, w, r)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }
