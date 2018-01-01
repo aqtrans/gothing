@@ -9,7 +9,7 @@
   <li class="accordion-item is-active" data-accordion-item>
     <a href="#" class="accordion-title">Shorten URL to a subdomain</a>
     <div class="accordion-content" data-tab-content>
-      <h3>Shorten URL to [name].es.gy</h3>
+      <h3>Shorten URL to [name].{{.Page.MainTLD}}</h3>
       <hr />
         <form action="/api/shorten/new" method="POST" id="shorturl">
         <div class="input-group">
@@ -17,7 +17,7 @@
         </div>
         <div class="input-group">
             <input class="input-group-field" type="text" name="shortSub" placeholder="Enter your short URL...">
-            <span class="input-group-label">.es.gy</span> 
+            <span class="input-group-label">.{{.Page.MainTLD}}</span> 
         </div>        
         <div class="input-group">
             {{.Page.Token}}
@@ -29,14 +29,14 @@
   <li class="accordion-item" data-accordion-item>
     <a href="#" class="accordion-title">Shorten URL normally</a>
     <div class="accordion-content" data-tab-content>
-      <h3>Shorten URL to es.gy/[name]</h3>  
+      <h3>Shorten URL to {{.Page.MainTLD}}/[name]</h3>  
       <hr />
         <form action="/api/shorten/new" method="POST" id="shorturl2">
         <div class="input-group">
             <input class="input-group-field" type="text" name="long" placeholder="Enter the full destination URL...">
         </div>
         <div class="input-group">
-            <span class="input-group-label">http://es.gy/</span>
+            <span class="input-group-label">http://{{.Page.MainTLD}}/</span>
             <input class="input-group-field" type="text" name="short" placeholder="Enter your short URL...">
         </div>        
         <div class="input-group">

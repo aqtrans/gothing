@@ -1084,8 +1084,6 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
-	full := "http://" + subdomain + "." + viper.GetString("ShortTLD")
-	log.Println(full)
 	log.Println("Subdomain is not blank, creating a subdomain short URL.")
 	s := &Shorturl{
 		Created: time.Now().Unix(),

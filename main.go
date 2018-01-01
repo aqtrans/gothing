@@ -205,6 +205,7 @@ type Page struct {
 	IsAdmin  bool
 	Token    template.HTML
 	FlashMsg string
+	MainTLD  string
 }
 
 type ListPage struct {
@@ -420,7 +421,15 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 		message = ""
 	}
 
-	return &Page{TheName: "GoThing", Title: title, UN: user, IsAdmin: isAdmin, Token: token, FlashMsg: message}, nil
+	return &Page{
+		TheName: "GoThing", 
+		Title: title, 
+		UN: user, 
+		IsAdmin: isAdmin,
+		Token: token, 
+		FlashMsg: message,
+		MainTLD: viper.GetString("MainTLD"),
+		}, nil
 }
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
@@ -812,10 +821,10 @@ func main() {
 	viper.SetDefault("ImgDir", "./data/up-imgs/")
 	viper.SetDefault("FileDir", "./data/up-files/")
 	viper.SetDefault("ThumbDir", "./data/thumbs/")
-	viper.SetDefault("MainTLD", "es.gy")
-	viper.SetDefault("ShortTLD", "es.gy")
-	viper.SetDefault("ImageTLD", "i.es.gy")
-	viper.SetDefault("GifTLD", "big.es.gy")
+	viper.SetDefault("MainTLD", "squanch.space")
+	viper.SetDefault("ShortTLD", "squanch.space")
+	viper.SetDefault("ImageTLD", "i.squanch.space")
+	viper.SetDefault("GifTLD", "big.squanch.space")
 	viper.SetDefault("AuthDB", "./data/auth.db")
 	viper.SetDefault("AdminUser", "admin")
 	viper.SetDefault("AdminPass", "admin")
