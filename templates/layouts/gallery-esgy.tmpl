@@ -14,6 +14,8 @@
               <img class="gifplayer" data-gif="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
               {{else if eq $imgext "webm"}}
               <img class="gifplayer" data-mode="video" data-webm="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
+              {{else if eq $imgext "mp4"}}
+              <img class="gifplayer" data-mode="video" data-mp4="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
               {{else}}
               <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
               {{end}}

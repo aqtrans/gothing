@@ -545,8 +545,9 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	extensions := []string{".webm", ".gif", ".jpg", ".jpeg", ".png"}
+	extensions := []string{".mp4", ".webm", ".gif", ".jpg", ".jpeg", ".png"}
 	//If this is extensionless, search for the proper file with the extension
+	//  Note: Searching for mp4, webm first
 	if filepath.Ext(name) == "" {
 		//log.Println("NO EXTENSION FOUND OMG")
 		for _, ext := range extensions {
@@ -592,8 +593,10 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	// Try and intercept GIF requests if a fpath.webm
 	if filepath.Ext(name) == ".gif" {
 		nameWithoutExt := name[0:len(name)-len(filepath.Ext(".gif"))]
-		log.Println(nameWithoutExt)
-		log.Println(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm"))
+		// Check for existence of nameWithoutExt.mp4
+		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
+			name = nameWithoutExt+".mp4"
+		}		
 		// Check for existence of nameWithoutExt.webm
 		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); err == nil {
 			name = nameWithoutExt+".webm"
@@ -601,8 +604,14 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	}
 
 
-	//If this is a webm file, serve it so it acts like a GIF
-	if filepath.Ext(name) == ".webm" {
+	//If this is an mp4 or webm file, serve it so it acts like a GIF
+	if filepath.Ext(name) == ".mp4" {
+		//w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title></head>
+					    <body><video src=/imagedirect/` + name + ` autoplay loop muted></video></body>
+					    </html>`))
+	} else if filepath.Ext(name) == ".webm" {
 		//w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(`<!doctype html><html><head><title>` + name + `</title></head>
@@ -673,6 +682,7 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
 	params := getParams(r.Context())
 	name := params["name"]
+	log.Println("imageDirectHandler request info:", r.Header, r.Host, r.RemoteAddr)
 	serveContent(w, r, viper.GetString("ImgDir"), name)
 
 }
@@ -1558,6 +1568,24 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		       }
 		   }*/
 
+	}
+
+	// If this is a GIF, toss the GIF away and replace it with an MP4
+	if filepath.Ext(filename) == ".gif" {
+		log.Println("New gif detected; converting to mp4!")
+		nameWithoutExt := filename[0:len(filename)-len(filepath.Ext(".gif"))]
+		// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
+		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-y", "-pix_fmt", "yuv420p", filepath.Join(path, nameWithoutExt+".mp4"))
+		err := resize.Run()
+		if err != nil {
+			log.Panicln(err)
+		}
+		// After successful conversion, remove the originally uploaded gif
+		err = os.Remove(filepath.Join(path, filename))
+		if err != nil {
+			log.Println("Error removing gif after converting to mp4", filename, err)
+		}
+		filename = filepath.Join(path, nameWithoutExt+".mp4")
 	}
 
 	// w.Statuscode = 200

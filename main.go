@@ -647,8 +647,13 @@ func makeThumb(fpath, thumbpath string) {
 	defer httputils.TimeTrack(time.Now(), "makeThumb")
 	contentType := mime.TypeByExtension(filepath.Ext(path.Base(fpath)))
 	if contentType == "video/webm" {
-		log.Println("WEBM FILE DETECTED")
-		//ffmpeg -i doit.webm -vframes 1 -filter:v scale="-1:300" doit.thumb.png
+		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
+		err := resize.Run()
+		if err != nil {
+			log.Panicln(err)
+		}
+		return
+	} else	if contentType == "video/mp4" {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
