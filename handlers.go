@@ -424,7 +424,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(destURL, "http") {
 			destURL = "http://" + destURL
 		}
-		http.Redirect(w, r, destURL, 302)		
+		http.Redirect(w, r, destURL, http.StatusSeeOther)
 	}
 }
 
