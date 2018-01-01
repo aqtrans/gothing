@@ -593,7 +593,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	if filepath.Ext(name) == ".gif" {
 		nameWithoutExt := name[0:len(name)-len(filepath.Ext(".gif"))]
 		// Check for existence of nameWithoutExt.webm
-		if _, err := os.Stat(nameWithoutExt+".webm"); os.IsExist(err) {
+		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); os.IsExist(err) {
 			name = nameWithoutExt+".webm"
 		}
 	}
