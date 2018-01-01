@@ -589,6 +589,16 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		return b.Put([]byte(name), encoded)
 	})
 
+	// Try and intercept GIF requests if a fpath.webm
+	if filepath.Ext(name) == ".gif" {
+		nameWithoutExt := name[0:len(name)-len(filepath.Ext(".gif"))]
+		// Check for existence of nameWithoutExt.webm
+		if _, err := os.Stat(nameWithoutExt+".webm"); os.IsExist(err) {
+			name = nameWithoutExt+".webm"
+		}
+	}
+
+
 	//If this is a webm file, serve it so it acts like a GIF
 	if filepath.Ext(name) == ".webm" {
 		//w.Header().Set("Content-Type", "application/json")
@@ -604,6 +614,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("imageThumbHandler r.Host:", r.Host, r.RemoteAddr, r.Header)
 	defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
 	params := getParams(r.Context())
 	name := params["name"]
