@@ -42,12 +42,10 @@ Db.Update(func(tx *bolt.Tx) error {
 		if err != nil {
 			log.Println(err)
 		}
-        fullUrl := "http://" + short.Short + "." + "es.gy"
         sh := &Shorturl{
             Created: short.Created,
             Short: short.Short,
             Long: short.Long,
-            FullURL: fullUrl,
             Hits: short.Hits,
         }
         encoded, err := json.Marshal(sh)
