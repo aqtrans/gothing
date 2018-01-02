@@ -257,6 +257,27 @@ type Shorturl struct {
 	Hits    int64
 }
 
+// Attempt at consolidated type:
+type Thing interface{
+	Type() string
+	Created() int64
+	Title() string
+	Save() error
+}
+
+type ThingByDate []Thing
+func (a ThingByDate) Len() int           { return len(a) }
+func (a ThingByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ThingByDate) Less(i, j int) bool { return a[i].Created() > a[j].Created() }
+
+func(p Paste) Type() string {
+	return "Paste"
+}
+
+func(p Paste) Save() error {
+	return p.save(nil)
+}
+
 // Sorting functions
 type ScreenshotByDate []*Screenshot
 
