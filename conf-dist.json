@@ -4,19 +4,12 @@
     "ImgDir": "./up-imgs/",
     "FileDir": "./up-files/",
     "ThumbDir": "./thumbs/",
-    "MainTLD": "go.jba.io",
-    "ShortTLD": "es.gy",
-    "ImageTLD": "i.es.gy",
-    "GifTLD": "big.es.gy",
-    "AuthConf": {
-            "Username": "guest",
-            "Password": "1337",
-            "LdapEnabled": true,
-            "LdapPort": 389,
-            "LdapUrl": "frink.es.gy",
-            "LdapUn": "uid",
-            "LdapOu": "People",
-            "LdapDn": "dc=jba,dc=io"
-    }
+    "MainTLD": "squanch.space",
+    "ShortTLD": "squanch.space",
+    "ImageTLD": "i.squanch.space",
+    "GifTLD": "big.squanch.space",
+    "Dev": true,
+    "Insecure": true,
+    "Debug": true
 }
 

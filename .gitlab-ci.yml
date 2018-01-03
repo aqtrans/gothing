@@ -84,13 +84,13 @@ deploy_staging:
     - ssh $DEPLOY_HOST systemctl --user start golang@$CI_PROJECT_NAME
   environment:
     name: staging
-    url: http://thing.leela.es.gy
+    url: http://thing.rick.jba.io
   when: manual
 
 deploy_prod:
   stage: deploy
   variables:
-    DEPLOY_HOST: 'golang@frink.es.gy'
+    DEPLOY_HOST: 'golang@frink.jba.io'
   script:
     - echo $DEPLOY_HOST
     - echo $CI_PROJECT_NAME
@@ -109,6 +109,6 @@ deploy_prod:
     - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
   environment:
     name: production
-    url: https://es.gy
+    url: https://squanch.space
   only:
     - master
