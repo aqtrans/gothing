@@ -57,6 +57,7 @@ build-css:
 build-my-project:
   stage: build
   script:
+    - go get -d -v  
     - go build -o ./thing
   cache:
     paths:
@@ -69,6 +70,7 @@ test-my-project:
   stage: test
   coverage: '/coverage: \d+\.\d+/'
   script:
+    - go get -d -v  
     - go test -v
     - go test -race
     - go test -cover
