@@ -800,11 +800,7 @@ func tmplInit(env *thingEnv) error {
 
 // Simple function to get the httptreemux params, setting it blank if there aren't any
 func getParams(c context.Context) map[string]string {
-	params, ok := c.Value(httptreemux.ParamsContextKey).(map[string]string)
-	if !ok {
-		params = make(map[string]string)
-	}
-	return params
+	return httptreemux.ContextParams(c)
 }
 
 func main() {
