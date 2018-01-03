@@ -16,6 +16,8 @@ before_script:
 
 stages:
   - install-environment
+  - get-deps
+  - build-css
   - build
   - test
   - deploy  
@@ -28,20 +30,33 @@ install-go:
     - echo $GOPATH
     - go env
     - which go
+  
+get-deps:
+  stage: get-deps
+  script:
+    - curl -o dep -sL https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64
+    - chmod +x dep
+    - ./dep ensure -v
+    - go get -d -v
+  artifacts:
+    paths: 
+      - vendor/
 
-build-my-project:
-  stage: build
+build-css:
+  stage: build-css
   script:
     - curl -sL https://deb.nodesource.com/setup_6.x | bash -
     - apt-get update -y && apt-get install -y nodejs
     - npm install -g bower gulp    
     - /bin/sh ./build_css.sh
-    #- go get -u github.com/kardianos/govendor
-    #- govendor sync
-    - curl -o dep -sL https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64
-    - chmod +x dep
-    - ./dep ensure
-    - go get -d
+  artifacts:
+    paths: 
+      - assets/css/thing.css
+      - assets/css/thing.css.map 
+
+build-my-project:
+  stage: build
+  script:
     - go build -o ./thing
   cache:
     paths:
@@ -49,15 +64,11 @@ build-my-project:
   artifacts:
     paths:
       - thing
-      - assets/css/thing.css
-      - assets/css/thing.css.map
-      - vendor/
 
 test-my-project:
   stage: test
   coverage: '/coverage: \d+\.\d+/'
   script:
-    - go get -d  
     - go test -v
     - go test -race
     - go test -cover
