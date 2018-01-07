@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/pflag"
 
 	"html/template"
@@ -183,7 +184,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mymap := map[string]string{
 			"name": name,
 		}
-		
+
 		ctx := httptreemux.AddParamsToContext(r.Context(), mymap)
 		hs.theEnv.shortUrlHandler(w, r.WithContext(ctx))
 	} else {
@@ -401,7 +402,7 @@ func ParseBool(value string) bool {
 func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
 	defer httputils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
-	user, isAdmin := auth.GetUsername(r.Context())
+	user := auth.GetUserState(r.Context())
 	msg := auth.GetFlash(r.Context())
 	token := csrf.TemplateField(r)
 
@@ -421,14 +422,14 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 	}
 
 	return &Page{
-		TheName: "GoThing", 
-		Title: title, 
-		UN: user, 
-		IsAdmin: isAdmin,
-		Token: token, 
+		TheName:  "GoThing",
+		Title:    title,
+		UN:       user.Username(),
+		IsAdmin:  user.IsAdmin(),
+		Token:    token,
 		FlashMsg: message,
-		MainTLD: viper.GetString("MainTLD"),
-		}, nil
+		MainTLD:  viper.GetString("MainTLD"),
+	}, nil
 }
 
 func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
@@ -652,7 +653,7 @@ func makeThumb(fpath, thumbpath string) {
 			log.Panicln(err)
 		}
 		return
-	} else	if contentType == "video/mp4" {
+	} else if contentType == "video/mp4" {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
@@ -884,7 +885,7 @@ func main() {
 		}
 	}
 
-	anAuthState, err := auth.NewAuthState(viper.GetString("AuthDB"), viper.GetString("AdminUser"))
+	anAuthState, err := auth.NewAuthState(viper.GetString("AuthDB"))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -926,7 +927,7 @@ func main() {
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
-	}	
+	}
 
 	if viper.GetBool("Dev") {
 		viper.Set("MainTLD", "main.devd.io")
@@ -1058,10 +1059,12 @@ func main() {
 
 	httputils.StaticInit()
 	//Used for troubleshooting proxy headers
-	http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.Host)
-		log.Println(r.Header)
-	})
+	/*
+		http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
+			log.Println(r.Host)
+			log.Println(r.Header)
+		})
+	*/
 
 	hm := make(HostMap)
 	hm[viper.GetString("MainTLD")] = d
@@ -1073,7 +1076,7 @@ func main() {
 		theEnv:  env,
 	}
 
-	http.Handle("/", std.Then(hs))
-	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
+	//http.Handle("/", std.Then(hs))
+	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), std.Then(hs))
 
 }

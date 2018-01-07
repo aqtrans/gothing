@@ -42,7 +42,7 @@ func TestAuthInit(t *testing.T) {
 	var err error
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	authState, err := auth.NewAuthState(tmpdb, "admin")
+	authState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestIndexHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestHelpHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestLoginPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestLookingGlassPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +279,7 @@ func TestPastePageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +326,7 @@ func TestFileUpPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +373,7 @@ func TestImageUpPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,7 +420,7 @@ func TestImageGalleryPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb, "admin")
+	anAuthState, err := auth.NewAuthState(tmpdb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,4 +459,41 @@ func TestImageGalleryPageHandler(t *testing.T) {
 			status, http.StatusOK)
 	}
 
+}
+
+func BenchmarkIndex(b *testing.B) {
+
+	var aThingDB *bolt.DB
+	tmpdb := tempfile()
+	defer os.Remove(tmpdb)
+	tmpdb2 := tempfile()
+	defer os.Remove(tmpdb2)
+	anAuthState, err := auth.NewAuthState(tmpdb)
+	if err != nil {
+		b.Fatal(err)
+	}
+	env := &thingEnv{
+		Bolt:      &thingDB{aThingDB, tmpdb2},
+		templates: make(map[string]*template.Template),
+		authState: anAuthState,
+	}
+	err = tmplInit(env)
+	if err != nil {
+		b.Fatal(err)
+	}
+	env.dbInit()
+
+	req, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	req.Host = "squanch.gg"
+
+	handler := http.HandlerFunc(env.indexHandler)
+
+	rr := httptest.NewRecorder()
+
+	for n := 0; n < b.N; n++ {
+		handler.ServeHTTP(rr, req)
+	}
 }

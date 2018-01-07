@@ -328,9 +328,9 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		    //in a new array
 		    subdomain = string(host_parts[0])
 		}*/
-	
+
 	var destURL string
-	
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		v := b.Get([]byte(title))
@@ -347,60 +347,60 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return err
 		}
-		
+
 		destURL = shorturl.Long
-		
+
 		// If shorturl.Long begins with /, assume it is a file/image/screenshot to be served locally
 		//    This is to replace the rest of the if/else now-commented out:
 		if strings.HasPrefix(shorturl.Long, "/") {
-			destURL = "//"+viper.GetString("MainTLD")+shorturl.Long
+			destURL = "//" + viper.GetString("MainTLD") + shorturl.Long
 			//http.Redirect(w, r, "//"+viper.GetString("MainTLD")+shorturl.Long, 302)
 		}
-	
+
 		/*
-		//If the shorturl is local, just serve whatever file being requested
-		if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
-			log.Println("LONG URL CONTAINS ShortTLD")
-			if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("ImageTLD")) {
-				u, err := url.Parse(shorturl.Long)
-				if err != nil {
-					log.Println(err)
+			//If the shorturl is local, just serve whatever file being requested
+			if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
+				log.Println("LONG URL CONTAINS ShortTLD")
+				if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("ImageTLD")) {
+					u, err := url.Parse(shorturl.Long)
+					if err != nil {
+						log.Println(err)
+					}
+					segments := strings.Split(u.Path, "/")
+					fileName := segments[len(segments)-1]
+					log.Println("Serving " + shorturl.Long + " file directly")
+					http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
 				}
-				segments := strings.Split(u.Path, "/")
-				fileName := segments[len(segments)-1]
-				log.Println("Serving " + shorturl.Long + " file directly")
-				http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
-			}
-			if strings.HasPrefix(shorturl.Long, "https://"+viper.GetString("ImageTLD")) {
-				u, err := url.Parse(shorturl.Long)
-				if err != nil {
-					log.Println(err)
+				if strings.HasPrefix(shorturl.Long, "https://"+viper.GetString("ImageTLD")) {
+					u, err := url.Parse(shorturl.Long)
+					if err != nil {
+						log.Println(err)
+					}
+					segments := strings.Split(u.Path, "/")
+					fileName := segments[len(segments)-1]
+					log.Println("Serving " + shorturl.Long + " file directly")
+					http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
 				}
-				segments := strings.Split(u.Path, "/")
-				fileName := segments[len(segments)-1]
-				log.Println("Serving " + shorturl.Long + " file directly")
-				http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
-			}
-		} else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
-			log.Println("LONG URL CONTAINS MainTLD")
-			if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("MainTLD")+"/i/") {
-				u, err := url.Parse(shorturl.Long)
-				if err != nil {
-					log.Println(err)
+			} else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
+				log.Println("LONG URL CONTAINS MainTLD")
+				if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("MainTLD")+"/i/") {
+					u, err := url.Parse(shorturl.Long)
+					if err != nil {
+						log.Println(err)
+					}
+					segments := strings.Split(u.Path, "/")
+					fileName := segments[len(segments)-1]
+					log.Println("Serving " + shorturl.Long + " file directly")
+					http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
 				}
-				segments := strings.Split(u.Path, "/")
-				fileName := segments[len(segments)-1]
-				log.Println("Serving " + shorturl.Long + " file directly")
-				http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
+			} else {
+				destURL := shorturl.Long
+				// If the destination is not a full URL, make it so
+				if !strings.HasPrefix(destURL, "http") {
+					destURL = "http://" + destURL
+				}
+				http.Redirect(w, r, destURL, 302)
 			}
-		} else {
-			destURL := shorturl.Long
-			// If the destination is not a full URL, make it so
-			if !strings.HasPrefix(destURL, "http") {
-				destURL = "http://" + destURL
-			}
-			http.Redirect(w, r, destURL, 302)
-		}
 		*/
 
 		s := &Shorturl{
@@ -592,17 +592,16 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 
 	// Try and intercept GIF requests if a fpath.webm
 	if filepath.Ext(name) == ".gif" {
-		nameWithoutExt := name[0:len(name)-len(filepath.Ext(".gif"))]
+		nameWithoutExt := name[0 : len(name)-len(filepath.Ext(".gif"))]
 		// Check for existence of nameWithoutExt.mp4
 		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
-			name = nameWithoutExt+".mp4"
-		}		
+			name = nameWithoutExt + ".mp4"
+		}
 		// Check for existence of nameWithoutExt.webm
 		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); err == nil {
-			name = nameWithoutExt+".webm"
+			name = nameWithoutExt + ".webm"
 		}
 	}
-
 
 	//If this is an mp4 or webm file, serve it so it acts like a GIF
 	if filepath.Ext(name) == ".mp4" {
@@ -794,7 +793,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -808,7 +807,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -817,7 +816,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		env.authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -831,7 +830,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	err = fi.save(env)
 	if err != nil {
 		log.Println(err)
-		env.authState.SetFlash("Failed to save remote file.", w, r)
+		env.authState.SetFlash("Failed to save remote file.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
@@ -839,7 +838,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
 
-	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w, r)
+	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -898,7 +897,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-			env.authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -912,7 +911,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-			env.authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			fmt.Println(err)
 			panic(err)
@@ -922,7 +921,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-			env.authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			panic(err)
 		}
@@ -1012,7 +1011,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("ParseMultiform reader error")
 			log.Println(err)
-			env.authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -1021,7 +1020,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 		if err != nil {
 			fmt.Println(err)
-			env.authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		if r.FormValue("local-file-name") != "" {
@@ -1032,7 +1031,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			fmt.Println(err)
-			env.authState.SetFlash("Failed to save file.", w, r)
+			env.authState.SetFlash("Failed to save file.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -1049,14 +1048,14 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 	err = fi.save(env)
 	if err != nil {
 		log.Println(err)
-		env.authState.SetFlash("Failed to save file.", w, r)
+		env.authState.SetFlash("Failed to save file.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
 	if uptype == "cli" {
 		fmt.Fprintf(w, "https://"+viper.GetString("MainTLD")+"/d/"+filename)
 	} else {
-		env.authState.SetFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w, r)
+		env.authState.SetFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -1066,7 +1065,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
-		env.authState.SetFlash("Failed to shorten URL.", w, r)
+		env.authState.SetFlash("Failed to shorten URL.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
@@ -1097,13 +1096,13 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		err = s.save(env)
 		if err != nil {
 			log.Println(err)
-			env.authState.SetFlash("Failed to shorten URL.", w, r)
+			env.authState.SetFlash("Failed to shorten URL.", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
 		//log.Println("Short: " + s.Short)
 		//log.Println("Long: " + s.Long)
 
-		env.authState.SetFlash("Successfully shortened "+s.Long, w, r)
+		env.authState.SetFlash("Successfully shortened "+s.Long, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1117,13 +1116,13 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 	err = s.save(env)
 	if err != nil {
 		log.Println(err)
-		env.authState.SetFlash("Failed to shorten URL.", w, r)
+		env.authState.SetFlash("Failed to shorten URL.", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 	//log.Println("Short: " + s.Short)
 	//log.Println("Long: " + s.Long)
 
-	env.authState.SetFlash("Successfully shortened "+s.Long, w, r)
+	env.authState.SetFlash("Successfully shortened "+s.Long, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	return
 }
@@ -1223,7 +1222,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "image" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1240,7 +1239,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "paste" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1250,7 +1249,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "shorturl" {
 		err := db.Update(func(tx *bolt.Tx) error {
@@ -1260,10 +1259,10 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		}
-		env.authState.SetFlash("Successfully deleted "+jmsg, w, r)
+		env.authState.SetFlash("Successfully deleted "+jmsg, w)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else {
-		env.authState.SetFlash("Failed to delete "+jmsg, w, r)
+		env.authState.SetFlash("Failed to delete "+jmsg, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -1382,7 +1381,7 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
 		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1396,7 +1395,7 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	resp, err := check.Get(finURL)
 	if err != nil {
 		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1405,7 +1404,7 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		env.authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		panic(err)
 	}
@@ -1419,11 +1418,11 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	err = imi.save(env)
 	if err != nil {
 		log.Println(err)
-		env.authState.SetFlash("Failed to save remote image", w, r)
+		env.authState.SetFlash("Failed to save remote image", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w, r)
+	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -1573,7 +1572,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	// If this is a GIF, toss the GIF away and replace it with an MP4
 	if filepath.Ext(filename) == ".gif" {
 		log.Println("New gif detected; converting to mp4!")
-		nameWithoutExt := filename[0:len(filename)-len(filepath.Ext(".gif"))]
+		nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
 		// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-y", "-pix_fmt", "yuv420p", filepath.Join(path, nameWithoutExt+".mp4"))
 		err := resize.Run()
@@ -1601,10 +1600,10 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		err = sc.save(env)
 		if err != nil {
 			log.Println(err)
-			env.authState.SetFlash("Failed to save screenshot", w, r)
+			env.authState.SetFlash("Failed to save screenshot", w)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
-		env.authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w, r)
+		env.authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1617,10 +1616,10 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	err = imi.save(env)
 	if err != nil {
 		log.Println(err)
-		env.authState.SetFlash("Failed to save image", w, r)
+		env.authState.SetFlash("Failed to save image", w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	env.authState.SetFlash("Successfully saved image "+filename+": <a href=https://"+viper.GetString("MainTLD")+"/i/"+filename+"></a>", w, r)
+	env.authState.SetFlash("Successfully saved image "+filename+": <a href=https://"+viper.GetString("MainTLD")+"/i/"+filename+"></a>", w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -1688,68 +1687,4 @@ func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	log.Println(name + " Page rendered!")
-}
-
-func (env *thingEnv) LoginPostHandler(w http.ResponseWriter, r *http.Request) {
-
-	switch r.Method {
-	case "GET":
-		// This should be handled in a separate function inside your app
-		/*
-			// Serve login page, replacing loginPageHandler
-			defer timeTrack(time.Now(), "loginPageHandler")
-			title := "login"
-			user := GetUsername(r)
-			//p, err := loadPage(title, r)
-			data := struct {
-				UN  string
-				Title string
-			}{
-				user,
-				title,
-			}
-			err := renderTemplate(w, "login.tmpl", data)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		*/
-	case "POST":
-
-		// Handle login POST request
-		username := template.HTMLEscapeString(r.FormValue("username"))
-		password := template.HTMLEscapeString(r.FormValue("password"))
-		referer, _ := url.Parse(r.Referer())
-
-		// Check if we have a ?url= query string, from AuthMiddle
-		// Otherwise, just use the referrer
-		var r2 string
-		r2 = referer.Query().Get("url")
-		if r2 == "" {
-			r2 = r.Referer()
-			// if r.Referer is blank, just redirect to index
-			if r.Referer() == "" || referer.RequestURI() == "/login" {
-				r2 = "/"
-			}
-		}
-
-		// Login authentication
-		if env.authState.BoltAuth(username, password) {
-			env.authState.SetSession("user", username, w)
-			env.authState.SetSession("flash", "User '"+username+"' successfully logged in.", w)
-			http.Redirect(w, r, r2, http.StatusSeeOther)
-			return
-		}
-		env.authState.SetSession("flash", "User '"+username+"' failed to login. <br> Please check your credentials and try again.", w)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-
-	case "PUT":
-		// Update an existing record.
-	case "DELETE":
-		// Remove the record.
-	default:
-		// Give an error message.
-	}
-
 }
