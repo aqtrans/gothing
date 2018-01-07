@@ -1076,7 +1076,7 @@ func main() {
 		theEnv:  env,
 	}
 
-	//http.Handle("/", std.Then(hs))
-	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), std.Then(hs))
+	http.Handle("/", std.Then(hs))
+	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
 }
