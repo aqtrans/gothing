@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"github.com/fukata/golang-stats-api-handler"
+	_ "github.com/tevjef/go-runtime-metrics/expvar"
 
 	"github.com/spf13/pflag"
 
