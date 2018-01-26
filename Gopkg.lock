@@ -148,6 +148,16 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/tevjef/go-runtime-metrics"
+  packages = [
+    "collector",
+    "expvar",
+    "influxdb"
+  ]
+  revision = "527a540293077c77cf70479bbf9f8efb9f818cb2"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/image"
   packages = [
     "bmp",
@@ -193,6 +203,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f019d5d80421c938735484b7e0314d10878719fbd294555ac46e6bdcc5bb96a2"
+  inputs-digest = "6b00c3c2df8923f60053f78590b74343dbed6e855f312b1050f846f5f8109225"
   solver-name = "gps-cdcl"
   solver-version = 1
