@@ -14,9 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/fukata/golang-stats-api-handler"
 	_ "github.com/tevjef/go-runtime-metrics/expvar"
-
 	"github.com/spf13/pflag"
 
 	"html/template"
@@ -961,7 +959,6 @@ func main() {
 	log.Println("Port: " + viper.GetString("Port"))
 
 	d.GET("/", env.indexHandler)
-	d.GET("/stats", stats_api.Handler)
 	d.GET("/help", env.helpHandler)
 	d.GET("/priv", env.authState.AuthMiddle(env.Readme))
 	d.GET("/readme", env.Readme)
