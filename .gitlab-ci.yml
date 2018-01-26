@@ -1,7 +1,7 @@
 image: golang:latest
 
 cache:
-  key: "$CI_BUILD_REF_NAME"
+  key: "$CI_COMMIT_REF_NAME"
   paths:
     - vendor/
 
@@ -34,13 +34,10 @@ install-go:
 get-deps:
   stage: get-deps
   script:
-    - curl -o dep -sL https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64
+    - curl -o dep -sL https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64
     - chmod +x dep
     - ./dep ensure -v
     - go get -d -v
-  artifacts:
-    paths: 
-      - vendor/
 
 build-css:
   stage: build-css
@@ -50,6 +47,7 @@ build-css:
     - npm install -g bower gulp    
     - /bin/sh ./build_css.sh
   artifacts:
+    expire_in: 1 day
     paths: 
       - assets/css/thing.css
       - assets/css/thing.css.map 
@@ -59,10 +57,8 @@ build-my-project:
   script:
     - go get -d -v  
     - go build -o ./thing
-  cache:
-    paths:
-      - bower_components/
   artifacts:
+    expire_in: 1 day
     paths:
       - thing
 
@@ -79,22 +75,22 @@ deploy_staging:
   stage: deploy
   variables:
     DEPLOY_HOST: 'golang@192.168.1.100'
+    SERVICE_MANAGER: 'systemctl --user'
   script:
-    - echo $DEPLOY_HOST
-    - echo $CI_PROJECT_NAME
-    - apt-get update -y && apt-get install -y rsync
-    # rsync to fresh folder
-    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME.$CI_COMMIT_SHA
-    # Stop app, to release DB locks 
-    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME    
-    # Copy data/ from current to new
-    #- ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
-    # If current symlink exists, remove it
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -L $CI_PROJECT_NAME; then rm $CI_PROJECT_NAME; fi'"
-    # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
-    - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME
+    # scp to fresh folder
+    - scp -r ./ $DEPLOY_HOST:$CI_PROJECT_NAME.$CI_COMMIT_SHA
+    # Stop app, to release DB locks
+    - ssh $DEPLOY_HOST $SERVICE_MANAGER stop golang@$CI_PROJECT_NAME    
+    # If $CI_PROJECT_NAME exists, and is not a symlink, fail here since the next step fails otherwise
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME -a ! -L $CI_PROJECT_NAME; then echo ERROR $CI_PROJECT_NAME is not a symlink && exit 1; fi'"
+    # If $CI_PROJECT_NAME.new exists, fail here since this is a sign of a failed previous deployment
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.new; then echo ERROR $CI_PROJECT_NAME.new exists && exit 1; fi'"
+    # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME.new
+    - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME.new
+    # Move $CI_PROJECT_NAME.new into place, overwriting old symlink
+    - ssh $DEPLOY_HOST mv -T $CI_PROJECT_NAME.new $CI_PROJECT_NAME
     # Restart app
-    - ssh $DEPLOY_HOST systemctl --user start golang@$CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST $SERVICE_MANAGER start golang@$CI_PROJECT_NAME
   environment:
     name: staging
     url: http://thing.rick.jba.io
@@ -104,22 +100,23 @@ deploy_prod:
   stage: deploy
   variables:
     DEPLOY_HOST: 'golang@frink.jba.io'
+    # using sudo due to no systemctl --user on CentOS 7 (https://bugs.centos.org/view.php?id=8767)
+    SERVICE_MANAGER: 'sudo systemctl'
   script:
-    - echo $DEPLOY_HOST
-    - echo $CI_PROJECT_NAME
-    - apt-get update -y && apt-get install -y rsync
-    # rsync to fresh folder
-    - rsync -av --exclude data/ --exclude vendor/ --exclude http.log ./ $DEPLOY_HOST:$CI_PROJECT_NAME.$CI_COMMIT_SHA
-    # Stop app, to release DB locks 
-    - ssh $DEPLOY_HOST sudo systemctl stop golang@$CI_PROJECT_NAME    
-    # Copy data/ from current to new
-    #- ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME; then cp -rpv $CI_PROJECT_NAME/data $CI_PROJECT_NAME.$CI_COMMIT_SHA/; fi'"
-    # If current symlink exists, remove it
-    - ssh $DEPLOY_HOST /bin/bash -c "'if test -L $CI_PROJECT_NAME; then rm $CI_PROJECT_NAME; fi'"
-    # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME
-    - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME
+    # scp to fresh folder
+    - scp -r ./ $DEPLOY_HOST:$CI_PROJECT_NAME.$CI_COMMIT_SHA
+    # Stop app, to release DB locks
+    - ssh $DEPLOY_HOST $SERVICE_MANAGER stop golang@$CI_PROJECT_NAME    
+    # If $CI_PROJECT_NAME exists, and is not a symlink, fail here since the next step fails otherwise
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME -a ! -L $CI_PROJECT_NAME; then echo ERROR $CI_PROJECT_NAME is not a symlink && exit 1; fi'"
+    # If $CI_PROJECT_NAME.new exists, fail here since this is a sign of a failed previous deployment
+    - ssh $DEPLOY_HOST /bin/bash -c "'if test -d $CI_PROJECT_NAME.new; then echo ERROR $CI_PROJECT_NAME.new exists && exit 1; fi'"    
+    # Create symlink from $CI_PROJECT_NAME.$CI_COMMIT_SHA to $CI_PROJECT_NAME.new
+    - ssh $DEPLOY_HOST ln -sv $CI_PROJECT_NAME.$CI_COMMIT_SHA $CI_PROJECT_NAME.new
+    # Move $CI_PROJECT_NAME.new into place, overwriting old symlink
+    - ssh $DEPLOY_HOST mv -T $CI_PROJECT_NAME.new $CI_PROJECT_NAME
     # Restart app
-    - ssh $DEPLOY_HOST sudo systemctl start golang@$CI_PROJECT_NAME
+    - ssh $DEPLOY_HOST $SERVICE_MANAGER start golang@$CI_PROJECT_NAME
   environment:
     name: production
     url: https://squanch.space
