@@ -8,12 +8,6 @@
   version = "v1.3.1"
 
 [[projects]]
-  name = "github.com/dimfeld/httptreemux"
-  packages = ["."]
-  revision = "8cc36ee10f84b82d0742ffcab770815c7d3f9ad7"
-  version = "v5.0.0"
-
-[[projects]]
   name = "github.com/disintegration/imaging"
   packages = ["."]
   revision = "1884593a19ddc6f2ea050403430d02c1d0fc1283"
@@ -42,6 +36,12 @@
   packages = ["."]
   revision = "90663712d74cb411cbef281bc1e08c19d1a76145"
   version = "v1.3.0"
+
+[[projects]]
+  name = "github.com/gorilla/mux"
+  packages = ["."]
+  revision = "53c1911da2b537f792e7cafcb446b05ffe33b996"
+  version = "v1.6.1"
 
 [[projects]]
   name = "github.com/gorilla/securecookie"
@@ -203,6 +203,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6b00c3c2df8923f60053f78590b74343dbed6e855f312b1050f846f5f8109225"
+  inputs-digest = "cc1b0a776996b4a9bb9de9fae50c702f0f2b7bd80ee1ae0f8dfc3ecf2a6b36b7"
   solver-name = "gps-cdcl"
   solver-version = 1
