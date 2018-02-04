@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/gorilla/mux"
+
 	"github.com/boltdb/bolt"
 	//"github.com/gorilla/mux"
 	//"github.com/dimfeld/httptreemux"
@@ -182,7 +184,7 @@ func (env *thingEnv) lgHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "searchHandler")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	term := params["name"]
 	sterm := regexp.MustCompile(term)
 
@@ -304,7 +306,7 @@ func (env *thingEnv) listHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "shortUrlHandler")
 	shorturl := &Shorturl{}
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	title := strings.ToLower(params["name"])
 
 	db := env.getDB()
@@ -430,7 +432,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "pasteHandler")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	title := params["name"]
 	paste := &Paste{}
 	db := env.getDB()
@@ -492,7 +494,7 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "downloadHandler")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	name := params["name"]
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
@@ -529,7 +531,7 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "downloadImageHandler")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	name := params["name"]
 	//fpath := cfg.ImgDir + path.Base(name)
 	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
@@ -626,7 +628,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("imageThumbHandler r.Host:", r.Host, r.RemoteAddr, r.Header)
 	defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	name := params["name"]
 	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(strings.TrimSuffix(name, ".png")))
 	thumbPath := filepath.Join(viper.GetString("ThumbDir"), path.Base(name))
@@ -679,7 +681,7 @@ func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
 
 func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	name := params["name"]
 	log.Println("imageDirectHandler request info:", r.Header, r.Host, r.RemoteAddr)
 	serveContent(w, r, viper.GetString("ImgDir"), name)
@@ -690,8 +692,8 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 //Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageBigHandler")
-	vars := getParams(r.Context())
-	name := vars["name"]
+	params := mux.Vars(r)
+	name := params["name"]
 	smallPath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
 	//Check if small image exists:
 	_, err := os.Stat(smallPath)
@@ -728,8 +730,8 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "viewMarkdownHandler")
-	vars := getParams(r.Context())
-	name := vars["name"]
+	params := mux.Vars(r)
+	name := params["name"]
 	p, err := loadPage(name, w, r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -844,7 +846,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewFile")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	name := params["name"]
 	contentLength := r.ContentLength
 	var reader io.Reader
@@ -1136,7 +1138,7 @@ func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 	buf.ReadFrom(paste)
 	bpaste := buf.String()
 	var name = ""
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	varname := params["name"]
 	if varname != "" {
 		name = varname
@@ -1199,7 +1201,7 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APIdeleteHandler")
 	//Requests should come in on /api/delete/{type}/{name}
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	ftype := params["type"]
 	fname := params["name"]
 	jmsg := ftype + " " + fname
@@ -1434,7 +1436,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var filename string
 	path := viper.GetString("ImgDir")
-	params := getParams(r.Context())
+	params := mux.Vars(r)
 	formfilename := params["filename"]
 	contentType := r.Header.Get("Content-Type")
 

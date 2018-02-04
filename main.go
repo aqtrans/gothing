@@ -10,20 +10,19 @@ package main
 // ...only saving if the BoltDB function doesn't error out
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
-	_ "github.com/tevjef/go-runtime-metrics/expvar"
 	"github.com/spf13/pflag"
+	_ "github.com/tevjef/go-runtime-metrics/expvar"
 
 	"html/template"
-	"regexp"
 
 	"github.com/boltdb/bolt"
-	"github.com/dimfeld/httptreemux"
+	//"github.com/dimfeld/httptreemux"
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
 
@@ -170,6 +169,7 @@ type HostSwitch struct {
 
 type HostMap map[string]http.Handler
 
+/*
 // Implement the ServerHTTP method on our new type
 func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Check if a http.Handler is registered for the given host.
@@ -194,6 +194,7 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Forbidden", 403) // Or Redirect?
 	}
 }
+*/
 
 //Flags
 //var fLocal = flag.Bool("l", false, "Turn on localhost resolving for Handlers")
@@ -799,11 +800,6 @@ func tmplInit(env *thingEnv) error {
 	return nil
 }
 
-// Simple function to get the httptreemux params, setting it blank if there aren't any
-func getParams(c context.Context) map[string]string {
-	return httptreemux.ContextParams(c)
-}
-
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -943,141 +939,123 @@ func main() {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
 	}
 
-	//r := mux.NewRouter().StrictSlash(true)
-	//d := r.Host(viper.GetString("MainTLD")).Subrouter()
+	r := mux.NewRouter().StrictSlash(false)
+	d := r.Host(viper.GetString("MainTLD")).Subrouter()
 
 	// Declare various routers used
-	d := httptreemux.NewContextMux()
-	d.PanicHandler = httptreemux.ShowErrorsPanicHandler
-	i := httptreemux.NewContextMux()
-	i.PanicHandler = httptreemux.ShowErrorsPanicHandler
-	big := httptreemux.NewContextMux()
-	big.PanicHandler = httptreemux.ShowErrorsPanicHandler
-	//wild := httptreemux.New()
-	//wild.PanicHandler = httptreemux.ShowErrorsPanicHandler
+	//i := r.Host(viper.GetString("ImageTLD")).Subrouter()
+	//big := r.Host(viper.GetString("GifTLD")).Subrouter()
 
 	log.Println("Port: " + viper.GetString("Port"))
 
-	d.GET("/", env.indexHandler)
-	d.GET("/help", env.helpHandler)
-	d.GET("/priv", env.authState.AuthMiddle(env.Readme))
-	d.GET("/readme", env.Readme)
-	d.GET("/changelog", env.Changelog)
-	d.POST("/login", env.authState.LoginPostHandler)
-	d.GET("/login", env.loginPageHandler)
-	d.POST("/logout", env.authState.LogoutHandler)
-	d.GET("/logout", env.authState.LogoutHandler)
-	//d.GET("/signup", signupPageHandler)
+	d.HandleFunc("/", env.indexHandler).Methods("GET")
+	d.HandleFunc("/help", env.helpHandler).Methods("GET")
+	d.HandleFunc("/priv", env.authState.AuthMiddle(env.Readme)).Methods("GET")
+	d.HandleFunc("/readme", env.Readme).Methods("GET")
+	d.HandleFunc("/changelog", env.Changelog).Methods("GET")
+	d.HandleFunc("/login", env.authState.LoginPostHandler).Methods("POST")
+	d.HandleFunc("/login", env.loginPageHandler).Methods("GET")
+	d.HandleFunc("/logout", env.authState.LogoutHandler).Methods("POST")
+	d.HandleFunc("/logout", env.authState.LogoutHandler).Methods("GET")
 
-	//a := d.PathPrefix("/auth").Subrouter()
-	a := d.NewGroup("/auth")
-	a.POST("/login", env.authState.LoginPostHandler)
-	a.POST("/logout", env.authState.LogoutHandler)
-	a.GET("/logout", env.authState.LogoutHandler)
-	a.POST("/signup", env.authState.SignupPostHandler)
+	a := d.PathPrefix("/auth").Subrouter()
+	//a := d.NewGroup("/auth")
+	a.HandleFunc("/login", env.authState.LoginPostHandler).Methods("POST")
+	a.HandleFunc("/logout", env.authState.LogoutHandler).Methods("POST")
+	a.HandleFunc("/logout", env.authState.LogoutHandler).Methods("GET")
+	a.HandleFunc("/signup", env.authState.SignupPostHandler).Methods("POST")
 
-	//admin := d.PathPrefix("/admin").Subrouter()
-	admin := d.NewGroup("/admin")
-	admin.GET("/", env.authState.AuthAdminMiddle(env.adminHandler))
-	admin.POST("/users", env.authState.AuthAdminMiddle(env.authState.UserSignupPostHandler))
+	admin := d.PathPrefix("/admin").Subrouter()
+	//admin := d.NewGroup("/admin")
+	admin.HandleFunc("/", env.authState.AuthAdminMiddle(env.adminHandler)).Methods("GET")
+	admin.HandleFunc("/users", env.authState.AuthAdminMiddle(env.authState.UserSignupPostHandler)).Methods("POST")
 	//admin.POST("/user_signup", auth.AuthAdminMiddle(auth.UserSignupPostHandler))
-	admin.GET("/users", env.authState.AuthAdminMiddle(env.adminSignupHandler))
-	admin.GET("/list", env.authState.AuthAdminMiddle(env.adminListHandler))
+	admin.HandleFunc("/users", env.authState.AuthAdminMiddle(env.adminSignupHandler)).Methods("GET")
+	admin.HandleFunc("/list", env.authState.AuthAdminMiddle(env.adminListHandler)).Methods("GET")
 	//admin.POST("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler))
 	//admin.POST("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler))
-	admin.POST("/user/password_change", env.authState.AuthAdminMiddle(env.authState.AdminUserPassChangePostHandler))
-	admin.POST("/user/delete", env.authState.AuthAdminMiddle(env.authState.AdminUserDeletePostHandler))
+	admin.HandleFunc("/user/password_change", env.authState.AuthAdminMiddle(env.authState.AdminUserPassChangePostHandler)).Methods("POST")
+	admin.HandleFunc("/user/delete", env.authState.AuthAdminMiddle(env.authState.AdminUserDeletePostHandler)).Methods("POST")
 
-	d.GET("/list", env.authState.AuthMiddle(env.listHandler))
-	d.GET("/s", env.authState.AuthMiddle(env.shortenPageHandler))
-	d.GET("/short", env.authState.AuthMiddle(env.shortenPageHandler))
-	d.GET("/lg", env.lgHandler)
-	d.GET("/p", env.pastePageHandler)
-	d.GET("/p/:name", env.pasteHandler)
-	d.GET("/up", env.uploadPageHandler)
-	d.GET("/iup", env.uploadImagePageHandler)
-	d.GET("/search/:name", env.authState.AuthMiddle(env.searchHandler))
-	d.GET("/d/:name", env.downloadHandler)
-	d.GET("/big/:name", imageBigHandler)
-	d.GET("/i/:name", env.downloadImageHandler)
-	d.GET("/md/:name", env.viewMarkdownHandler)
-	d.GET("/thumbs/:name", imageThumbHandler)
-	d.GET("/imagedirect/:name", imageDirectHandler)
-	d.GET("/i", env.galleryHandler)
+	d.HandleFunc("/list", env.authState.AuthMiddle(env.listHandler)).Methods("GET")
+	d.HandleFunc("/s", env.authState.AuthMiddle(env.shortenPageHandler)).Methods("GET")
+	d.HandleFunc("/short", env.authState.AuthMiddle(env.shortenPageHandler)).Methods("GET")
+	d.HandleFunc("/lg", env.lgHandler).Methods("GET")
+	d.HandleFunc("/p", env.pastePageHandler).Methods("GET")
+	d.HandleFunc("/p/{name}", env.pasteHandler).Methods("GET")
+	d.HandleFunc("/up", env.uploadPageHandler).Methods("GET")
+	d.HandleFunc("/iup", env.uploadImagePageHandler).Methods("GET")
+	d.HandleFunc("/search/{name}", env.authState.AuthMiddle(env.searchHandler)).Methods("GET")
+	d.HandleFunc("/d/{name}", env.downloadHandler).Methods("GET")
+	d.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
+	d.HandleFunc("/i/{name}", env.downloadImageHandler).Methods("GET")
+	d.HandleFunc("/md/{name}", env.viewMarkdownHandler).Methods("GET")
+	d.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
+	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
+	d.HandleFunc("/i", env.galleryHandler).Methods("GET")
 	//d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "LOL", false)}).Methods("GET", "POST")
 	//d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "", false)}).Methods("GET", "POST")
 
 	//CLI API Functions
-	d.PUT("/up/*name", env.APInewFile)
-	d.PUT("/up", env.APInewFile)
-	d.PUT("/p/*name", env.APInewPaste)
-	d.PUT("/p", env.APInewPaste)
-	d.POST("/lg", env.APIlgAction)
+	d.HandleFunc("/up/{name:.+}", env.APInewFile).Methods("PUT")
+	d.HandleFunc("/up", env.APInewFile).Methods("PUT")
+	d.HandleFunc("/p/{name:.+}", env.APInewPaste).Methods("PUT")
+	d.HandleFunc("/p", env.APInewPaste).Methods("PUT")
+	d.HandleFunc("/lg", env.APIlgAction).Methods("POST")
 
 	//API Functions
-	//api := d.PathPrefix("/api").Subrouter()
-	api := d.NewGroup("/api")
-	api.GET("/delete/:type/:name", env.authState.AuthMiddle(env.APIdeleteHandler))
-	api.POST("/paste/new", env.APInewPasteForm)
-	api.POST("/file/new", env.APInewFile)
-	api.POST("/file/remote", env.APInewRemoteFile)
-	api.POST("/shorten/new", env.APInewShortUrlForm)
-	api.POST("/lg", env.APIlgAction)
-	api.POST("/image/new", env.APInewImage)
-	api.POST("/image/remote", env.APInewRemoteImage)
+	api := d.PathPrefix("/api").Subrouter()
+	//api := d.NewGroup("/api")
+	api.HandleFunc("/delete/{type}/{name}", env.authState.AuthMiddle(env.APIdeleteHandler)).Methods("GET")
+	api.HandleFunc("/paste/new", env.APInewPasteForm).Methods("POST")
+	api.HandleFunc("/file/new", env.APInewFile).Methods("POST")
+	api.HandleFunc("/file/remote", env.APInewRemoteFile).Methods("POST")
+	api.HandleFunc("/shorten/new", env.APInewShortUrlForm).Methods("POST")
+	api.HandleFunc("/lg", env.APIlgAction).Methods("POST")
+	api.HandleFunc("/image/new", env.APInewImage).Methods("POST")
+	api.HandleFunc("/image/remote", env.APInewRemoteImage).Methods("POST")
 	//Golang-Stats-API
 	//api.HandleFunc("/stats", stats_api.Handler)
 	//api.GET("/vars",httputils.HandleExpvars)
 
 	//Dedicated image subdomain routes
-	//i := r.Host(viper.GetString("ImageTLD")).Subrouter()
-	i.GET("/", env.galleryEsgyHandler)
-	i.GET("/thumbs/:name", imageThumbHandler)
-	i.GET("/imagedirect/:name", imageDirectHandler)
-	i.GET("/big/:name", imageBigHandler)
-	i.GET("/:name", env.downloadImageHandler)
+	i := r.Host(viper.GetString("ImageTLD")).Subrouter()
+	i.HandleFunc("/", env.galleryEsgyHandler).Methods("GET")
+	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
+	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
+	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
+	i.HandleFunc("/{name}", env.downloadImageHandler).Methods("GET")
 
 	//Big GIFs
-	//big := r.Host(viper.GetString("GifTLD")).Subrouter()
-	big.GET("/i/:name", imageDirectHandler)
-	big.GET("/:name", imageBigHandler)
+	big := r.Host(viper.GetString("GifTLD")).Subrouter()
+	big.HandleFunc("/i/{name}", imageDirectHandler).Methods("GET")
+	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
 	//wildString := "{name}."+viper.GetString("ShortTLD")
-	//wild := r.Host("{name}.es.gy").Subrouter()
-	//wild.GET("/", shortUrlHandler)
+	wild := r.Host("{name}." + viper.GetString("ShortTLD")).Subrouter()
+	wild.HandleFunc("/", env.shortUrlHandler).Methods("GET")
 	//Main Short URL page
 	// Collapsing this into main TLD
-	//short := r.Host(viper.GetString("ShortTLD")).Subrouter()
-	//short.HandleFunc("/{name}", shortUrlHandler).Methods("GET")
+	short := r.Host(viper.GetString("ShortTLD")).Subrouter()
+	short.HandleFunc("/{name}", env.shortUrlHandler).Methods("GET")
 
 	//static := http.Handler(http.FileServer(http.Dir("./public/")))
 	//r.PathPrefix("/").Handler(defaultHandler(static))
 
 	//r.PathPrefix("/assets/").HandlerFunc(staticHandler)
-	d.GET("/*name", env.shortUrlHandler)
+	//d.GET("/*name", env.shortUrlHandler)
 
 	httputils.StaticInit()
 	//Used for troubleshooting proxy headers
-	/*
-		http.HandleFunc("/omg", func(w http.ResponseWriter, r *http.Request) {
-			log.Println(r.Host)
-			log.Println(r.Header)
-		})
-	*/
 
-	hm := make(HostMap)
-	hm[viper.GetString("MainTLD")] = d
-	hm[viper.GetString("ImageTLD")] = i
-	hm[viper.GetString("GifTLD")] = big
+	http.HandleFunc("/omg", func(w http.ResponseWriter, req *http.Request) {
+		log.Println(req.Host)
+		log.Println(req.Header)
+	})
 
-	hs := &HostSwitch{
-		hostMap: hm,
-		theEnv:  env,
-	}
-
-	http.Handle("/", std.Then(hs))
+	http.Handle("/", std.Then(r))
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
 }
