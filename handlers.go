@@ -339,8 +339,8 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
-			http.Error(w, "Error 400 - No such domain at this address", http.StatusBadRequest)
-			err := errors.New(title + " No Such Short URL")
+			//http.Error(w, "Error 400 - No such domain at this address", http.StatusBadRequest)
+			err := errors.New(title + " - No Such Short URL")
 			return err
 			//log.Println(err)
 		}
