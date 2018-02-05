@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gorilla/handlers"
+
 	"github.com/spf13/pflag"
 	_ "github.com/tevjef/go-runtime-metrics/expvar"
 
@@ -21,9 +23,7 @@ import (
 	"github.com/boltdb/bolt"
 	//"github.com/dimfeld/httptreemux"
 	"github.com/disintegration/imaging"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/justinas/alice"
 	"github.com/oxtoacart/bpool"
 
 	"github.com/gorilla/csrf"
@@ -917,29 +917,40 @@ func main() {
 	env.dbInit()
 
 	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-	std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
+	/*
+		std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
 
-	if viper.GetBool("Insecure") {
-		std = alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
-		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-	} else {
-		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
-	}
-
-	if viper.GetBool("Dev") {
-		viper.Set("MainTLD", "main.devd.io")
-		viper.Set("ShortTLD", "s.devd.io")
-		viper.Set("ImageTLD", "i.devd.io")
-		viper.Set("GifTLD", "big.devd.io")
-
-		log.Println("Listening on devd.io domains due to -l flag...")
-		std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
-		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-	} else {
-		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
-	}
+		if viper.GetBool("Insecure") {
+			std = alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+			//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
+		} else {
+			log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
+		}
+	*/
+	//var std alice.Chain
 
 	r := mux.NewRouter().StrictSlash(false)
+
+	if viper.GetBool("Dev") {
+		viper.Set("MainTLD", "localhost")
+		viper.Set("ShortTLD", "s.localhost")
+		viper.Set("ImageTLD", "i.localhost")
+		viper.Set("GifTLD", "big.localhost")
+
+		log.Println("Listening on localhost domains due to -l flag...")
+		r.Use(csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)))
+		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
+		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
+	} else {
+		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
+		r.Use(csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(true)))
+	}
+
+	//r.Use(handlers.ProxyHeaders)
+	r.Use(handlers.RecoveryHandler())
+	r.Use(env.authState.UserEnvMiddle)
+
+	r.Use(httputils.Logger)
 	d := r.Host(viper.GetString("MainTLD")).Subrouter()
 
 	// Declare various routers used
@@ -1048,14 +1059,15 @@ func main() {
 	//d.GET("/*name", env.shortUrlHandler)
 
 	httputils.StaticInit()
+	//r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 	//Used for troubleshooting proxy headers
 
-	http.HandleFunc("/omg", func(w http.ResponseWriter, req *http.Request) {
+	r.HandleFunc("/omg", func(w http.ResponseWriter, req *http.Request) {
 		log.Println(req.Host)
 		log.Println(req.Header)
 	})
 
-	http.Handle("/", std.Then(r))
+	http.Handle("/", r)
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
 
 }
