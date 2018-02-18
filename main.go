@@ -158,47 +158,6 @@ func processCaptcha(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// HostSwitch multidomain code taken from sample code for httprouter: https://github.com/julienschmidt/httprouter
-// We need an object that implements the http.Handler interface.
-// Therefore we need a type for which we implement the ServeHTTP method.
-// We just use a map here, in which we map host names (with port) to http.Handlers
-type HostSwitch struct {
-	hostMap HostMap
-	theEnv  *thingEnv
-}
-
-type HostMap map[string]http.Handler
-
-/*
-// Implement the ServerHTTP method on our new type
-func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Check if a http.Handler is registered for the given host.
-	// If yes, use it to handle the request.
-	shortregex := regexp.MustCompile("([A-Za-z0-9]+)." + viper.GetString("ShortTLD"))
-
-	if handler := hs.hostMap[r.Host]; handler != nil {
-		handler.ServeHTTP(w, r)
-		// Build up subdomain matching
-		// Putting the host match into the params["name"] to be retrieved later
-	} else if shortregex.MatchString(r.Host) {
-		name := shortregex.FindStringSubmatch(r.Host)[1]
-		mymap := map[string]string{
-			"name": name,
-		}
-
-		ctx := httptreemux.AddParamsToContext(r.Context(), mymap)
-		hs.theEnv.shortUrlHandler(w, r.WithContext(ctx))
-	} else {
-		// Handle host names for which no handler is registered
-		log.Println(r.Host)
-		http.Error(w, "Forbidden", 403) // Or Redirect?
-	}
-}
-*/
-
-//Flags
-//var fLocal = flag.Bool("l", false, "Turn on localhost resolving for Handlers")
-
 //Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
 type Page struct {
 	TheName  string
@@ -974,19 +933,12 @@ func main() {
 	a.HandleFunc("/login", env.authState.LoginPostHandler).Methods("POST")
 	a.HandleFunc("/logout", env.authState.LogoutHandler).Methods("POST")
 	a.HandleFunc("/logout", env.authState.LogoutHandler).Methods("GET")
-	a.HandleFunc("/signup", env.authState.SignupPostHandler).Methods("POST")
 
 	admin := d.PathPrefix("/admin").Subrouter()
 	//admin := d.NewGroup("/admin")
 	admin.HandleFunc("/", env.authState.AuthAdminMiddle(env.adminHandler)).Methods("GET")
-	admin.HandleFunc("/users", env.authState.AuthAdminMiddle(env.authState.UserSignupPostHandler)).Methods("POST")
-	//admin.POST("/user_signup", auth.AuthAdminMiddle(auth.UserSignupPostHandler))
 	admin.HandleFunc("/users", env.authState.AuthAdminMiddle(env.adminSignupHandler)).Methods("GET")
 	admin.HandleFunc("/list", env.authState.AuthAdminMiddle(env.adminListHandler)).Methods("GET")
-	//admin.POST("/password_change", auth.AuthAdminMiddle(auth.AdminUserPassChangePostHandler))
-	//admin.POST("/user_delete", auth.AuthAdminMiddle(auth.AdminUserDeletePostHandler))
-	admin.HandleFunc("/user/password_change", env.authState.AuthAdminMiddle(env.authState.AdminUserPassChangePostHandler)).Methods("POST")
-	admin.HandleFunc("/user/delete", env.authState.AuthAdminMiddle(env.authState.AdminUserDeletePostHandler)).Methods("POST")
 
 	d.HandleFunc("/list", env.authState.AuthMiddle(env.listHandler)).Methods("GET")
 	d.HandleFunc("/s", env.authState.AuthMiddle(env.shortenPageHandler)).Methods("GET")
@@ -1004,8 +956,6 @@ func main() {
 	d.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
 	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
 	d.HandleFunc("/i", env.galleryHandler).Methods("GET")
-	//d.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "LOL", false)}).Methods("GET", "POST")
-	//d.HandleFunc("/json2", func(w http.ResponseWriter, r *http.Request) {utils.WriteJ(w, "", false)}).Methods("GET", "POST")
 
 	//CLI API Functions
 	d.HandleFunc("/up/{name:.+}", env.APInewFile).Methods("PUT")
