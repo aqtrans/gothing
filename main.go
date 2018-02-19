@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"strings"
 
+	raven "github.com/getsentry/raven-go"
 	"github.com/gorilla/handlers"
 
 	"github.com/spf13/pflag"
@@ -261,6 +262,8 @@ func (a ShortByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
 
 func init() {
 
+	raven.SetDSN("https://8cfcb50b411a4f84b758064831983891:24d81b9e60df4ed3b52f39120af944f8@sentry.io/290265")
+
 	/*
 			Port     string
 			Email    string
@@ -351,6 +354,7 @@ func renderTemplate(env *thingEnv, w http.ResponseWriter, name string, data inte
 	err := tmpl.ExecuteTemplate(buf, "base", data)
 	if err != nil {
 		bufpool.Put(buf)
+		raven.CaptureError(err, map[string]string{"func": "renderTemplate"})
 		return err
 	}
 
@@ -365,6 +369,7 @@ func ParseBool(value string) bool {
 	defer httputils.TimeTrack(time.Now(), "ParseBool")
 	boolValue, err := strconv.ParseBool(value)
 	if err != nil {
+		raven.CaptureError(err, map[string]string{"func": "ParseBool"})
 		return false
 	}
 	return boolValue
@@ -409,6 +414,7 @@ func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interfa
 	defer httputils.TimeTrack(time.Now(), "loadMainPage")
 	p, err := loadPage(title, w, r)
 	if err != nil {
+		raven.CaptureError(err, nil)
 		return nil, err
 	}
 	data := struct {
@@ -438,6 +444,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 			var file *File
 			err := json.Unmarshal(v, &file)
 			if err != nil {
+				raven.CaptureErrorAndWait(err, map[string]string{"func": "loadListPage/View Files"})
 				log.Panicln(err)
 			}
 			files = append(files, file)
@@ -456,6 +463,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 			var paste *Paste
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
+				raven.CaptureErrorAndWait(err, nil)
 				log.Panicln(err)
 			}
 			pastes = append(pastes, paste)
@@ -474,6 +482,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 			var short *Shorturl
 			err := json.Unmarshal(v, &short)
 			if err != nil {
+				raven.CaptureErrorAndWait(err, nil)
 				log.Panicln(err)
 			}
 			shorts = append(shorts, short)
@@ -492,6 +501,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 			var image *Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
+				raven.CaptureErrorAndWait(err, nil)
 				log.Panicln(err)
 			}
 			images = append(images, image)
@@ -510,6 +520,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 			var screenshot *Screenshot
 			err := json.Unmarshal(v, &screenshot)
 			if err != nil {
+				raven.CaptureErrorAndWait(err, nil)
 				log.Panicln(err)
 			}
 			screenshots = append(screenshots, screenshot)
@@ -528,6 +539,7 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	if r.Form == nil {
 		err := r.ParseForm()
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return err
 		}
 	}
@@ -537,11 +549,13 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 
 	mr, err := r.MultipartReader()
 	if err != nil {
+		raven.CaptureError(err, nil)
 		return err
 	}
 
 	f, err := mr.ReadForm(maxMemory)
 	if err != nil {
+		raven.CaptureError(err, nil)
 		return err
 	}
 	for k, v := range f.Value {
@@ -562,12 +576,14 @@ func (f *File) save(env *thingEnv) error {
 		b := tx.Bucket([]byte("Files"))
 		encoded, err := json.Marshal(f)
 		if err != nil {
-			log.Panicln(err)
+			raven.CaptureError(err, nil)
+			log.Println(err)
 			return err
 		}
 		return b.Put([]byte(f.Filename), encoded)
 	})
 	if err != nil {
+		raven.CaptureError(err, nil)
 		log.Println(err)
 		return err
 	}
@@ -584,11 +600,15 @@ func (s *Shorturl) save(env *thingEnv) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
 		if err != nil {
+			raven.CaptureError(err, nil)
+			log.Println(err)
 			return err
 		}
 		return b.Put([]byte(s.Short), encoded)
 	})
 	if err != nil {
+		raven.CaptureError(err, nil)
+		log.Println(err)
 		return err
 	}
 	log.Println("++++SHORTURL SAVED")
@@ -603,13 +623,15 @@ func (p *Paste) save(env *thingEnv) error {
 		b := tx.Bucket([]byte("Pastes"))
 		encoded, err := json.Marshal(p)
 		if err != nil {
-			log.Panicln(err)
+			raven.CaptureError(err, nil)
+			log.Println(err)
 			return err
 		}
 		return b.Put([]byte(p.Title), encoded)
 	})
 	if err != nil {
-		log.Panicln(err)
+		raven.CaptureError(err, nil)
+		log.Println(err)
 		return err
 	}
 	log.Println("++++PASTE SAVED")
@@ -623,6 +645,7 @@ func makeThumb(fpath, thumbpath string) {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
 			log.Panicln(err)
 		}
 		return
@@ -630,6 +653,7 @@ func makeThumb(fpath, thumbpath string) {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
 			log.Panicln(resize.Args, err)
 		}
 		return
@@ -637,12 +661,14 @@ func makeThumb(fpath, thumbpath string) {
 
 	img, err := imaging.Open(fpath)
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		log.Panicln(err)
 		return
 	}
 	thumb := imaging.Fit(img, 600, 300, imaging.CatmullRom)
 	err = imaging.Save(thumb, thumbpath)
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		log.Panicln(err)
 		return
 	}
@@ -657,12 +683,14 @@ func (i *Image) save(env *thingEnv) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
 		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
 			log.Panicln(err)
 			return err
 		}
 		return b.Put([]byte(i.Filename), encoded)
 	})
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		log.Panicln(err)
 		return err
 	}
@@ -687,12 +715,14 @@ func (s *Screenshot) save(env *thingEnv) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		encoded, err := json.Marshal(s)
 		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
 			log.Panicln(err)
 			return err
 		}
 		return b.Put([]byte(s.Filename), encoded)
 	})
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		log.Panicln(err)
 		return err
 	}
@@ -719,26 +749,32 @@ func (env *thingEnv) dbInit() {
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		_, err = tx.CreateBucketIfNotExists([]byte("Files"))
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		_, err = tx.CreateBucketIfNotExists([]byte("Shorturls"))
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		_, err = tx.CreateBucketIfNotExists([]byte("Images"))
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		_, err = tx.CreateBucketIfNotExists([]byte("SubShorturl"))
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		_, err = tx.CreateBucketIfNotExists([]byte("Screenshots"))
 		if err != nil {
+			raven.CaptureError(err, nil)
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		return nil
@@ -750,10 +786,12 @@ func tmplInit(env *thingEnv) error {
 	templatesDir := "./templates/"
 	layouts, err := filepath.Glob(templatesDir + "layouts/*.tmpl")
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		panic(err)
 	}
 	includes, err := filepath.Glob(templatesDir + "includes/*.tmpl")
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		panic(err)
 	}
 
@@ -817,7 +855,8 @@ func main() {
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
 		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
-		fmt.Println("No configuration file loaded - using defaults")
+		raven.CaptureError(err, nil)
+		fmt.Println("Error loading configuration:", err)
 	}
 	viper.SetEnvPrefix("gothing")
 	viper.AutomaticEnv()
@@ -844,6 +883,7 @@ func main() {
 	if os.IsNotExist(err) {
 		err = os.Mkdir(dataDir, 0755)
 		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
 			log.Fatalln(err)
 		}
 	}
@@ -855,6 +895,7 @@ func main() {
 
 	anAuthState, err := auth.NewAuthState(viper.GetString("AuthDB"))
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		log.Fatalln(err)
 	}
 
@@ -868,6 +909,7 @@ func main() {
 
 	err = tmplInit(env)
 	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
 		log.Fatalln(err)
 	}
 
