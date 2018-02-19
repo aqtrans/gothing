@@ -23,7 +23,7 @@
 {{ end }}
 
   <section>
-    {{ .Page.FlashMsg }}
+    {{ .Page.FlashMsg | safeHTML }}
     {{ template "content" . }}
   </section>
 
