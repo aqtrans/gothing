@@ -154,6 +154,16 @@ div#gallery {
     }
 }
 
+.buttons {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    .button {
+        flex: 1 1 0;
+        text-align: center;
+    }
+}
+
 @media (min-width: 768px) {
     body {
         font-size: 1em;
