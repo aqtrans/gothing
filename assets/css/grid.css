@@ -115,6 +115,14 @@ div#gallery {
   div#gallery .images {
     margin: 1rem; }
 
+.buttons {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap; }
+  .buttons .button {
+    flex: 1 1 0;
+    text-align: center; }
+
 @media (min-width: 768px) {
   body {
     font-size: 1em;
