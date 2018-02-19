@@ -1577,7 +1577,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
 		path := viper.GetString("ImgDir")
 
-		// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
+		// ffmpeg -i data/up-imgs/filename.gif -vcodec h264 -movflags faststart -y -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" data/up-imgs/filename.mp4
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-movflags", "faststart", "-y", "-pix_fmt", "yuv420p", "-vf", "scale='trunc(iw/2)*2:trunc(ih/2)*2'", filepath.Join(path, nameWithoutExt+".mp4"))
 		err := resize.Run()
 		if err != nil {
