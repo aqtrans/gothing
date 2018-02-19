@@ -1575,18 +1575,20 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	if filepath.Ext(filename) == ".gif" {
 		log.Println("New gif detected; converting to mp4!")
 		nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
+		path := viper.GetString("ImgDir")
+
 		// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
-		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-y", "-pix_fmt", "yuv420p", filepath.Join(path, nameWithoutExt+".mp4"))
+		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-movflags", "faststart", "-y", "-pix_fmt", "yuv420p", "-vf", "scale='trunc(iw/2)*2:trunc(ih/2)*2'", filepath.Join(path, nameWithoutExt+".mp4"))
 		err := resize.Run()
 		if err != nil {
-			log.Panicln(err)
+			log.Fatalln(resize.Args, err)
 		}
 		// After successful conversion, remove the originally uploaded gif
 		err = os.Remove(filepath.Join(path, filename))
 		if err != nil {
 			log.Println("Error removing gif after converting to mp4", filename, err)
 		}
-		filename = filepath.Join(path, nameWithoutExt+".mp4")
+		filename = nameWithoutExt + ".mp4"
 	}
 
 	// w.Statuscode = 200

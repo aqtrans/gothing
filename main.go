@@ -12,6 +12,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/gorilla/handlers"
 
@@ -93,6 +94,15 @@ func (env *thingEnv) closeDB() {
 	env.Bolt.db.Close()
 }
 
+func imgExt(s string) string {
+	ext := filepath.Ext(s)
+	if ext != "" {
+		ext = strings.TrimLeft(ext, ".")
+		log.Println(ext)
+	}
+	return ext
+}
+
 // ReCAPTCHA from https://github.com/dasJ/go-recaptcha/blob/440394abc3ecd036b93a54837015d5fe9d64645f/recaptcha.go
 type RecaptchaResponse struct {
 	Success     bool      `json:"success"`
@@ -165,7 +175,7 @@ type Page struct {
 	UN       string
 	IsAdmin  bool
 	Token    template.HTML
-	FlashMsg string
+	FlashMsg template.HTML
 	MainTLD  string
 }
 
@@ -367,19 +377,21 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 	msg := auth.GetFlash(r.Context())
 	token := csrf.TemplateField(r)
 
-	var message string
+	var message template.HTML
 	if msg != "" {
-		message = `
-			<div class="alert callout" data-closable>
-			<h5>Alert!</h5>
-			<p>` + msg + `</p>
-			<button class="close-button" aria-label="Dismiss alert" type="button" data-close>
-				<span aria-hidden="true">&times;</span>
-			</button>
-			</div>			
-        `
+		message = template.HTML(`
+			<div class="notification anim active" id="notification">
+			<p>` + msg + `
+			<button class="close-button" type="button" onclick="notif()">
+			<div class="svg-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+			<title>cross</title>
+			<path d="M31.708 25.708c-0-0-0-0-0-0l-9.708-9.708 9.708-9.708c0-0 0-0 0-0 0.105-0.105 0.18-0.227 0.229-0.357 0.133-0.356 0.057-0.771-0.229-1.057l-4.586-4.586c-0.286-0.286-0.702-0.361-1.057-0.229-0.13 0.048-0.252 0.124-0.357 0.228 0 0-0 0-0 0l-9.708 9.708-9.708-9.708c-0-0-0-0-0-0-0.105-0.104-0.227-0.18-0.357-0.228-0.356-0.133-0.771-0.057-1.057 0.229l-4.586 4.586c-0.286 0.286-0.361 0.702-0.229 1.057 0.049 0.13 0.124 0.252 0.229 0.357 0 0 0 0 0 0l9.708 9.708-9.708 9.708c-0 0-0 0-0 0-0.104 0.105-0.18 0.227-0.229 0.357-0.133 0.355-0.057 0.771 0.229 1.057l4.586 4.586c0.286 0.286 0.702 0.361 1.057 0.229 0.13-0.049 0.252-0.124 0.357-0.229 0-0 0-0 0-0l9.708-9.708 9.708 9.708c0 0 0 0 0 0 0.105 0.105 0.227 0.18 0.357 0.229 0.356 0.133 0.771 0.057 1.057-0.229l4.586-4.586c0.286-0.286 0.362-0.702 0.229-1.057-0.049-0.13-0.124-0.252-0.229-0.357z"></path>
+			</svg></div>
+			</button></p>
+			</div>
+		`)
 	} else {
-		message = ""
+		message = template.HTML("")
 	}
 
 	return &Page{
@@ -618,7 +630,7 @@ func makeThumb(fpath, thumbpath string) {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", fpath, "-vframes", "1", "-filter:v", "scale='-1:300'", thumbpath)
 		err := resize.Run()
 		if err != nil {
-			log.Panicln(err)
+			log.Panicln(resize.Args, err)
 		}
 		return
 	}
@@ -745,7 +757,7 @@ func tmplInit(env *thingEnv) error {
 		panic(err)
 	}
 
-	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": httputils.ImgExt}
+	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": imgExt}
 
 	// Here we are prefacing every layout with what should be every includes/ .tmpl file
 	// Ex: includes/sidebar.tmpl includes/bottom.tmpl includes/base.tmpl layouts/list.tmpl
@@ -967,7 +979,7 @@ func main() {
 	//API Functions
 	api := d.PathPrefix("/api").Subrouter()
 	//api := d.NewGroup("/api")
-	api.HandleFunc("/delete/{type}/{name}", env.authState.AuthMiddle(env.APIdeleteHandler)).Methods("GET")
+	api.HandleFunc("/delete/{type}/{name:.+}", env.authState.AuthMiddle(env.APIdeleteHandler)).Methods("GET")
 	api.HandleFunc("/paste/new", env.APInewPasteForm).Methods("POST")
 	api.HandleFunc("/file/new", env.APInewFile).Methods("POST")
 	api.HandleFunc("/file/remote", env.APInewRemoteFile).Methods("POST")
