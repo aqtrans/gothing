@@ -8,28 +8,29 @@
   <meta name="description" content="Golang powered thing">
   <link rel="shortcut icon" type="image/png" href="/assets/favicon.png"/>
   <link rel="shortcut icon" type="image/ico" href="/assets/favicon.ico" />
-  <link rel="stylesheet" href="/assets/css/thing.css">
-  <script src="/assets/js/jquery.min.js"></script>
-  <script src="/assets/js/foundation.min.js"></script>
+  <link rel="stylesheet" href="/assets/css/grid.css">
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
  </head>
 
 <body>
+<header><a href="/">{{.Page.TheName}}</a></header>
 {{ block "side" .}}
   <nav>
-    <header><a href="/">{{.Page.TheName}}</a></header>
       {{ template "sidebar" .}}
   </nav>
 {{ end }}
 
+{{ .Page.FlashMsg }}
+
   <section>
-    {{ .Page.FlashMsg |safeHTML }}
     {{ template "content" . }}
   </section>
 
   {{ template "extra_scripts" . }}
 <script>
-$(document).foundation();
+  function notif() {
+    document.getElementById('notification').classList.remove("active");
+  }
 </script>  
 </body>
 </html>
