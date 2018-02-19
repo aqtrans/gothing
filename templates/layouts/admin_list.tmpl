@@ -1,17 +1,14 @@
 {{ define "title" }}<title>Admin List - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}
-<main>
-<article>
-    <header>Admin List</header>
-</article>
+<header>Admin List</header>
+
 
   <ul class="tabs">
     <li class="tabs-title"><a href="/admin"><i class="fa fa-lock" aria-hidden="true"></i> Main</a></li>
     <li class="tabs-title"><a href="/admin/users"><i class="fa fa-users" aria-hidden="true"></i> Manage Users</a></li>
     <li class="tabs-title is-active"><a href="#"><i class="fa fa-git" aria-hidden="true"></i> Manage Stuff</a></li>
     <li class="tabs-title"><a href="/admin/config"><i class="fa fa-wrench" aria-hidden="true"></i> Manage Config</a></li>
-  </ul>
-  <article>  
+  </ul> 
         <h2>Images</h2>
         <table>
         <tr>
@@ -30,6 +27,4 @@
         {{if $user}}<td><a href=/api/delete/image/{{.Filename}} class="button tiny alert">Delete</a></td>{{ end }}
         {{ end }}
         </table>
-  </article>
-</main>
 {{ end }}

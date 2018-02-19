@@ -1,11 +1,8 @@
 {{ define "title" }}<title>List - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}
 {{$user := .Page.UN}}
-<main>
-  <article>
-    <header>List of things</header>
-  </article>
-  <article>  
+<header>List of things</header>
+
 <h2>Pastes</h2>
 <table>
 <thead>
@@ -109,6 +106,4 @@
 {{ end }}
 </tbody>
 </table>
-  </article>
-  </main>
 {{ end }}

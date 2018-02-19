@@ -1,39 +1,34 @@
 {{ define "title" }}<title>Network Tools - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}   
-<main>    
-  <article>
-    <header>Network Tools</header>
-  </article>
-  <article>  
-      <div id="nettools">
-      <form method="post" action="/lg" id="lg">
-        <div class="row">
-          <div class="small-3 columns">
-            <label>Select Box
-              <select name="lg-action">
-                <option value="ping">Ping</option>
-                <option value="mtr">MTR</option>
-                <option value="traceroute">Traceroute</option>
-              </select>
-            </label>
-          </div>
-          <div class="small-9 columns">
-            <label>IP or Domain
-              <input type="text" name="url" placeholder="IP or domain" />
-              <div class="g-recaptcha" data-sitekey="6LclI-8SAAAAAL0v_AeZPbAYUq8s3WIaFKP_PlO9"></div>
-              {{.Page.Token}}
-            </label>
-          </div>    
-        </div>
-      <button class="button success" type="submit">Ping</button>
-      </form>
-      </div>
+<header>Network Tools</header>
 
-      <div class="callout secondary">
-        <pre>
-        {{ .Message }}
-        </pre>
-      </div>
-  </article>
-</main>
+<div id="nettools">
+<form method="post" action="/lg" id="lg">
+  <div class="row">
+    <div class="small-3 columns">
+      <label>Select Box
+        <select name="lg-action">
+          <option value="ping">Ping</option>
+          <option value="mtr">MTR</option>
+          <option value="traceroute">Traceroute</option>
+        </select>
+      </label>
+    </div>
+    <div class="small-9 columns">
+      <label>IP or Domain
+        <input type="text" name="url" placeholder="IP or domain" />
+        <div class="g-recaptcha" data-sitekey="6LclI-8SAAAAAL0v_AeZPbAYUq8s3WIaFKP_PlO9"></div>
+        {{.Page.Token}}
+      </label>
+    </div>    
+  </div>
+<button class="button success" type="submit">Ping</button>
+</form>
+</div>
+
+<div class="callout secondary">
+  <pre>
+  {{ .Message }}
+  </pre>
+</div>
 {{ end }}

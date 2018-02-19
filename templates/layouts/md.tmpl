@@ -1,14 +1,10 @@
 {{ define "title" }}<title>{{ .Page.Title }} - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}   
-<main>
-<article>
 <header><h1>{{ .Page.Title }}</h1></header>
-</article>
+
 {{$title := .Page.Title}}
-<article>
+
 <div>
 {{.MD}}
 </div>
-</article>
-</main>
 {{ end }}

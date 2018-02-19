@@ -22,11 +22,11 @@
 
 {{ .Page.FlashMsg }}
 
-  <section>
-    {{ template "content" . }}
-  </section>
+<main>
+  {{ template "content" . }}
+</main>
 
-  {{ template "extra_scripts" . }}
+{{ template "extra_scripts" . }}
 <script>
   function notif() {
     document.getElementById('notification').classList.remove("active");

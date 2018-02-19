@@ -23,12 +23,14 @@ body > nav {
   body > nav > small {
     color: #fefefe; }
 
-body > section {
+body > main {
   grid-area: content;
   background-color: #202020;
   color: #fefefe;
   padding: 0.5rem;
   box-shadow: 0 19px 38px rgba(0, 0, 0, 0.3), 0 15px 12px rgba(0, 0, 0, 0.22); }
+  body > main > header {
+    font-size: 175%; }
 
 body > footer {
   grid-area: footer; }
@@ -123,11 +125,20 @@ div#gallery {
     flex: 1 1 0;
     text-align: center; }
 
-@media (min-width: 768px) {
+.panel {
+  background-color: #535353; }
+
+table {
+  border-collapse: collapse; }
+  table, table th, table td {
+    border: 1px solid #fefefe;
+    padding: 0 0.3rem; }
+
+@media (min-width: 60rem) {
   body {
-    font-size: 1em;
+    font-size: 100%;
     grid-template-areas: "header  header" "nav content" "nav  footer";
     grid-template-columns: minmax(max-content, auto) 1fr;
-    grid-template-rows: 50px minmax(min-content, auto) auto; } }
+    grid-template-rows: 3rem minmax(min-content, auto) auto; } }
 
 /*# sourceMappingURL=grid.css.map */

@@ -44,12 +44,15 @@ body > nav {
     }
 }
 
-body > section {
+body > main {
     grid-area: content;
     background-color: $foreground;
     color: $foreground-font;
     padding: 0.5rem;
     box-shadow: 0 19px 38px rgba(0,0,0,0.3),0 15px 12px rgba(0,0,0,0.22);
+    > header {
+        font-size: 175%;
+    }
 }
 
 body > footer {
@@ -164,14 +167,26 @@ div#gallery {
     }
 }
 
-@media (min-width: 768px) {
+.panel {
+    background-color: lighten($foreground, 20);
+}
+
+table {
+    border-collapse: collapse;
+    &, th, td {
+        border: 1px solid $white;
+        padding: 0 0.3rem;
+    }
+}
+
+@media (min-width: 60rem) {
     body {
-        font-size: 1em;
+        font-size: 100%;
         grid-template-areas: 
             "header  header"
             "nav content"
             "nav  footer";
             grid-template-columns: minmax(max-content, auto) 1fr;
-            grid-template-rows: 50px minmax(min-content, auto) auto;
+            grid-template-rows: 3rem minmax(min-content, auto) auto;
     }
 }

@@ -1,10 +1,7 @@
 {{ define "title" }}<title>Help - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}
-<main>
-  <article>
-    <header>{{.Page.TheName}}</header>
-  </article>
-  <article>  
+<header>{{.Page.TheName}}</header>
+
 <h3 class="subheader">Paste stuff from CLI</h3>
 <div class="panel callout">
 curl --data "STUFF" https:/squanch.space/p(/ID)
@@ -31,6 +28,4 @@ function transfer -d "Transfer files"
   end
 end
 </div>
-</article>
-</main>
 {{ end }}

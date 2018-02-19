@@ -1,9 +1,6 @@
 {{ define "title" }}<title>Admin Panel - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}
-<main>
-<article>
-    <header>Admin Panel</header>
-</article>
+<header>Admin Panel</header>
 
   <ul class="tabs">
     <li class="tabs-title is-active"><a href="#"><i class="fa fa-lock" aria-hidden="true"></i> Main</a></li>
@@ -16,6 +13,5 @@
         <li><a href="/admin/users">Manage Users</a></li>
         <li><a href="/admin/list">List all things</a></li>
         </ul>
-  </article>  
-</main>        
+  </article>        
 {{ end }}

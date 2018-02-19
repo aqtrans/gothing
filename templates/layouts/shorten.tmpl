@@ -1,10 +1,7 @@
 {{ define "title" }}<title>New Short URL - {{.Page.TheName}}</title>{{ end }}
 {{ define "content" }}  
-<main>
-  <article>
-    <header>New Short URL</header>
-  </article>
-  <article>  
+<header>New Short URL</header>
+ 
 <ul class="accordion" data-accordion>
   <li class="accordion-item is-active" data-accordion-item>
     <a href="#" class="accordion-title">Shorten URL to a subdomain</a>
@@ -45,7 +42,6 @@
         </div>
         </form>
     </div>
-  </li>    
-  </article>   
-</main>   
+  </li>
+</ul>
 {{ end }}
