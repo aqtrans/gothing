@@ -12,9 +12,13 @@
               {{if eq $imgext "gif"}}
               <img class="gifplayer" data-gif="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
               {{else if eq $imgext "webm"}}
-              <img class="gifplayer" data-mode="video" data-webm="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
+              <video controls loop muted poster="/thumbs/{{.Filename}}.png">
+              <source src="/imagedirect/{{.Filename}}" type="video/webm">
+              </video>
               {{else if eq $imgext "mp4"}}
-              <img class="gifplayer" data-mode="video" data-mp4="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">              
+              <video controls loop muted poster="/thumbs/{{.Filename}}.png">
+              <source src="/imagedirect/{{.Filename}}" type="video/mp4">
+              </video>            
               {{else}}
               <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
               {{end}}
