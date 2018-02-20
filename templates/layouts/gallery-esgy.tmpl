@@ -13,11 +13,11 @@
               {{if eq $imgext "gif"}}
               <img class="gifplayer" data-gif="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
               {{else if eq $imgext "webm"}}
-              <video loop muted poster="/thumbs/{{.Filename}}.png">
+              <video onclick="this.paused?this.play():this.pause();" loop muted poster="/thumbs/{{.Filename}}.png">
               <source src="/imagedirect/{{.Filename}}" type="video/webm">
               </video>
               {{else if eq $imgext "mp4"}}
-              <video loop muted poster="/thumbs/{{.Filename}}.png">
+              <video onclick="this.paused?this.play():this.pause();" loop muted poster="/thumbs/{{.Filename}}.png">
               <source src="/imagedirect/{{.Filename}}" type="video/mp4">
               </video>
               {{else}}
@@ -25,7 +25,7 @@
               {{end}}
               <div class="expanded button-group">
               <a href="/{{.Filename}}" class="small button"><i class='fa fa-external-link'></i>Link</a>
-              <a href="/big/{{.Filename}}" class="small button"><i class='fa fa-arrows-alt'></i>Embiggen</a>
+              <!--<a href="/big/{{.Filename}}" class="small button"><i class='fa fa-arrows-alt'></i>Embiggen</a>-->
               </div>
           </div>
         {{ end }}
