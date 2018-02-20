@@ -12,11 +12,11 @@
               {{if eq $imgext "gif"}}
               <img class="gifplayer" data-gif="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
               {{else if eq $imgext "webm"}}
-              <video controls loop muted poster="/thumbs/{{.Filename}}.png">
+              <video loop muted poster="/thumbs/{{.Filename}}.png">
               <source src="/imagedirect/{{.Filename}}" type="video/webm">
               </video>
               {{else if eq $imgext "mp4"}}
-              <video controls loop muted poster="/thumbs/{{.Filename}}.png">
+              <video loop muted poster="/thumbs/{{.Filename}}.png">
               <source src="/imagedirect/{{.Filename}}" type="video/mp4">
               </video>            
               {{else}}
