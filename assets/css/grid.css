@@ -22,6 +22,11 @@ body > nav {
   padding-left: 0.2rem; }
   body > nav > small {
     color: #fefefe; }
+  body > nav ul {
+    padding: 0.3rem 1rem;
+    margin: 0; }
+  body > nav ul > li {
+    list-style-type: none; }
 
 body > main {
   grid-area: content;
@@ -133,6 +138,13 @@ table {
   table, table th, table td {
     border: 1px solid #fefefe;
     padding: 0 0.3rem; }
+
+.embiggened {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  min-width: 100%;
+  min-height: 100%; }
 
 @media (min-width: 60rem) {
   body {

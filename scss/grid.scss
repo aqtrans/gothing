@@ -42,6 +42,13 @@ body > nav {
     > small {
         color: $foreground-font;
     }
+    ul {
+        padding: 0.3rem 1rem;
+        margin: 0;
+    }
+    ul > li {
+        list-style-type: none;
+    }
 }
 
 body > main {
@@ -177,6 +184,14 @@ table {
         border: 1px solid $white;
         padding: 0 0.3rem;
     }
+}
+
+.embiggened {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
 }
 
 @media (min-width: 60rem) {

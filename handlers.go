@@ -694,6 +694,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageBigHandler")
 	params := mux.Vars(r)
 	name := params["name"]
+	imgType := imgExt(name)
 	smallPath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
 	//Check if small image exists:
 	_, err := os.Stat(smallPath)
@@ -703,29 +704,49 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`<!doctype html>
-                    <html>
-                    <head>
-                    <meta charset=utf-8>
-                    <title>` + name + `</title>
-                    <style>
-                    html { 
-                        background: url('/imagedirect/` + name + `') no-repeat center center fixed; 
-                        -webkit-background-size: cover;
-                        -moz-background-size: cover;
-                        -o-background-size: cover;
-                        background-size: cover;
-                        height: 100%;
-                        width: 100%;
-                    }
-                    body {
-                        height: 100%;
-                        width: 100%;
-                    }
-                    </style>
-                    </head>
-                    <body></body>
-                    </html>`))
+
+	switch imgType {
+	case "mp4":
+		w.Write([]byte(`<!doctype html>
+			<html>
+			<head>
+			<link rel="stylesheet" href="/assets/css/grid.css">
+			<meta charset=utf-8>
+			<title>` + name + `</title>
+			</head>
+			<body>
+			<video autoplay muted loop class="embiggened" onclick="this.paused?this.play():this.pause();">
+			<source src='/imagedirect/` + name + `' type="video/mp4">
+			</video>
+			</body>
+			</html>`))
+	case "webm":
+		w.Write([]byte(`<!doctype html>
+				<html>
+				<head>
+				<link rel="stylesheet" href="/assets/css/grid.css">
+				<meta charset=utf-8>
+				<title>` + name + `</title>
+				</head>
+				<body>
+				<video autoplay muted loop class="embiggened" onclick="this.paused?this.play():this.pause();">
+				<source src='/imagedirect/` + name + `' type="video/webm">
+				</video>
+				</body>
+				</html>`))
+	default:
+		w.Write([]byte(`<!doctype html>
+				<html>
+				<head>
+				<link rel="stylesheet" href="/assets/css/grid.css">
+				<meta charset=utf-8>
+				<title>` + name + `</title>
+				</head>
+				<body>
+				<img src='/imagedirect/` + name + `' class="embiggened">
+				</body>
+				</html>`))
+	}
 }
 
 func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request) {
