@@ -66,12 +66,6 @@
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/justinas/alice"
-  packages = ["."]
-  revision = "03f45bd4b7dad4734bc4620e46a35789349abb20"
-
-[[projects]]
   name = "github.com/kennygrant/sanitize"
   packages = ["."]
   revision = "2e6820834a1f36c626bf19a253b7d3cc060e9b8b"
@@ -203,6 +197,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cc1b0a776996b4a9bb9de9fae50c702f0f2b7bd80ee1ae0f8dfc3ecf2a6b36b7"
+  inputs-digest = "e6878714b2332e3c2f74649fb3b511ab335660f0defd17a2916a72f606e2c01f"
   solver-name = "gps-cdcl"
   solver-version = 1
