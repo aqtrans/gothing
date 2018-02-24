@@ -42,10 +42,6 @@ ignored = ["jba.io/go/auth","jba.io/go/httputils"]
   version = "1.3.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/justinas/alice"
-
-[[constraint]]
   name = "github.com/kennygrant/sanitize"
   version = "1.2.3"
 
