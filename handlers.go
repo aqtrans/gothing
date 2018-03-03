@@ -448,7 +448,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
-		raven.CaptureError(err, nil)
+		raven.CaptureError(err, map[string]string{"requestURI": r.RequestURI})
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
@@ -1375,7 +1375,7 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	url := bluemonday.UGCPolicy().Sanitize(unsafeURL)
+	url := bluemonday.StrictPolicy().Sanitize(unsafeURL)
 
 	processCaptcha(w, r)
 
