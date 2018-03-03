@@ -591,10 +591,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 				name = name + ext
 				//fpath = cfg.ImgDir + path.Base(name)
 				fpath = filepath.Join(viper.GetString("ImgDir"), path.Base(name))
-				log.Println(name + fpath)
 				break
-			} else {
-				log.Println(err)
 			}
 		}
 	}
@@ -724,16 +721,28 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//Resizes all images using gifsicle command, due to image.resize failing at animated GIFs
-//Images are dumped to ./tmp/ for now, probably want to fix this but I'm unsure where to put them
+// imageBigHandler uses a weird CSS trick to make the images really big
 func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageBigHandler")
 	params := mux.Vars(r)
 	name := params["name"]
-	smallPath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
+
+	// Try and intercept GIF requests since they should all be MP4s now
+	if filepath.Ext(name) == ".gif" {
+		nameWithoutExt := name[0 : len(name)-len(filepath.Ext(".gif"))]
+		// Check for existence of nameWithoutExt.mp4
+		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
+			name = nameWithoutExt + ".mp4"
+		}
+		// Check for existence of nameWithoutExt.webm
+		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); err == nil {
+			name = nameWithoutExt + ".webm"
+		}
+	}
+
 	//Check if small image exists:
-	_, err := os.Stat(smallPath)
-	if err != nil {
+	_, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), path.Base(name)))
+	if err != nil && !os.IsNotExist(err) {
 		raven.CaptureError(err, nil)
 		http.NotFound(w, r)
 		return
