@@ -9,6 +9,7 @@ import (
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gorilla/mux"
+	"github.com/microcosm-cc/bluemonday"
 
 	"github.com/boltdb/bolt"
 	//"github.com/gorilla/mux"
@@ -1358,12 +1359,14 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APIlgAction")
-	url := r.PostFormValue("url")
+	unsafeURL := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
 		raven.CaptureError(err, nil)
 		log.Println(err)
 	}
+
+	url := bluemonday.UGCPolicy().Sanitize(unsafeURL)
 
 	processCaptcha(w, r)
 
