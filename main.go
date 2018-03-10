@@ -890,18 +890,12 @@ func main() {
 			log.Fatalln("./data/ is not a directory. This is where misc data is stored.")
 		}
 	}
-
-	anAuthState, err := auth.NewAuthState(viper.GetString("AuthDB"))
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		log.Fatalln(err)
-	}
-
-	var aThingDB *bolt.DB
+	//var aThingDB *bolt.DB
 
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, viper.GetString("dbPath")},
-		authState: anAuthState,
+		Bolt: &thingDB{
+			path: viper.GetString("dbPath")},
+		authState: auth.NewAuthState(viper.GetString("AuthDB")),
 		templates: make(map[string]*template.Template),
 	}
 

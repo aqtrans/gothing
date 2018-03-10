@@ -471,13 +471,11 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
-			http.NotFound(w, r)
-			return nil
+			return errors.New("Paste does not exist")
 		}
 		err := json.Unmarshal(v, &paste)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			return err
 		}
 		//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
 		//I need '<' and '>' in tact for scripts and such
@@ -485,14 +483,22 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 		//safe := template.HTMLEscapeString(paste.Content)
 		//safe := sanitize.HTML(paste.Content)
 
-		safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
+		//safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
+
 		//safe := paste.Content
+
+		// Bluemonday
+		p := bluemonday.UGCPolicy()
+		safe := p.Sanitize(paste.Content)
+
 		fmt.Fprintf(w, "%s", safe)
 		return nil
 	})
 	if err != nil {
 		raven.CaptureError(err, nil)
 		log.Println(err)
+		http.NotFound(w, r)
+		return
 	}
 
 	//Attempt to increment paste hit counter...

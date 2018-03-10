@@ -42,10 +42,7 @@ func TestAuthInit(t *testing.T) {
 	var err error
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	authState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	authState := auth.NewAuthState(tmpdb)
 	_, err = authState.Userlist()
 	if err != nil {
 		t.Fatal(err)
@@ -68,16 +65,13 @@ func TestIndexHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,16 +132,13 @@ func TestHelpHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,16 +176,13 @@ func TestLoginPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,16 +220,13 @@ func TestLookingGlassPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,16 +264,13 @@ func TestPastePageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,16 +308,13 @@ func TestFileUpPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,16 +352,13 @@ func TestImageUpPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,16 +396,13 @@ func TestImageGalleryPageHandler(t *testing.T) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		t.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,16 +441,13 @@ func BenchmarkIndex(b *testing.B) {
 	defer os.Remove(tmpdb)
 	tmpdb2 := tempfile()
 	defer os.Remove(tmpdb2)
-	anAuthState, err := auth.NewAuthState(tmpdb)
-	if err != nil {
-		b.Fatal(err)
-	}
+	anAuthState := auth.NewAuthState(tmpdb)
 	env := &thingEnv{
 		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 	}
-	err = tmplInit(env)
+	err := tmplInit(env)
 	if err != nil {
 		b.Fatal(err)
 	}
