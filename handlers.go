@@ -372,8 +372,6 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		err := json.Unmarshal(v, &shorturl)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
 			return err
 		}
 
@@ -440,8 +438,6 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		encoded, err := json.Marshal(s)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
 			return err
 		}
 
@@ -495,8 +491,7 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		log.Println(err, title)
 		http.NotFound(w, r)
 		return
 	}
@@ -543,18 +538,16 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Attempt to increment file hit counter...
 	file := &File{}
-	db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		v := b.Get([]byte(name))
 		//If there is no existing key, do not do a thing
 		if v == nil {
-			http.NotFound(w, r)
-			return nil
+			return errors.New("No such file: " + name)
 		}
 		err := json.Unmarshal(v, &file)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			return err
 		}
 		count := (file.Hits + 1)
 		fi := &File{
@@ -563,9 +556,16 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 			Hits:     count,
 		}
 		encoded, err := json.Marshal(fi)
+		if err != nil {
+			return err
+		}
 		http.ServeFile(w, r, fpath)
 		return b.Put([]byte(name), encoded)
 	})
+	if err != nil {
+		log.Println(err, name)
+		http.NotFound(w, r)
+	}
 
 }
 
