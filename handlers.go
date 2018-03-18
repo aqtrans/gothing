@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	raven "github.com/getsentry/raven-go"
 	"github.com/gorilla/mux"
 	"github.com/microcosm-cc/bluemonday"
 
@@ -42,8 +41,8 @@ func (env *thingEnv) indexHandler(w http.ResponseWriter, r *http.Request) {
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "index.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -53,8 +52,8 @@ func (env *thingEnv) helpHandler(w http.ResponseWriter, r *http.Request) {
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "help.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -62,8 +61,7 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 	defer httputils.TimeTrack(time.Now(), "loadGalleryPage")
 	page, perr := loadPage("Gallery", w, r)
 	if perr != nil {
-		raven.CaptureError(perr, nil)
-		log.Println(perr)
+		return nil, perr
 	}
 
 	db := env.getDB()
@@ -71,21 +69,26 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 
 	var images []*Image
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
 			var image *Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
-				raven.CaptureError(err, nil)
-				log.Println(err)
+				return err
 			}
 			images = append(images, image)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(ImageByDate(images))
 	return &GalleryPage{Page: page, Images: images}, nil
 }
@@ -94,14 +97,14 @@ func (env *thingEnv) galleryHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "galleryHandler")
 	l, err := env.loadGalleryPage(w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 
 	err = renderTemplate(env, w, "gallery.tmpl", l)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -109,14 +112,14 @@ func (env *thingEnv) galleryEsgyHandler(w http.ResponseWriter, r *http.Request) 
 	defer httputils.TimeTrack(time.Now(), "galleryEsgyHandler")
 	l, err := env.loadGalleryPage(w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 
 	err = renderTemplate(env, w, "gallery-esgy.tmpl", l)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -125,13 +128,13 @@ func (env *thingEnv) adminListHandler(w http.ResponseWriter, r *http.Request) {
 	//title := "Admin List"
 	l, err := env.loadGalleryPage(w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	err = renderTemplate(env, w, "admin_list.tmpl", l)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -141,8 +144,8 @@ func (env *thingEnv) adminHandler(w http.ResponseWriter, r *http.Request) {
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "admin.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -152,8 +155,8 @@ func (env *thingEnv) adminSignupHandler(w http.ResponseWriter, r *http.Request) 
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "admin_user.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -163,8 +166,8 @@ func (env *thingEnv) adminUserPassHandler(w http.ResponseWriter, r *http.Request
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "admin_password.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -174,8 +177,8 @@ func (env *thingEnv) signupPageHandler(w http.ResponseWriter, r *http.Request) {
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "signup.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -194,8 +197,8 @@ func (env *thingEnv) lgHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = renderTemplate(env, w, "lg.tmpl", data)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -212,14 +215,13 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	defer env.closeDB()
 
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte("Pastes"))
 		c.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
-				raven.CaptureError(err, nil)
-				log.Println(err)
+				return err
 			}
 			plink := paste.Title
 			pfull := paste.Title + paste.Content
@@ -229,12 +231,11 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 			return nil
 		})
 		d := tx.Bucket([]byte("Files"))
-		d.ForEach(func(k, v []byte) error {
+		err := d.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
 			err := json.Unmarshal(v, &file)
 			if err != nil {
-				raven.CaptureError(err, nil)
-				log.Println(err)
+				return err
 			}
 			flink := file.Filename
 			if sterm.MatchString(flink) {
@@ -242,8 +243,15 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
 
 }
 
@@ -253,8 +261,8 @@ func (env *thingEnv) uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "up.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -264,8 +272,8 @@ func (env *thingEnv) uploadImagePageHandler(w http.ResponseWriter, r *http.Reque
 	p, _ := loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "upimg.tmpl", p)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -273,32 +281,44 @@ func (env *thingEnv) pastePageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "pastePageHandler")
 	title := "paste"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(env, w, "paste.tmpl", p)
-	r.ParseForm()
-	//log.Println(r.Form)
+	err := r.ParseForm()
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
+	err = renderTemplate(env, w, "paste.tmpl", p)
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
+
 }
 
 func (env *thingEnv) shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "shortenPageHandler")
 	title := "shorten"
 	p, _ := loadMainPage(title, w, r)
-	err := renderTemplate(env, w, "shorten.tmpl", p)
-	r.ParseForm()
-	//log.Println(r.Form)
+	err := r.ParseForm()
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
+	err = renderTemplate(env, w, "shorten.tmpl", p)
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
+
 }
 
 func (env *thingEnv) loginPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "loginPageHandler")
 	title := "login"
 	p, err := loadPage(title, w, r)
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
 	data := struct {
 		Page  *Page
 		Title string
@@ -308,8 +328,7 @@ func (env *thingEnv) loginPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err = renderTemplate(env, w, "login.tmpl", data)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
 		return
 	}
 }
@@ -318,13 +337,13 @@ func (env *thingEnv) listHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "listHandler")
 	l, err := env.loadListPage(w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	err = renderTemplate(env, w, "list.tmpl", l)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -444,9 +463,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
-		raven.CaptureError(err, map[string]string{"requestURI": r.RequestURI})
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errRedir(err, w)
 	} else {
 		if !strings.HasPrefix(destURL, "http") {
 			destURL = "http://" + destURL
@@ -491,8 +508,7 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		log.Println(err, title)
-		http.NotFound(w, r)
+		errRedir(err, w)
 		return
 	}
 
@@ -502,13 +518,11 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 		v := b.Get([]byte(title))
 		//If there is no existing key, do not do a thing
 		if v == nil {
-			http.NotFound(w, r)
-			return nil
+			return errors.New("No such paste: " + title)
 		}
 		err := json.Unmarshal(v, &paste)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			return err
 		}
 		count := (paste.Hits + 1)
 		p := &Paste{
@@ -518,11 +532,14 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 			Hits:    count,
 		}
 		encoded, err := json.Marshal(p)
+		if err != nil {
+			return err
+		}
 		return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 }
 
@@ -563,8 +580,8 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 		return b.Put([]byte(name), encoded)
 	})
 	if err != nil {
-		log.Println(err, name)
-		http.NotFound(w, r)
+		errRedir(err, w)
+		return
 	}
 
 }
@@ -606,7 +623,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 
 	//Attempt to increment file hit counter...
 	image := &Image{}
-	db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		v := b.Get([]byte(name))
 		//If there is no existing key, do not do a thing
@@ -617,8 +634,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		}
 		err := json.Unmarshal(v, &image)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			return err
 		}
 		count := (image.Hits + 1)
 		imi := &Image{
@@ -627,8 +643,15 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			Hits:     count,
 		}
 		encoded, err := json.Marshal(imi)
+		if err != nil {
+			return err
+		}
 		return b.Put([]byte(name), encoded)
 	})
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
 
 	// Try and intercept GIF requests if a fpath.webm
 	if filepath.Ext(name) == ".gif" {
@@ -709,8 +732,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
 	f, err := http.Dir(dir).Open(file)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		http.NotFound(w, r)
+		errRedir(err, w)
 		return
 	}
 	content := io.ReadSeeker(f)
@@ -749,8 +771,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	//Check if small image exists:
 	_, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), path.Base(name)))
 	if err != nil && !os.IsNotExist(err) {
-		raven.CaptureError(err, nil)
-		http.NotFound(w, r)
+		errRedir(err, w)
 		return
 	}
 
@@ -806,16 +827,13 @@ func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request)
 	name := params["name"]
 	p, err := loadPage(name, w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		http.NotFound(w, r)
+		errRedir(err, w)
 		return
 	}
 
 	body, err := ioutil.ReadFile("./md/" + name + ".md")
 	if err != nil {
-		raven.CaptureError(err, nil)
-		http.NotFound(w, r)
-		log.Println(err)
+		errRedir(err, w)
 		return
 	}
 	//unsafe := blackfriday.MarkdownCommon(body)
@@ -834,8 +852,8 @@ func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request)
 	}
 	err = renderTemplate(env, w, "md.tmpl", data)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	log.Println(name + " Page rendered!")
 }
@@ -851,8 +869,8 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	}
 	fileURL, err := url.Parse(finURL)
 	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
@@ -870,11 +888,8 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	}
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
-		raven.CaptureError(err, nil)
-		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote file.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 	defer file.Close()
 	check := http.Client{
@@ -885,21 +900,16 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := check.Get(finURL)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote file.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 	defer resp.Body.Close()
 	fmt.Println(resp.Status)
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		env.authState.SetFlash("Failed to save remote file.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 
 	//BoltDB stuff
@@ -910,10 +920,8 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	}
 	err = fi.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		env.authState.SetFlash("Failed to save remote file.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		errRedir(err, w)
+		return
 	}
 
 	//fmt.Printf("%s with %v bytes downloaded", fileName, size)
@@ -961,8 +969,8 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		fileURL, err := url.Parse(finURL)
 		if err != nil {
-			raven.CaptureErrorAndWait(err, nil)
-			panic(err)
+			errRedir(err, w)
+			return
 		}
 		//path := fileURL.Path
 		segments := strings.Split(fileURL.Path, "/")
@@ -980,11 +988,8 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
-			raven.CaptureError(err, nil)
-			env.authState.SetFlash("Failed to save file.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			fmt.Println(err)
-			panic(err)
+			errRedir(err, w)
+			return
 		}
 		defer file.Close()
 		check := http.Client{
@@ -995,21 +1000,16 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err := check.Get(finURL)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			env.authState.SetFlash("Failed to save file.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			fmt.Println(err)
-			panic(err)
+			errRedir(err, w)
+			return
 		}
 		defer resp.Body.Close()
 		fmt.Println(resp.Status)
 
 		size, err := io.Copy(file, resp.Body)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			env.authState.SetFlash("Failed to save file.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			panic(err)
+			errRedir(err, w)
+			return
 		}
 
 		//BoltDB stuff
@@ -1033,29 +1033,26 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 			var b bytes.Buffer
 			n, err := io.CopyN(&b, f, _24K+1)
 			if err != nil && err != io.EOF {
-				raven.CaptureError(err, nil)
-				log.Printf("%s", err.Error())
-				http.Error(w, err.Error(), 500)
+				errRedir(err, w)
 				return
 			}
 			if n > _24K {
 				file, err := ioutil.TempFile("./tmp/", "transfer-")
 				if err != nil {
-					raven.CaptureError(err, nil)
-					log.Printf("%s", err.Error())
-					http.Error(w, err.Error(), 500)
+					errRedir(err, w)
 					return
 				}
 				defer file.Close()
 				n, err = io.Copy(file, io.MultiReader(&b, f))
 				if err != nil {
-					raven.CaptureError(err, nil)
-					os.Remove(file.Name())
-					log.Printf("%s", err.Error())
-					http.Error(w, err.Error(), 500)
+					errRedir(err, w)
 					return
 				}
 				reader, err = os.Open(file.Name())
+				if err != nil {
+					errRedir(err, w)
+					return
+				}
 			} else {
 				reader = bytes.NewReader(b.Bytes())
 			}
@@ -1080,8 +1077,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Uploading %s %d %s", filename, contentLength, contentType)
 
 		if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
-			fmt.Printf("%s", err.Error())
-			http.Error(w, errors.New("Could not save file").Error(), 500)
+			errRedir(err, w)
 			return
 		}
 		defer f.Close()
@@ -1098,21 +1094,15 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		//log.Println("Content-type is "+contentType)
 		err := r.ParseMultipartForm(_24K)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println("ParseMultiform reader error")
-			log.Println(err)
-			env.authState.SetFlash("Failed to save file.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			errRedir(err, w)
 			return
 		}
 		file, handler, err := r.FormFile("file")
 		filename = handler.Filename
 		defer file.Close()
 		if err != nil {
-			raven.CaptureError(err, nil)
-			fmt.Println(err)
-			env.authState.SetFlash("Failed to save file.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			errRedir(err, w)
+			return
 		}
 		if r.FormValue("local-file-name") != "" {
 			filename = sanitize.Name(r.FormValue("local-file-name"))
@@ -1121,10 +1111,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			fmt.Println(err)
-			env.authState.SetFlash("Failed to save file.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			errRedir(err, w)
 			return
 		}
 		defer f.Close()
@@ -1139,10 +1126,8 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 
 	err = fi.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		env.authState.SetFlash("Failed to save file.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		errRedir(err, w)
+		return
 	}
 
 	if uptype == "cli" {
@@ -1157,10 +1142,8 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 	defer httputils.TimeTrack(time.Now(), "APInewShortUrlForm")
 	err := r.ParseForm()
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		env.authState.SetFlash("Failed to shorten URL.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		errRedir(err, w)
+		return
 	}
 
 	subdomain := r.PostFormValue("shortSub")
@@ -1189,10 +1172,8 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 
 		err = s.save(env)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
-			env.authState.SetFlash("Failed to shorten URL.", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			errRedir(err, w)
+			return
 		}
 		//log.Println("Short: " + s.Short)
 		//log.Println("Long: " + s.Long)
@@ -1210,10 +1191,8 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 
 	err = s.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		env.authState.SetFlash("Failed to shorten URL.", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		errRedir(err, w)
+		return
 	}
 	//log.Println("Short: " + s.Short)
 	//log.Println("Long: " + s.Long)
@@ -1252,8 +1231,8 @@ func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 	}
 	err := p.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	fmt.Fprintln(w, getScheme(r)+r.Host+"/p/"+name)
 }
@@ -1262,16 +1241,26 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPasteForm")
 	err := r.ParseForm()
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 
 	processCaptcha(w, r)
+	/*
+		success, err := env.captcha.Verify(r.FormValue("g-recaptcha-response"), r.RemoteAddr)
+		if err != nil {
+			errRedir(err, w)
+			return
+		}
+		if !success {
+			env.authState.SetFlash("Error verifying reCAPTCHA", w)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+	*/
 
 	title := r.PostFormValue("title")
-	if title != "" {
-		title = title
-	} else {
+	if title == "" {
 		dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		var bytes = make([]byte, 4)
 		rand.Read(bytes)
@@ -1288,8 +1277,8 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	}
 	err = p.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	http.Redirect(w, r, getScheme(r)+r.Host+"/p/"+title, 302)
 }
@@ -1312,15 +1301,13 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			return tx.Bucket([]byte("Files")).Delete([]byte(fname))
 		})
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
 			return
 		}
 		fpath := viper.GetString("FileDir") + fname
 		err = os.Remove(fpath)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
 			return
 		}
 		env.authState.SetFlash("Successfully deleted "+jmsg, w)
@@ -1331,15 +1318,13 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			return tx.Bucket([]byte("Images")).Delete([]byte(fname))
 		})
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
 			return
 		}
 		fpath := viper.GetString("ImgDir") + fname
 		err = os.Remove(fpath)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
 			return
 		}
 		env.authState.SetFlash("Successfully deleted "+jmsg, w)
@@ -1350,8 +1335,8 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			return tx.Bucket([]byte("Pastes")).Delete([]byte(fname))
 		})
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 		env.authState.SetFlash("Successfully deleted "+jmsg, w)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
@@ -1361,8 +1346,8 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			return tx.Bucket([]byte("Shorturls")).Delete([]byte(fname))
 		})
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 		env.authState.SetFlash("Successfully deleted "+jmsg, w)
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
@@ -1377,20 +1362,32 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 	unsafeURL := r.PostFormValue("url")
 	err := r.ParseForm()
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 
 	url := bluemonday.StrictPolicy().Sanitize(unsafeURL)
 
 	processCaptcha(w, r)
+	/*
+		success, err := env.captcha.Verify(r.FormValue("g-recaptcha-response"), r.RemoteAddr)
+		if err != nil {
+			errRedir(err, w)
+			return
+		}
+		if !success {
+			env.authState.SetFlash("Error verifying reCAPTCHA", w)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+	*/
 
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff
 		out, err := exec.Command("ping", "-c10", url).Output()
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 		outs := string(out)
 		title := "Pinging " + url
@@ -1406,15 +1403,15 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		err = renderTemplate(env, w, "lg.tmpl", data)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 	} else if r.Form.Get("lg-action") == "mtr" {
 		//MTR stuff
 		out, err := exec.Command("mtr", "--report-wide", "-c10", url).Output()
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 		outs := string(out)
 		title := "MTR to " + url
@@ -1430,15 +1427,15 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		err = renderTemplate(env, w, "lg.tmpl", data)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 	} else if r.Form.Get("lg-action") == "traceroute" {
 		//Traceroute stuff
 		out, err := exec.Command("traceroute", url).Output()
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 		outs := string(out)
 		title := "Traceroute to " + url
@@ -1454,8 +1451,8 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		err = renderTemplate(env, w, "lg.tmpl", data)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
+			errRedir(err, w)
+			return
 		}
 	} else {
 		//If formvalue isn't MTR, Ping, or traceroute, this should be hit
@@ -1476,8 +1473,8 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	}
 	fileURL, err := url.Parse(finURL)
 	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
@@ -1495,11 +1492,8 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	}
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
-		raven.CaptureError(err, nil)
-		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote image", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 	defer file.Close()
 	check := http.Client{
@@ -1510,21 +1504,15 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := check.Get(finURL)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		fmt.Println(err)
-		env.authState.SetFlash("Failed to save remote image", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 	defer resp.Body.Close()
-	fmt.Println(resp.Status)
 
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		env.authState.SetFlash("Failed to save remote image", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		panic(err)
+		errRedir(err, w)
+		return
 	}
 
 	//BoltDB stuff
@@ -1535,10 +1523,8 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	}
 	err = imi.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		env.authState.SetFlash("Failed to save remote image", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		errRedir(err, w)
+		return
 	}
 
 	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w)
@@ -1568,26 +1554,19 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 			var b bytes.Buffer
 			n, err := io.CopyN(&b, f, _24K+1)
 			if err != nil && err != io.EOF {
-				raven.CaptureError(err, nil)
-				log.Printf("%s", err.Error())
-				http.Error(w, err.Error(), 500)
+				errRedir(err, w)
 				return
 			}
 			if n > _24K {
 				file, err := ioutil.TempFile("./tmp/", "transfer-")
 				if err != nil {
-					raven.CaptureError(err, nil)
-					log.Printf("%s", err.Error())
-					http.Error(w, err.Error(), 500)
+					errRedir(err, w)
 					return
 				}
 				defer file.Close()
 				n, err = io.Copy(file, io.MultiReader(&b, f))
 				if err != nil {
-					raven.CaptureError(err, nil)
-					os.Remove(file.Name())
-					log.Printf("%s", err.Error())
-					http.Error(w, err.Error(), 500)
+					errRedir(err, w)
 					return
 				}
 				reader, err = os.Open(file.Name())
@@ -1614,12 +1593,12 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Uploading image %s %d %s", filename, contentLength, contentType)
 
 		if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
-			fmt.Printf("%s", err.Error())
-			http.Error(w, errors.New("Could not save image").Error(), 500)
+			errRedir(err, w)
 			return
 		}
 		defer f.Close()
 		if _, err = io.Copy(f, reader); err != nil {
+			errRedir(err, w)
 			return
 		}
 		contentType = mime.TypeByExtension(filepath.Ext(formfilename))
@@ -1627,9 +1606,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		//log.Println("Content-type is " + contentType)
 		err := r.ParseMultipartForm(_24K)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println("ParseMultiform reader error")
-			log.Println(err)
+			errRedir(err, w)
 			return
 		}
 		file, handler, err := r.FormFile("file")
@@ -1639,19 +1616,22 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 			log.Println("custom local image name: " + filename)
 		}
 		if err != nil {
-			raven.CaptureError(err, nil)
-			fmt.Println(err)
+			errRedir(err, w)
 			return
 		}
 		defer file.Close()
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			fmt.Println(err)
+			errRedir(err, w)
 			return
 		}
 		defer f.Close()
-		io.Copy(f, file)
+
+		_, err = io.Copy(f, file)
+		if err != nil {
+			errRedir(err, w)
+			return
+		}
 
 		/*
 		   mr, err := r.MultipartReader()
@@ -1704,14 +1684,16 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-movflags", "faststart", "-y", "-pix_fmt", "yuv420p", "-vf", "scale='trunc(iw/2)*2:trunc(ih/2)*2'", filepath.Join(path, nameWithoutExt+".mp4"))
 		err := resize.Run()
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Fatalln(resize.Args, err)
+			log.Println("Error converting GIF to MP4:", resize.Args, err)
+			errRedir(err, w)
+			return
 		}
 		// After successful conversion, remove the originally uploaded gif
 		err = os.Remove(filepath.Join(path, filename))
 		if err != nil {
-			raven.CaptureError(err, nil)
 			log.Println("Error removing gif after converting to mp4", filename, err)
+			errRedir(err, w)
+			return
 		}
 		filename = nameWithoutExt + ".mp4"
 	}
@@ -1728,10 +1710,8 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		}
 		err = sc.save(env)
 		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
-			env.authState.SetFlash("Failed to save screenshot", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			errRedir(err, w)
+			return
 		}
 		env.authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -1745,10 +1725,8 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	}
 	err = imi.save(env)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		env.authState.SetFlash("Failed to save image", w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		errRedir(err, w)
+		return
 	}
 	env.authState.SetFlash("Successfully saved image "+filename+": <a href=https://"+viper.GetString("MainTLD")+"/i/"+filename+"></a>", w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -1759,14 +1737,12 @@ func (env *thingEnv) Readme(w http.ResponseWriter, r *http.Request) {
 	name := "README"
 	p, err := loadPage(name, w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		http.NotFound(w, r)
+		errRedir(err, w)
 		return
 	}
 	body, err := ioutil.ReadFile("./" + name + ".md")
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
 		return
 	}
 	//unsafe := blackfriday.MarkdownCommon(body)
@@ -1784,8 +1760,8 @@ func (env *thingEnv) Readme(w http.ResponseWriter, r *http.Request) {
 	}
 	err = renderTemplate(env, w, "md.tmpl", data)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	log.Println(name + " Page rendered!")
 }
@@ -1795,14 +1771,12 @@ func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 	name := "CHANGELOG"
 	p, err := loadPage(name, w, r)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		http.NotFound(w, r)
+		errRedir(err, w)
 		return
 	}
 	body, err := ioutil.ReadFile("./" + name + ".md")
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
 		return
 	}
 	//unsafe := blackfriday.MarkdownCommon(body)
@@ -1820,8 +1794,8 @@ func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 	}
 	err = renderTemplate(env, w, "md.tmpl", data)
 	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
+		errRedir(err, w)
+		return
 	}
 	log.Println(name + " Page rendered!")
 }

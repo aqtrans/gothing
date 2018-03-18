@@ -12,6 +12,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	raven "github.com/getsentry/raven-go"
@@ -31,7 +32,6 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/spf13/viper"
 
-	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
@@ -44,6 +44,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ezzarghili/recaptcha-go"
 	"github.com/russross/blackfriday"
 
 	"jba.io/go/auth"
@@ -51,21 +52,23 @@ import (
 )
 
 type configuration struct {
-	Port     string
-	Email    string
-	ImgDir   string
-	FileDir  string
-	ThumbDir string
-	MainTLD  string
-	ShortTLD string
-	ImageTLD string
-	GifTLD   string
+	Port           string
+	Email          string
+	ImgDir         string
+	FileDir        string
+	ThumbDir       string
+	MainTLD        string
+	ShortTLD       string
+	ImageTLD       string
+	GifTLD         string
+	CaptchaSiteKey string
 }
 
 type thingEnv struct {
 	Bolt      *thingDB
 	authState *auth.State
 	templates map[string]*template.Template
+	captcha   *recaptcha.ReCAPTCHA
 }
 
 type thingDB struct {
@@ -435,97 +438,122 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 
 	var files []*File
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("FILES: key=" + string(k) + " value=" + string(v))
 			var file *File
 			err := json.Unmarshal(v, &file)
 			if err != nil {
-				raven.CaptureErrorAndWait(err, map[string]string{"func": "loadListPage/View Files"})
-				log.Panicln(err)
+				return err
 			}
 			files = append(files, file)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(FileByDate(files))
 
 	var pastes []*Paste
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("PASTE: key=" + string(k) + " value=" + string(v))
 			var paste *Paste
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
-				raven.CaptureErrorAndWait(err, nil)
-				log.Panicln(err)
+				return err
 			}
 			pastes = append(pastes, paste)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(PasteByDate(pastes))
 
 	var shorts []*Shorturl
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("SHORT: key=" + string(k) + " value=" + string(v))
 			var short *Shorturl
 			err := json.Unmarshal(v, &short)
 			if err != nil {
-				raven.CaptureErrorAndWait(err, nil)
-				log.Panicln(err)
+				return err
 			}
 			shorts = append(shorts, short)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(ShortByDate(shorts))
 
 	var images []*Image
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("IMAGE: key=" + string(k) + " value=" + string(v))
 			var image *Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
-				raven.CaptureErrorAndWait(err, nil)
-				log.Panicln(err)
+				return err
 			}
 			images = append(images, image)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(ImageByDate(images))
 
 	var screenshots []*Screenshot
 	//Lets try this with boltDB now!
-	db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
-		b.ForEach(func(k, v []byte) error {
+		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("SCREENSHOTS: key=" + string(k) + " value=" + string(v))
 			var screenshot *Screenshot
 			err := json.Unmarshal(v, &screenshot)
 			if err != nil {
-				raven.CaptureErrorAndWait(err, nil)
-				log.Panicln(err)
+				return err
 			}
 			screenshots = append(screenshots, screenshot)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(ScreenshotByDate(screenshots))
 
 	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images, Screenshots: screenshots}, nil
@@ -807,6 +835,12 @@ func tmplInit(env *thingEnv) error {
 	return nil
 }
 
+func errRedir(err error, w http.ResponseWriter) {
+	log.Println(err)
+	raven.CaptureError(err, nil)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -837,6 +871,7 @@ func main() {
 	viper.SetDefault("Dev", false)
 	viper.SetDefault("Insecure", false)
 	viper.SetDefault("Debug", false)
+	viper.SetDefault("CaptchaSiteKey", "")
 
 	viper.SetConfigName("conf")
 	viper.SetConfigType("json")
@@ -892,11 +927,19 @@ func main() {
 	}
 	//var aThingDB *bolt.DB
 
+	/*
+		theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSiteKey"))
+		if err != nil {
+			log.Fatalln("Error initializing recaptcha instance:", err)
+		}
+	*/
+
 	env := &thingEnv{
 		Bolt: &thingDB{
 			path: viper.GetString("dbPath")},
 		authState: auth.NewAuthState(viper.GetString("AuthDB")),
 		templates: make(map[string]*template.Template),
+		//captcha:   &theCaptcha,
 	}
 
 	err = tmplInit(env)
