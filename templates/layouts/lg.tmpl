@@ -20,12 +20,12 @@
           <div class="small-9 columns">
             <label>IP or Domain
               <input type="text" name="url" placeholder="IP or domain" />
-              <div class="g-recaptcha" data-sitekey="{{.Page.CaptchaSiteKey}}"></div>
+              <div class="g-recaptcha" data-callback="recaptchaCallback" data-sitekey="{{.Page.CaptchaSiteKey}}"></div>
               {{.Page.Token}}
             </label>
           </div>    
         </div>
-      <button class="button success" type="submit">Ping</button>
+      <button id="submit-button" disabled="disabled" class="button success" type="submit">Ping</button>
       </form>
       </div>
 

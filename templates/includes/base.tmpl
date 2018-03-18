@@ -30,6 +30,10 @@
   {{ template "extra_scripts" . }}
 <script>
 $(document).foundation();
+
+function recaptchaCallback() {
+  document.getElementById('submit-button').disabled = false;
+}
 </script>  
 </body>
 </html>

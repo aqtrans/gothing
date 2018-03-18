@@ -9,8 +9,8 @@
         Title:<input type="text" name="title"><br>
         {{.Page.Token}}
         <textarea name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
-        <div class="g-recaptcha" data-sitekey="{{.Page.CaptchaSiteKey}}"></div>
-        <input type="submit" value="Submit" class="button success">
+        <div class="g-recaptcha" data-callback="recaptchaCallback" data-sitekey="{{.Page.CaptchaSiteKey}}"></div>
+        <button id="submit-button" disabled="disabled" class="button success" type="submit">Submit</button>
         </form>
   </article>
 </main>  
