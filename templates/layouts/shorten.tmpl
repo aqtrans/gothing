@@ -5,47 +5,21 @@
     <header>New Short URL</header>
   </article>
   <article>  
-<ul class="accordion" data-accordion>
-  <li class="accordion-item is-active" data-accordion-item>
-    <a href="#" class="accordion-title">Shorten URL to a subdomain</a>
-    <div class="accordion-content" data-tab-content>
-      <h3>Shorten URL to [name].{{.Page.MainTLD}}</h3>
-      <hr />
-        <form action="/api/shorten/new" method="POST" id="shorturl">
-        <div class="input-group">
-            <input class="input-group-field" type="text" name="long" placeholder="Enter the full destination URL...">
-        </div>
-        <div class="input-group">
-            <input class="input-group-field" type="text" name="shortSub" placeholder="Enter your short URL...">
-            <span class="input-group-label">.{{.Page.MainTLD}}</span> 
-        </div>        
-        <div class="input-group">
-            {{.Page.Token}}
-            <input type="submit" class="button success" value="Submit">
-        </div>
-        </form>
-    </div>
-  </li>
-  <li class="accordion-item" data-accordion-item>
-    <a href="#" class="accordion-title">Shorten URL normally</a>
-    <div class="accordion-content" data-tab-content>
-      <h3>Shorten URL to {{.Page.MainTLD}}/[name]</h3>  
-      <hr />
-        <form action="/api/shorten/new" method="POST" id="shorturl2">
-        <div class="input-group">
-            <input class="input-group-field" type="text" name="long" placeholder="Enter the full destination URL...">
-        </div>
-        <div class="input-group">
-            <span class="input-group-label">http://{{.Page.MainTLD}}/</span>
-            <input class="input-group-field" type="text" name="short" placeholder="Enter your short URL...">
-        </div>        
-        <div class="input-group">
-            {{.Page.Token}}
-            <input type="submit" class="button success" value="Submit">
-        </div>
-        </form>
-    </div>
-  </li>    
+    <h3>Shorten URL</h3>
+    <p>Specified shortname will work as a subdomain and subdirectory. [name].{{.Page.MainTLD}} as well as {{.Page.MainTLD}}/[name]</p>
+    <hr />
+      <form action="/api/shorten/new" method="POST" id="shorturl">
+      <div class="input-group">
+          <input class="input-group-field" type="text" name="long" placeholder="Enter the full destination URL...">
+      </div>
+      <div class="input-group">
+          <input class="input-group-field" type="text" name="short" placeholder="Enter your requested short URL...">
+      </div>        
+      <div class="input-group">
+          {{.Page.Token}}
+          <input type="submit" class="button success" value="Submit">
+      </div>
+      </form>
   </article>   
 </main>   
 {{ end }}

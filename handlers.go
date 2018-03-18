@@ -1146,46 +1146,20 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	subdomain := r.PostFormValue("shortSub")
-
 	short := r.PostFormValue("short")
 	long := r.PostFormValue("long")
 
-	if subdomain == "" {
-		if short == "" {
-			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-			var bytes = make([]byte, 4)
-			rand.Read(bytes)
-			for k, v := range bytes {
-				bytes[k] = dictionary[v%byte(len(dictionary))]
-			}
-			short = string(bytes)
-		}
-		full := "https://" + viper.GetString("ShortTLD") + "/" + short
-		log.Println("Subdomain is blank, creating a regular short URL.")
-		log.Println(full)
-		s := &Shorturl{
-			Created: time.Now().Unix(),
-			Short:   short,
-			Long:    long,
-		}
+	/*
+		short := bluemonday.StrictPolicy().Sanitize(unsafeShort)
 
-		err = s.save(env)
-		if err != nil {
-			errRedir(err, w)
-			return
-		}
-		//log.Println("Short: " + s.Short)
-		//log.Println("Long: " + s.Long)
+		longPolicy := bluemonday.StrictPolicy()
+		longPolicy.AllowStandardURLs()
+		long := longPolicy.Sanitize(unsafeLong)
+	*/
 
-		env.authState.SetFlash("Successfully shortened "+s.Long, w)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
-	}
-	log.Println("Subdomain is not blank, creating a subdomain short URL.")
 	s := &Shorturl{
 		Created: time.Now().Unix(),
-		Short:   subdomain,
+		Short:   short,
 		Long:    long,
 	}
 
