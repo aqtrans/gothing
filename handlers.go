@@ -1245,19 +1245,16 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processCaptcha(w, r)
-	/*
-		success, err := env.captcha.Verify(r.FormValue("g-recaptcha-response"), r.RemoteAddr)
-		if err != nil {
-			errRedir(err, w)
-			return
-		}
-		if !success {
-			env.authState.SetFlash("Error verifying reCAPTCHA", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-	*/
+	success, err := env.captcha.Verify(r.FormValue("g-recaptcha-response"), r.RemoteAddr)
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
+	if !success {
+		env.authState.SetFlash("Error verifying reCAPTCHA", w)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	title := r.PostFormValue("title")
 	if title == "" {
@@ -1368,19 +1365,16 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 
 	url := bluemonday.StrictPolicy().Sanitize(unsafeURL)
 
-	processCaptcha(w, r)
-	/*
-		success, err := env.captcha.Verify(r.FormValue("g-recaptcha-response"), r.RemoteAddr)
-		if err != nil {
-			errRedir(err, w)
-			return
-		}
-		if !success {
-			env.authState.SetFlash("Error verifying reCAPTCHA", w)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-	*/
+	success, err := env.captcha.Verify(r.FormValue("g-recaptcha-response"), r.RemoteAddr)
+	if err != nil {
+		errRedir(err, w)
+		return
+	}
+	if !success {
+		env.authState.SetFlash("Error verifying reCAPTCHA", w)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 
 	if r.Form.Get("lg-action") == "ping" {
 		//Ping stuff

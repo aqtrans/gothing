@@ -12,7 +12,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	raven "github.com/getsentry/raven-go"
@@ -35,7 +34,6 @@ import (
 	"log"
 	"mime"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -107,6 +105,7 @@ func imgExt(s string) string {
 	return ext
 }
 
+/*
 // ReCAPTCHA from https://github.com/dasJ/go-recaptcha/blob/440394abc3ecd036b93a54837015d5fe9d64645f/recaptcha.go
 type RecaptchaResponse struct {
 	Success     bool      `json:"success"`
@@ -171,16 +170,18 @@ func processCaptcha(w http.ResponseWriter, r *http.Request) {
 	}
 	return
 }
+*/
 
 //Base struct, Page ; has to be wrapped in a data {} strut for consistency reasons
 type Page struct {
-	TheName  string
-	Title    string
-	UN       string
-	IsAdmin  bool
-	Token    template.HTML
-	FlashMsg string
-	MainTLD  string
+	TheName        string
+	Title          string
+	UN             string
+	IsAdmin        bool
+	Token          template.HTML
+	FlashMsg       string
+	MainTLD        string
+	CaptchaSiteKey string
 }
 
 type ListPage struct {
@@ -264,34 +265,6 @@ func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ShortByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
 
 func init() {
-
-	raven.SetDSN("https://8cfcb50b411a4f84b758064831983891:24d81b9e60df4ed3b52f39120af944f8@sentry.io/290265")
-
-	/*
-			Port     string
-			Email    string
-			ImgDir   string
-			FileDir  string
-			ThumbDir string
-			MainTLD  string
-			ShortTLD string
-			ImageTLD string
-			GifTLD   string
-		    AuthDB   string
-		    AuthConf struct {
-		        LdapEnabled bool
-		        LdapConf struct {
-		            LdapPort uint16 `json:",omitempty"`
-		            LdapUrl  string `json:",omitempty"`
-		            LdapDn   string `json:",omitempty"`
-		            LdapUn   string `json:",omitempty"`
-		            LdapOu   string `json:",omitempty"`
-		        }
-		    }
-	*/
-
-	//viper.Unmarshal(&cfg)
-	//viper.UnmarshalKey("AuthConf", &auth.Authcfg)
 
 	pflag.StringVar(&dataDir, "DataDir", "./data/", "Path to store permanent data in.")
 	pflag.Parse()
@@ -401,13 +374,14 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 	}
 
 	return &Page{
-		TheName:  "GoThing",
-		Title:    title,
-		UN:       user.GetName(),
-		IsAdmin:  user.IsAdmin(),
-		Token:    token,
-		FlashMsg: message,
-		MainTLD:  viper.GetString("MainTLD"),
+		TheName:        "GoThing",
+		Title:          title,
+		UN:             user.GetName(),
+		IsAdmin:        user.IsAdmin(),
+		Token:          token,
+		FlashMsg:       message,
+		MainTLD:        viper.GetString("MainTLD"),
+		CaptchaSiteKey: viper.GetString("CaptchaSiteKey"),
 	}, nil
 }
 
@@ -872,6 +846,7 @@ func main() {
 	viper.SetDefault("Insecure", false)
 	viper.SetDefault("Debug", false)
 	viper.SetDefault("CaptchaSiteKey", "")
+	viper.SetDefault("RavenDSN", "")
 
 	viper.SetConfigName("conf")
 	viper.SetConfigType("json")
@@ -887,9 +862,7 @@ func main() {
 	}
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		//panic(fmt.Errorf("Fatal error config file: %s \n", err))
-		raven.CaptureError(err, nil)
-		fmt.Println("Error loading configuration:", err)
+		log.Println("Error loading configuration:", err)
 	}
 	viper.SetEnvPrefix("gothing")
 	viper.AutomaticEnv()
@@ -897,6 +870,8 @@ func main() {
 	if viper.GetBool("Debug") {
 		httputils.Debug = true
 	}
+
+	raven.SetDSN(viper.GetString("RavenDSN"))
 
 	/*
 		// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
@@ -927,19 +902,17 @@ func main() {
 	}
 	//var aThingDB *bolt.DB
 
-	/*
-		theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSiteKey"))
-		if err != nil {
-			log.Fatalln("Error initializing recaptcha instance:", err)
-		}
-	*/
+	theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSiteKey"))
+	if err != nil {
+		log.Fatalln("Error initializing recaptcha instance:", err)
+	}
 
 	env := &thingEnv{
 		Bolt: &thingDB{
 			path: viper.GetString("dbPath")},
 		authState: auth.NewAuthState(viper.GetString("AuthDB")),
 		templates: make(map[string]*template.Template),
-		//captcha:   &theCaptcha,
+		captcha:   &theCaptcha,
 	}
 
 	err = tmplInit(env)
