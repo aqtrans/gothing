@@ -815,6 +815,26 @@ func errRedir(err error, w http.ResponseWriter) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
+/*
+// Override CSRF error handler, so it clears the CSRF cookie upon failure:
+func csrfErrHandler(w http.ResponseWriter, r *http.Request) {
+
+	cookie := &http.Cookie{
+		Name:     "_gorilla_csrf",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-7 * 24 * time.Hour),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, cookie)
+	http.Error(w, fmt.Sprintf("%s - %s",
+		http.StatusText(http.StatusForbidden), csrf.FailureReason(r)),
+		http.StatusForbidden)
+	return
+}
+*/
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
