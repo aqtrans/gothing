@@ -68,3 +68,7 @@ ignored = ["jba.io/go/auth","jba.io/go/httputils"]
 [[constraint]]
   branch = "master"
   name = "github.com/microcosm-cc/bluemonday"
+
+[[constraint]]
+  name = "github.com/ezzarghili/recaptcha-go"
+  version = "2.0.0"

@@ -20,6 +20,12 @@
   version = "v1.3.0"
 
 [[projects]]
+  name = "github.com/ezzarghili/recaptcha-go"
+  packages = ["."]
+  revision = "10856b0c6c9f48c132ee2d8efca59196e12a9efa"
+  version = "v2.0"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -215,6 +221,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c77f1522cc35039b74847b38b752e82c01d6facbd18b9a6361459d415f78e00c"
+  inputs-digest = "bfff6632837d8835f9c7759bf8fe91904ac63a9e1d1a66f8c9659aee57b42a64"
   solver-name = "gps-cdcl"
   solver-version = 1
