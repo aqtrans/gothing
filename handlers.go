@@ -378,15 +378,15 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	var destURL string
 
+	errNoShortURL := errors.New(title + " - No Such Short URL")
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		v := b.Get([]byte(title))
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
-			//http.Error(w, "Error 400 - No such domain at this address", http.StatusBadRequest)
-			err := errors.New(title + " - No Such Short URL")
-			return err
+			return errNoShortURL
 			//log.Println(err)
 		}
 		err := json.Unmarshal(v, &shorturl)
@@ -463,6 +463,11 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return b.Put([]byte(title), encoded)
 	})
 	if err != nil {
+		if err == errNoShortURL {
+			log.Println(err)
+			http.Error(w, "404", http.StatusNotFound)
+			return
+		}
 		errRedir(err, w)
 	} else {
 		if !strings.HasPrefix(destURL, "http") {
