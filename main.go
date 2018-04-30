@@ -82,18 +82,17 @@ var (
 	//cfg       = configuration{}
 )
 
-func (env *thingEnv) getDB() *bolt.DB {
+func (b *thingDB) getDB() *bolt.DB {
 	//log.Println(state.BoltDB.path)
-	db, err := bolt.Open(env.Bolt.path, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	db, err := bolt.Open(b.path, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatalln(err)
 	}
-	env.Bolt.db = db
-	return env.Bolt.db
+	return db
 }
 
-func (env *thingEnv) closeDB() {
-	env.Bolt.db.Close()
+func (b *thingDB) closeDB() {
+	b.db.Close()
 }
 
 func imgExt(s string) string {
@@ -198,13 +197,15 @@ type GalleryPage struct {
 	Images []*Image
 }
 
-//BoltDB structs:
-type Paste struct {
-	Created int64
-	Title   string
-	Content string
-	Hits    int64
+// Thing is the interface that all applicable things should implement
+type Thing interface {
+	save(*thingDB)
+	getRaw(*thingDB) []byte
+	getType() string
+	updateHits(*thingDB)
 }
+
+//BoltDB structs:
 
 type File struct {
 	Created   int64
@@ -407,8 +408,8 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 		return nil, perr
 	}
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	var files []*File
 	//Lets try this with boltDB now!
@@ -569,8 +570,8 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 func (f *File) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "File.save()")
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
@@ -594,8 +595,8 @@ func (f *File) save(env *thingEnv) error {
 func (s *Shorturl) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Shorturl.save()")
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
@@ -612,29 +613,6 @@ func (s *Shorturl) save(env *thingEnv) error {
 		return err
 	}
 	log.Println("++++SHORTURL SAVED")
-	return nil
-}
-
-func (p *Paste) save(env *thingEnv) error {
-	defer httputils.TimeTrack(time.Now(), "Paste.save()")
-	db := env.getDB()
-	defer env.closeDB()
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Pastes"))
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
-			return err
-		}
-		return b.Put([]byte(p.Title), encoded)
-	})
-	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		return err
-	}
-	log.Println("++++PASTE SAVED")
 	return nil
 }
 
@@ -677,8 +655,8 @@ func makeThumb(fpath, thumbpath string) {
 
 func (i *Image) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Image.save()")
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
@@ -709,8 +687,8 @@ func (i *Image) save(env *thingEnv) error {
 
 func (s *Screenshot) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Screenshot.save()")
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		encoded, err := json.Marshal(s)
@@ -744,8 +722,8 @@ func defaultHandler(next http.Handler) http.Handler {
 }
 
 func (env *thingEnv) dbInit() {
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
 		if err != nil {
@@ -930,7 +908,7 @@ func main() {
 	env := &thingEnv{
 		Bolt: &thingDB{
 			path: viper.GetString("dbPath")},
-		authState: auth.NewAuthState(viper.GetString("AuthDB")),
+		authState: auth.NewBoltAuthState(viper.GetString("AuthDB")),
 		templates: make(map[string]*template.Template),
 		captcha:   &theCaptcha,
 	}

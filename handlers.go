@@ -64,8 +64,8 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 		return nil, perr
 	}
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	var images []*Image
 	//Lets try this with boltDB now!
@@ -211,8 +211,8 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	file := &File{}
 	paste := &Paste{}
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	//Lets try this with boltDB now!
 	err := db.View(func(tx *bolt.Tx) error {
@@ -354,8 +354,8 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	title := strings.ToLower(params["name"])
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	if title == "www" {
 		//indexHandler(w, r)
@@ -482,8 +482,8 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	title := params["name"]
 	paste := &Paste{}
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 	err := db.View(func(tx *bolt.Tx) error {
 		v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
@@ -555,8 +555,8 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	//Attempt to increment file hit counter...
 	file := &File{}
@@ -623,8 +623,8 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 	}
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	//Attempt to increment file hit counter...
 	image := &Image{}
@@ -1208,7 +1208,7 @@ func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 		Title:   name,
 		Content: bpaste,
 	}
-	err := p.save(env)
+	err := p.save()
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1251,7 +1251,7 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		Title:   title,
 		Content: paste,
 	}
-	err = p.save(env)
+	err = p.save()
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1268,8 +1268,8 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	fname := params["name"]
 	jmsg := ftype + " " + fname
 
-	db := env.getDB()
-	defer env.closeDB()
+	db := env.Bolt.getDB()
+	defer env.Bolt.closeDB()
 
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
