@@ -63,36 +63,32 @@ type configuration struct {
 }
 
 type thingEnv struct {
-	Bolt      *thingDB
 	authState *auth.State
 	templates map[string]*template.Template
 	captcha   *recaptcha.ReCAPTCHA
 }
 
 type thingDB struct {
-	db   *bolt.DB
+	*bolt.DB
 	path string
 }
 
 var (
-	bufpool *bpool.BufferPool
-	_24K    int64 = (1 << 20) * 24
-	dataDir string
+	bufpool  *bpool.BufferPool
+	_24K     int64 = (1 << 20) * 24
+	dataDir  string
+	boltPath string
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//cfg       = configuration{}
 )
 
-func (b *thingDB) getDB() *bolt.DB {
+func getDB() *bolt.DB {
 	//log.Println(state.BoltDB.path)
-	db, err := bolt.Open(b.path, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	db, err := bolt.Open(boltPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatalln(err)
 	}
 	return db
-}
-
-func (b *thingDB) closeDB() {
-	b.db.Close()
 }
 
 func imgExt(s string) string {
@@ -199,10 +195,10 @@ type GalleryPage struct {
 
 // Thing is the interface that all applicable things should implement
 type Thing interface {
-	save(*thingDB)
-	getRaw(*thingDB) []byte
+	save() error
+	getRaw() []byte
 	getType() string
-	updateHits(*thingDB)
+	updateHits()
 }
 
 //BoltDB structs:
@@ -408,8 +404,8 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 		return nil, perr
 	}
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	var files []*File
 	//Lets try this with boltDB now!
@@ -570,8 +566,8 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 func (f *File) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "File.save()")
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
@@ -595,8 +591,9 @@ func (f *File) save(env *thingEnv) error {
 func (s *Shorturl) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Shorturl.save()")
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		encoded, err := json.Marshal(s)
@@ -655,8 +652,10 @@ func makeThumb(fpath, thumbpath string) {
 
 func (i *Image) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Image.save()")
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+
+	db := getDB()
+	defer db.Close()
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		encoded, err := json.Marshal(i)
@@ -687,8 +686,10 @@ func (i *Image) save(env *thingEnv) error {
 
 func (s *Screenshot) save(env *thingEnv) error {
 	defer httputils.TimeTrack(time.Now(), "Screenshot.save()")
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+
+	db := getDB()
+	defer db.Close()
+
 	err := db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		encoded, err := json.Marshal(s)
@@ -722,8 +723,8 @@ func defaultHandler(next http.Handler) http.Handler {
 }
 
 func (env *thingEnv) dbInit() {
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
 		if err != nil {
@@ -869,6 +870,9 @@ func main() {
 		httputils.Debug = true
 	}
 
+	// Set boltDB path as a global var for easy access
+	boltPath = viper.GetString("dbPath")
+
 	raven.SetDSN(viper.GetString("RavenDSN"))
 
 	/*
@@ -906,8 +910,6 @@ func main() {
 	}
 
 	env := &thingEnv{
-		Bolt: &thingDB{
-			path: viper.GetString("dbPath")},
 		authState: auth.NewBoltAuthState(viper.GetString("AuthDB")),
 		templates: make(map[string]*template.Template),
 		captcha:   &theCaptcha,

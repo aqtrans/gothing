@@ -64,8 +64,8 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 		return nil, perr
 	}
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	var images []*Image
 	//Lets try this with boltDB now!
@@ -211,8 +211,8 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	file := &File{}
 	paste := &Paste{}
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	//Lets try this with boltDB now!
 	err := db.View(func(tx *bolt.Tx) error {
@@ -354,8 +354,8 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	title := strings.ToLower(params["name"])
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	if title == "www" {
 		//indexHandler(w, r)
@@ -481,71 +481,34 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "pasteHandler")
 	params := mux.Vars(r)
 	title := params["name"]
+
+	b := getPaste(title)
+	log.Println(title, b)
+
 	paste := &Paste{}
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
-	err := db.View(func(tx *bolt.Tx) error {
-		v := tx.Bucket([]byte("Pastes")).Get([]byte(title))
-		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-		//After JSON Unmarshal, Content should be in paste.Content field
-		if v == nil {
-			return errors.New("Paste does not exist")
-		}
-		err := json.Unmarshal(v, &paste)
-		if err != nil {
-			return err
-		}
-		//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
-		//I need '<' and '>' in tact for scripts and such
 
-		//safe := template.HTMLEscapeString(paste.Content)
-		//safe := sanitize.HTML(paste.Content)
-
-		//safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
-
-		//safe := paste.Content
-
-		// Bluemonday
-		p := bluemonday.UGCPolicy()
-		safe := p.Sanitize(paste.Content)
-
-		fmt.Fprintf(w, "%s", safe)
-		return nil
-	})
+	err := json.Unmarshal(b, &paste)
 	if err != nil {
 		errRedir(err, w)
-		return
 	}
+	//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
+	//I need '<' and '>' in tact for scripts and such
 
-	//Attempt to increment paste hit counter...
-	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Pastes"))
-		v := b.Get([]byte(title))
-		//If there is no existing key, do not do a thing
-		if v == nil {
-			return errors.New("No such paste: " + title)
-		}
-		err := json.Unmarshal(v, &paste)
-		if err != nil {
-			return err
-		}
-		count := (paste.Hits + 1)
-		p := &Paste{
-			Created: paste.Created,
-			Title:   paste.Title,
-			Content: paste.Content,
-			Hits:    count,
-		}
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(title), encoded)
-	})
-	if err != nil {
-		errRedir(err, w)
-		return
-	}
+	//safe := template.HTMLEscapeString(paste.Content)
+	//safe := sanitize.HTML(paste.Content)
+
+	//safe := strings.Replace(paste.Content, "<script>", "< script >", -1)
+
+	//safe := paste.Content
+
+	paste.updateHits()
+
+	// Bluemonday
+	p := bluemonday.UGCPolicy()
+	safe := p.Sanitize(paste.Content)
+
+	fmt.Fprintf(w, "%s", safe)
+
 }
 
 func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
@@ -555,8 +518,8 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	//Attempt to increment file hit counter...
 	file := &File{}
@@ -623,8 +586,9 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 	}
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+
+	db := getDB()
+	defer db.Close()
 
 	//Attempt to increment file hit counter...
 	image := &Image{}
@@ -1231,6 +1195,7 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	}
 	if !success {
 		env.authState.SetFlash("Error verifying reCAPTCHA", w)
+		log.Println(r.FormValue("g-recaptcha-response"))
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1268,8 +1233,8 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	fname := params["name"]
 	jmsg := ftype + " " + fname
 
-	db := env.Bolt.getDB()
-	defer env.Bolt.closeDB()
+	db := getDB()
+	defer db.Close()
 
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
