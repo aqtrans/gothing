@@ -31,9 +31,11 @@
 <script>
 $(document).foundation();
 
-function recaptchaCallback() {
-  document.getElementById('submit-button').disabled = false;
+function onSubmit(token) {
+  document.getElementById("pasteForm").submit();
 }
+
+
 </script>  
 </body>
 </html>
