@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/boltdb/bolt"
+	recaptcha "github.com/ezzarghili/recaptcha-go"
 	"jba.io/go/auth"
 )
 
@@ -60,18 +60,21 @@ func TestRiceInit(t *testing.T) {
 }
 
 func TestIndexHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,18 +130,21 @@ func TestIndexHandler(t *testing.T) {
 }
 
 func TestHelpHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,18 +177,22 @@ func TestHelpHandler(t *testing.T) {
 }
 
 func TestLoginPageHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,18 +225,22 @@ func TestLoginPageHandler(t *testing.T) {
 }
 
 func TestLookingGlassPageHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,18 +273,22 @@ func TestLookingGlassPageHandler(t *testing.T) {
 }
 
 func TestPastePageHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,18 +321,22 @@ func TestPastePageHandler(t *testing.T) {
 }
 
 func TestFileUpPageHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,18 +369,22 @@ func TestFileUpPageHandler(t *testing.T) {
 }
 
 func TestImageUpPageHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -391,18 +417,22 @@ func TestImageUpPageHandler(t *testing.T) {
 }
 
 func TestImageGalleryPageHandler(t *testing.T) {
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		t.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -435,19 +465,22 @@ func TestImageGalleryPageHandler(t *testing.T) {
 }
 
 func BenchmarkIndex(b *testing.B) {
-
-	var aThingDB *bolt.DB
+	boltPath = tempfile()
+	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
-	tmpdb2 := tempfile()
-	defer os.Remove(tmpdb2)
+
 	anAuthState := auth.NewAuthState(tmpdb)
+	theCaptcha, err := recaptcha.NewReCAPTCHA("OMG")
+	if err != nil {
+		b.Fatal("Error initializing recaptcha instance:", err)
+	}
 	env := &thingEnv{
-		Bolt:      &thingDB{aThingDB, tmpdb2},
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
+		captcha:   &theCaptcha,
 	}
-	err := tmplInit(env)
+	err = tmplInit(env)
 	if err != nil {
 		b.Fatal(err)
 	}
