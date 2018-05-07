@@ -24,7 +24,10 @@ func (p *Paste) updateHits() {
 	log.Println(p.Hits)
 	p.Hits = p.Hits + 1
 	log.Println(p.Hits)
-	p.save()
+	err := p.save()
+	if err != nil {
+		log.Println("Error updateHits:", err)
+	}
 }
 
 func (p *Paste) save() error {
@@ -51,11 +54,9 @@ func (p *Paste) save() error {
 	return nil
 }
 
-func getPaste(name string) []byte {
+func (p *Paste) get(name string) error {
 	db := getDB()
 	defer db.Close()
-
-	var theBytes []byte
 
 	err := db.View(func(tx *bolt.Tx) error {
 		v := tx.Bucket([]byte("Pastes")).Get([]byte(name))
@@ -64,13 +65,16 @@ func getPaste(name string) []byte {
 		if v == nil {
 			return errors.New("Paste does not exist")
 		}
-		copy(theBytes, v)
+		err := json.Unmarshal(v, p)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
 	if err != nil {
 		log.Println(err)
-		return nil
+		return err
 	}
-	return theBytes
+	return nil
 }
