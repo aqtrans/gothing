@@ -910,7 +910,7 @@ func main() {
 	}
 
 	env := &thingEnv{
-		authState: auth.NewBoltAuthState(viper.GetString("AuthDB")),
+		authState: auth.NewAuthState(viper.GetString("AuthDB")),
 		templates: make(map[string]*template.Template),
 		captcha:   &theCaptcha,
 	}
