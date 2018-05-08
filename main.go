@@ -11,6 +11,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -47,6 +48,7 @@ import (
 
 	"jba.io/go/auth"
 	"jba.io/go/httputils"
+	"jba.io/go/thing/things"
 )
 
 type configuration struct {
@@ -60,6 +62,7 @@ type configuration struct {
 	ImageTLD       string
 	GifTLD         string
 	CaptchaSiteKey string
+	CaptchaSecret  string
 }
 
 type thingEnv struct {
@@ -86,7 +89,7 @@ func getDB() *bolt.DB {
 	//log.Println(state.BoltDB.path)
 	db, err := bolt.Open(boltPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("BoltDB Error:", err)
 	}
 	return db
 }
@@ -181,56 +184,17 @@ type Page struct {
 
 type ListPage struct {
 	*Page
-	Pastes      []*Paste
-	Files       []*File
-	Shorturls   []*Shorturl
-	Images      []*Image
-	Screenshots []*Screenshot
+	Pastes      []*things.Paste
+	Files       []*things.File
+	Shorturls   []*things.Shorturl
+	Images      []*things.Image
+	Screenshots []*things.Screenshot
 }
 
 type GalleryPage struct {
 	*Page
-	Images []*Image
+	Images []*things.Image
 }
-
-// Thing is the interface that all applicable things should implement
-type Thing interface {
-	save() error
-	getRaw(string) error
-	getType() string
-	updateHits()
-}
-
-// Sorting functions
-type ScreenshotByDate []*Screenshot
-
-func (a ScreenshotByDate) Len() int           { return len(a) }
-func (a ScreenshotByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ScreenshotByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
-
-type ImageByDate []*Image
-
-func (a ImageByDate) Len() int           { return len(a) }
-func (a ImageByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ImageByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
-
-type PasteByDate []*Paste
-
-func (a PasteByDate) Len() int           { return len(a) }
-func (a PasteByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a PasteByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
-
-type FileByDate []*File
-
-func (a FileByDate) Len() int           { return len(a) }
-func (a FileByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a FileByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
-
-type ShortByDate []*Shorturl
-
-func (a ShortByDate) Len() int           { return len(a) }
-func (a ShortByDate) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ShortByDate) Less(i, j int) bool { return a[i].Created > a[j].Created }
 
 func init() {
 
@@ -378,13 +342,13 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 	db := getDB()
 	defer db.Close()
 
-	var files []*File
+	var files []*things.File
 	//Lets try this with boltDB now!
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Files"))
 		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("FILES: key=" + string(k) + " value=" + string(v))
-			var file *File
+			var file *things.File
 			err := json.Unmarshal(v, &file)
 			if err != nil {
 				return err
@@ -400,15 +364,15 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(FileByDate(files))
+	sort.Sort(things.FileByDate(files))
 
-	var pastes []*Paste
+	var pastes []*things.Paste
 	//Lets try this with boltDB now!
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Pastes"))
 		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("PASTE: key=" + string(k) + " value=" + string(v))
-			var paste *Paste
+			var paste *things.Paste
 			err := json.Unmarshal(v, &paste)
 			if err != nil {
 				return err
@@ -424,15 +388,15 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(PasteByDate(pastes))
+	sort.Sort(things.PasteByDate(pastes))
 
-	var shorts []*Shorturl
+	var shorts []*things.Shorturl
 	//Lets try this with boltDB now!
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Shorturls"))
 		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("SHORT: key=" + string(k) + " value=" + string(v))
-			var short *Shorturl
+			var short *things.Shorturl
 			err := json.Unmarshal(v, &short)
 			if err != nil {
 				return err
@@ -448,15 +412,15 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(ShortByDate(shorts))
+	sort.Sort(things.ShortByDate(shorts))
 
-	var images []*Image
+	var images []*things.Image
 	//Lets try this with boltDB now!
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("IMAGE: key=" + string(k) + " value=" + string(v))
-			var image *Image
+			var image *things.Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
 				return err
@@ -472,15 +436,15 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(ImageByDate(images))
+	sort.Sort(things.ImageByDate(images))
 
-	var screenshots []*Screenshot
+	var screenshots []*things.Screenshot
 	//Lets try this with boltDB now!
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Screenshots"))
 		err := b.ForEach(func(k, v []byte) error {
 			httputils.Debugln("SCREENSHOTS: key=" + string(k) + " value=" + string(v))
-			var screenshot *Screenshot
+			var screenshot *things.Screenshot
 			err := json.Unmarshal(v, &screenshot)
 			if err != nil {
 				return err
@@ -496,7 +460,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(ScreenshotByDate(screenshots))
+	sort.Sort(things.ScreenshotByDate(screenshots))
 
 	return &ListPage{Page: page, Pastes: pastes, Files: files, Shorturls: shorts, Images: images, Screenshots: screenshots}, nil
 }
@@ -676,6 +640,70 @@ func csrfErrHandler(w http.ResponseWriter, r *http.Request) {
 }
 */
 
+func getThing(t things.Thing, name string) error {
+	thingType := t.GetType()
+	log.Println(name, thingType)
+
+	db := getDB()
+	defer db.Close()
+
+	err := db.View(func(tx *bolt.Tx) error {
+		v := tx.Bucket([]byte(thingType)).Get([]byte(name))
+		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
+		//After JSON Unmarshal, Content should be in paste.Content field
+		if v == nil {
+			return errors.New("Paste does not exist")
+		}
+		err := json.Unmarshal(v, &t)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
+func saveThing(t things.Thing) error {
+	name := t.Name()
+	thingType := t.GetType()
+	log.Println(name, thingType)
+
+	encoded, err := json.Marshal(t)
+	if err != nil {
+		raven.CaptureError(err, nil)
+		log.Println(err)
+		return err
+	}
+
+	db := getDB()
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(thingType))
+		return b.Put([]byte(name), encoded)
+	})
+	if err != nil {
+		raven.CaptureError(err, nil)
+		log.Println(err)
+		return err
+	}
+	log.Println(thingType + " successfully saved!")
+	return nil
+}
+
+func updateHits(t things.Thing) {
+	t.UpdateHits()
+	err := saveThing(t)
+	if err != nil {
+		log.Println("Error updateHits:", err)
+	}
+}
+
 func main() {
 	/* for reference
 	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
@@ -707,6 +735,7 @@ func main() {
 	viper.SetDefault("Insecure", false)
 	viper.SetDefault("Debug", false)
 	viper.SetDefault("CaptchaSiteKey", "")
+	viper.SetDefault("CaptchaSecret", "")
 	viper.SetDefault("RavenDSN", "")
 
 	viper.SetConfigName("conf")
@@ -766,7 +795,7 @@ func main() {
 	}
 	//var aThingDB *bolt.DB
 
-	theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSiteKey"))
+	theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSecret"))
 	if err != nil {
 		log.Fatalln("Error initializing recaptcha instance:", err)
 	}

@@ -32,6 +32,7 @@ import (
 	"github.com/kennygrant/sanitize"
 	"github.com/spf13/viper"
 	"jba.io/go/httputils"
+	"jba.io/go/thing/things"
 	//"jba.io/go/auth"
 )
 
@@ -67,13 +68,13 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 	db := getDB()
 	defer db.Close()
 
-	var images []*Image
+	var images []*things.Image
 	//Lets try this with boltDB now!
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Images"))
 		err := b.ForEach(func(k, v []byte) error {
 			//fmt.Printf("key=%s, value=%s\n", k, v)
-			var image *Image
+			var image *things.Image
 			err := json.Unmarshal(v, &image)
 			if err != nil {
 				return err
@@ -89,7 +90,7 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(ImageByDate(images))
+	sort.Sort(things.ImageByDate(images))
 	return &GalleryPage{Page: page, Images: images}, nil
 }
 
@@ -208,8 +209,8 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	term := params["name"]
 	sterm := regexp.MustCompile(term)
 
-	file := &File{}
-	paste := &Paste{}
+	file := &things.File{}
+	paste := &things.Paste{}
 
 	db := getDB()
 	defer db.Close()
@@ -354,9 +355,6 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	title := strings.ToLower(params["name"])
 
-	db := getDB()
-	defer db.Close()
-
 	if title == "www" {
 		//indexHandler(w, r)
 		http.Redirect(w, r, "//"+viper.GetString("MainTLD"), http.StatusTemporaryRedirect)
@@ -378,8 +376,8 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	errNoShortURL := errors.New(title + " - No Such Short URL")
 
-	shorturl := &Shorturl{}
-	err := shorturl.get(title)
+	shorturl := &things.Shorturl{}
+	err := getThing(shorturl, title)
 	if err != nil {
 		if err == errNoShortURL {
 			log.Println(err)
@@ -407,8 +405,8 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	title := params["name"]
 
-	paste := &Paste{}
-	err := paste.get(title)
+	paste := &things.Paste{}
+	err := getThing(paste, title)
 	if err != nil {
 		errRedir(err, w)
 	}
@@ -424,7 +422,7 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 
 	//safe := paste.Content
 
-	paste.updateHits()
+	updateHits(paste)
 
 	// Bluemonday
 	p := bluemonday.UGCPolicy()
@@ -441,16 +439,13 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
 
-	db := getDB()
-	defer db.Close()
-
-	file := &File{}
-	err := file.get(name)
+	file := &things.File{}
+	err := getThing(file, name)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
-	file.updateHits()
+	updateHits(file)
 
 	http.ServeFile(w, r, fpath)
 
@@ -490,13 +485,13 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	//Attempt to increment file hit counter...
-	image := &Image{}
-	err := image.get(name)
+	image := &things.Image{}
+	err := getThing(image, name)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
-	image.updateHits()
+	updateHits(image)
 
 	// Try and intercept GIF requests if a fpath.webm
 	if filepath.Ext(name) == ".gif" {
@@ -758,12 +753,12 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//BoltDB stuff
-	fi := &File{
+	fi := &things.File{
 		Created:   time.Now().Unix(),
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = fi.save()
+	err = saveThing(fi)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -789,7 +784,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 	//var cli bool
 	//var remote bool
 	var uptype string
-	var fi *File
+	var fi *things.File
 	//fi := &File{}
 	path := viper.GetString("FileDir")
 	contentType := r.Header.Get("Content-Type")
@@ -858,7 +853,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//BoltDB stuff
-		fi = &File{
+		fi = &things.File{
 			Created:   time.Now().Unix(),
 			Filename:  filename,
 			RemoteURL: finURL,
@@ -931,7 +926,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		contentType = mime.TypeByExtension(filepath.Ext(name))
 		//BoltDB stuff
-		fi = &File{
+		fi = &things.File{
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
@@ -963,13 +958,13 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		io.Copy(f, file)
 
 		//BoltDB stuff
-		fi = &File{
+		fi = &things.File{
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
 	}
 
-	err = fi.save()
+	err = saveThing(fi)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1002,13 +997,13 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		long := longPolicy.Sanitize(unsafeLong)
 	*/
 
-	s := &Shorturl{
+	s := &things.Shorturl{
 		Created: time.Now().Unix(),
 		Short:   short,
 		Long:    long,
 	}
 
-	err = s.save()
+	err = saveThing(s)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1043,12 +1038,12 @@ func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 		}
 		name = string(bytes)
 	}
-	p := &Paste{
+	p := &things.Paste{
 		Created: time.Now().Unix(),
 		Title:   name,
 		Content: bpaste,
 	}
-	err := p.save()
+	err := saveThing(p)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1087,12 +1082,12 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		title = string(bytes)
 	}
 	paste := r.PostFormValue("paste")
-	p := &Paste{
+	p := &things.Paste{
 		Created: time.Now().Unix(),
 		Title:   title,
 		Content: paste,
 	}
-	err = p.save()
+	err = saveThing(p)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1330,12 +1325,12 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//BoltDB stuff
-	imi := &Image{
+	imi := &things.Image{
 		Created:   time.Now().Unix(),
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = imi.save()
+	err = saveThing(imi)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1518,11 +1513,11 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	ss := r.FormValue("screenshot")
 	if ss == "on" {
 		//BoltDB stuff
-		sc := &Screenshot{
+		sc := &things.Screenshot{
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
-		err = sc.save()
+		err = saveThing(sc)
 		if err != nil {
 			errRedir(err, w)
 			return
@@ -1533,11 +1528,11 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//BoltDB stuff
-	imi := &Image{
+	imi := &things.Image{
 		Created:  time.Now().Unix(),
 		Filename: filename,
 	}
-	err = imi.save()
+	err = saveThing(imi)
 	if err != nil {
 		errRedir(err, w)
 		return
