@@ -5,11 +5,11 @@
     <header>New paste</header>
   </article>
   <article>  
-        <form action="/api/paste/new" method="POST" id="pasteForm">
+        <form action="/api/paste/new" method="POST" id="captchaForm">
         Title:<input type="text" name="title"><br>
         {{.Page.Token}}
         <textarea name="paste" style="height: 25em; width: 98%; font-family: monospace; font-size: 93%;"></textarea>
-        <button class="g-recaptcha" data-sitekey="{{.Page.CaptchaSiteKey}}" data-callback='onSubmit'>Submit</button>        
+        <button id="submit-button" type="submit" class="button success g-recaptcha" data-sitekey="{{.Page.CaptchaSiteKey}}" data-callback='onSubmit'>Submit</button>        
         </form>
   </article>
 </main>  

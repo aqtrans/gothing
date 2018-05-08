@@ -6,7 +6,7 @@
   </article>
   <article>  
       <div id="nettools">
-      <form method="post" action="/lg" id="lg">
+      <form method="post" action="/lg" id="captchaForm">
         <div class="row">
           <div class="small-3 columns">
             <label>Select Box
@@ -20,12 +20,11 @@
           <div class="small-9 columns">
             <label>IP or Domain
               <input type="text" name="url" placeholder="IP or domain" />
-              <div class="g-recaptcha" data-callback="recaptchaCallback" data-sitekey="{{.Page.CaptchaSiteKey}}"></div>
               {{.Page.Token}}
             </label>
           </div>    
         </div>
-      <button id="submit-button" disabled="disabled" class="button success" type="submit">Ping</button>
+      <button id="submit-button" type="submit" class="g-recaptcha button success" data-sitekey="{{.Page.CaptchaSiteKey}}" data-callback='onSubmit'>Ping</button>
       </form>
       </div>
 
