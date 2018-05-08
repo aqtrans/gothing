@@ -350,7 +350,7 @@ func (env *thingEnv) listHandler(w http.ResponseWriter, r *http.Request) {
 //Short URL Handler
 func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "shortUrlHandler")
-	shorturl := &Shorturl{}
+
 	params := mux.Vars(r)
 	title := strings.ToLower(params["name"])
 
@@ -376,92 +376,10 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		    subdomain = string(host_parts[0])
 		}*/
 
-	var destURL string
-
 	errNoShortURL := errors.New(title + " - No Such Short URL")
 
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Shorturls"))
-		v := b.Get([]byte(title))
-		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
-		//After JSON Unmarshal, Content should be in paste.Content field
-		if v == nil {
-			return errNoShortURL
-			//log.Println(err)
-		}
-		err := json.Unmarshal(v, &shorturl)
-		if err != nil {
-			return err
-		}
-
-		destURL = shorturl.Long
-
-		// If shorturl.Long begins with /, assume it is a file/image/screenshot to be served locally
-		//    This is to replace the rest of the if/else now-commented out:
-		if strings.HasPrefix(shorturl.Long, "/") {
-			destURL = "//" + viper.GetString("MainTLD") + shorturl.Long
-			//http.Redirect(w, r, "//"+viper.GetString("MainTLD")+shorturl.Long, 302)
-		}
-
-		/*
-			//If the shorturl is local, just serve whatever file being requested
-			if strings.Contains(shorturl.Long, viper.GetString("ShortTLD")+"/") {
-				log.Println("LONG URL CONTAINS ShortTLD")
-				if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("ImageTLD")) {
-					u, err := url.Parse(shorturl.Long)
-					if err != nil {
-						log.Println(err)
-					}
-					segments := strings.Split(u.Path, "/")
-					fileName := segments[len(segments)-1]
-					log.Println("Serving " + shorturl.Long + " file directly")
-					http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
-				}
-				if strings.HasPrefix(shorturl.Long, "https://"+viper.GetString("ImageTLD")) {
-					u, err := url.Parse(shorturl.Long)
-					if err != nil {
-						log.Println(err)
-					}
-					segments := strings.Split(u.Path, "/")
-					fileName := segments[len(segments)-1]
-					log.Println("Serving " + shorturl.Long + " file directly")
-					http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
-				}
-			} else if strings.Contains(shorturl.Long, viper.GetString("MainTLD")+"/i/") {
-				log.Println("LONG URL CONTAINS MainTLD")
-				if strings.HasPrefix(shorturl.Long, "http://"+viper.GetString("MainTLD")+"/i/") {
-					u, err := url.Parse(shorturl.Long)
-					if err != nil {
-						log.Println(err)
-					}
-					segments := strings.Split(u.Path, "/")
-					fileName := segments[len(segments)-1]
-					log.Println("Serving " + shorturl.Long + " file directly")
-					http.ServeFile(w, r, filepath.Join(viper.GetString("ImgDir"), fileName))
-				}
-			} else {
-				destURL := shorturl.Long
-				// If the destination is not a full URL, make it so
-				if !strings.HasPrefix(destURL, "http") {
-					destURL = "http://" + destURL
-				}
-				http.Redirect(w, r, destURL, 302)
-			}
-		*/
-
-		s := &Shorturl{
-			Created: shorturl.Created,
-			Short:   shorturl.Short,
-			Long:    shorturl.Long,
-			Hits:    shorturl.Hits + 1,
-		}
-		encoded, err := json.Marshal(s)
-		if err != nil {
-			return err
-		}
-
-		return b.Put([]byte(title), encoded)
-	})
+	shorturl := &Shorturl{}
+	err := shorturl.get(title)
 	if err != nil {
 		if err == errNoShortURL {
 			log.Println(err)
@@ -470,6 +388,13 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		errRedir(err, w)
 	} else {
+		destURL := shorturl.Long
+		// If shorturl.Long begins with /, assume it is a file/image/screenshot to be served locally
+		//    This is to replace the rest of the if/else now-commented out:
+		if strings.HasPrefix(shorturl.Long, "/") {
+			destURL = "//" + viper.GetString("MainTLD") + shorturl.Long
+			//http.Redirect(w, r, "//"+viper.GetString("MainTLD")+shorturl.Long, 302)
+		}
 		if !strings.HasPrefix(destURL, "http") {
 			destURL = "http://" + destURL
 		}
@@ -482,15 +407,13 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	title := params["name"]
 
-	b := getPaste(title)
-	log.Println(title, b)
-
 	paste := &Paste{}
-
-	err := json.Unmarshal(b, &paste)
+	err := paste.get(title)
 	if err != nil {
 		errRedir(err, w)
 	}
+	log.Println(title, paste)
+
 	//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
 	//I need '<' and '>' in tact for scripts and such
 
@@ -521,36 +444,15 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	db := getDB()
 	defer db.Close()
 
-	//Attempt to increment file hit counter...
 	file := &File{}
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Files"))
-		v := b.Get([]byte(name))
-		//If there is no existing key, do not do a thing
-		if v == nil {
-			return errors.New("No such file: " + name)
-		}
-		err := json.Unmarshal(v, &file)
-		if err != nil {
-			return err
-		}
-		count := (file.Hits + 1)
-		fi := &File{
-			Created:  file.Created,
-			Filename: file.Filename,
-			Hits:     count,
-		}
-		encoded, err := json.Marshal(fi)
-		if err != nil {
-			return err
-		}
-		http.ServeFile(w, r, fpath)
-		return b.Put([]byte(name), encoded)
-	})
+	err := file.get(name)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
+	file.updateHits()
+
+	http.ServeFile(w, r, fpath)
 
 }
 
@@ -587,40 +489,14 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	db := getDB()
-	defer db.Close()
-
 	//Attempt to increment file hit counter...
 	image := &Image{}
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Images"))
-		v := b.Get([]byte(name))
-		//If there is no existing key, do not do a thing
-		if v == nil {
-			//http.NotFound(w, r)
-			//log.Println("omg3")
-			return nil
-		}
-		err := json.Unmarshal(v, &image)
-		if err != nil {
-			return err
-		}
-		count := (image.Hits + 1)
-		imi := &Image{
-			Created:  image.Created,
-			Filename: image.Filename,
-			Hits:     count,
-		}
-		encoded, err := json.Marshal(imi)
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(name), encoded)
-	})
+	err := image.get(name)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
+	image.updateHits()
 
 	// Try and intercept GIF requests if a fpath.webm
 	if filepath.Ext(name) == ".gif" {
@@ -887,7 +763,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = fi.save(env)
+	err = fi.save()
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1093,7 +969,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = fi.save(env)
+	err = fi.save()
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1115,7 +991,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	short := r.PostFormValue("short")
+	short := strings.ToLower(r.PostFormValue("short"))
 	long := r.PostFormValue("long")
 
 	/*
@@ -1132,7 +1008,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		Long:    long,
 	}
 
-	err = s.save(env)
+	err = s.save()
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1459,7 +1335,7 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = imi.save(env)
+	err = imi.save()
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1646,7 +1522,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
-		err = sc.save(env)
+		err = sc.save()
 		if err != nil {
 			errRedir(err, w)
 			return
@@ -1661,7 +1537,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		Created:  time.Now().Unix(),
 		Filename: filename,
 	}
-	err = imi.save(env)
+	err = imi.save()
 	if err != nil {
 		errRedir(err, w)
 		return

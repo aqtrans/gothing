@@ -196,38 +196,9 @@ type GalleryPage struct {
 // Thing is the interface that all applicable things should implement
 type Thing interface {
 	save() error
-	getRaw() []byte
+	getRaw(string) error
 	getType() string
 	updateHits()
-}
-
-//BoltDB structs:
-
-type File struct {
-	Created   int64
-	Filename  string
-	Hits      int64
-	RemoteURL string
-}
-
-type Image struct {
-	Created   int64
-	Filename  string
-	Hits      int64
-	RemoteURL string
-}
-
-type Screenshot struct {
-	Created  int64
-	Filename string
-	Hits     int64
-}
-
-type Shorturl struct {
-	Created int64
-	Short   string
-	Long    string
-	Hits    int64
 }
 
 // Sorting functions
@@ -563,56 +534,6 @@ func ParseMultipartFormProg(r *http.Request, maxMemory int64) error {
 	return nil
 }
 
-func (f *File) save(env *thingEnv) error {
-	defer httputils.TimeTrack(time.Now(), "File.save()")
-
-	db := getDB()
-	defer db.Close()
-
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Files"))
-		encoded, err := json.Marshal(f)
-		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
-			return err
-		}
-		return b.Put([]byte(f.Filename), encoded)
-	})
-	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		return err
-	}
-	log.Println("++++FILE SAVED")
-	return nil
-}
-
-func (s *Shorturl) save(env *thingEnv) error {
-	defer httputils.TimeTrack(time.Now(), "Shorturl.save()")
-
-	db := getDB()
-	defer db.Close()
-
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Shorturls"))
-		encoded, err := json.Marshal(s)
-		if err != nil {
-			raven.CaptureError(err, nil)
-			log.Println(err)
-			return err
-		}
-		return b.Put([]byte(s.Short), encoded)
-	})
-	if err != nil {
-		raven.CaptureError(err, nil)
-		log.Println(err)
-		return err
-	}
-	log.Println("++++SHORTURL SAVED")
-	return nil
-}
-
 func makeThumb(fpath, thumbpath string) {
 	defer httputils.TimeTrack(time.Now(), "makeThumb")
 	contentType := mime.TypeByExtension(filepath.Ext(path.Base(fpath)))
@@ -648,65 +569,6 @@ func makeThumb(fpath, thumbpath string) {
 		return
 	}
 	return
-}
-
-func (i *Image) save(env *thingEnv) error {
-	defer httputils.TimeTrack(time.Now(), "Image.save()")
-
-	db := getDB()
-	defer db.Close()
-
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Images"))
-		encoded, err := json.Marshal(i)
-		if err != nil {
-			raven.CaptureErrorAndWait(err, nil)
-			log.Panicln(err)
-			return err
-		}
-		return b.Put([]byte(i.Filename), encoded)
-	})
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		log.Panicln(err)
-		return err
-	}
-	//Detect what kind of image, so we can embiggen GIFs from the get-go
-	// No longer needed as of 03/06/2016
-	/*
-		contentType := mime.TypeByExtension(filepath.Ext(i.Filename))
-		if contentType == "image/gif" {
-			log.Println("GIF detected; Running embiggen function...")
-			go embiggenHandler(i.Filename)
-		}
-	*/
-	log.Println("++++IMAGE SAVED")
-	return nil
-}
-
-func (s *Screenshot) save(env *thingEnv) error {
-	defer httputils.TimeTrack(time.Now(), "Screenshot.save()")
-
-	db := getDB()
-	defer db.Close()
-
-	err := db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Screenshots"))
-		encoded, err := json.Marshal(s)
-		if err != nil {
-			raven.CaptureErrorAndWait(err, nil)
-			log.Panicln(err)
-			return err
-		}
-		return b.Put([]byte(s.Filename), encoded)
-	})
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		log.Panicln(err)
-		return err
-	}
-	log.Println("++++Screenshot SAVED")
-	return nil
 }
 
 func defaultHandler(next http.Handler) http.Handler {
