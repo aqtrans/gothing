@@ -6,9 +6,10 @@
   </article>
   <article>  
     <div>
-        <form method="post" action="/signup" id="signup">
+        <form method="post" action="/auth/signup" id="signup">
         <input class="stack" type="text" id="username" name="username" placeholder="Username" size="12">
         <input class="stack" type="password" id="password" name="password" placeholder="Password" size="12">
+        <input class="stack" type="text" id="register_key" name="register_key" placeholder="Register Key" size="12">        
         {{.Token}}
         <button class="stack" type="submit" class="button">Sign Up</button>
         </form>

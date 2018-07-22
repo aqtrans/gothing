@@ -880,12 +880,14 @@ func main() {
 	d.HandleFunc("/login", env.loginPageHandler).Methods("GET")
 	d.HandleFunc("/logout", env.authState.LogoutHandler).Methods("POST")
 	d.HandleFunc("/logout", env.authState.LogoutHandler).Methods("GET")
+	d.HandleFunc("/signup", env.signupPageHandler).Methods("GET")
 
 	a := d.PathPrefix("/auth").Subrouter()
 	//a := d.NewGroup("/auth")
 	a.HandleFunc("/login", env.authState.LoginPostHandler).Methods("POST")
 	a.HandleFunc("/logout", env.authState.LogoutHandler).Methods("POST")
 	a.HandleFunc("/logout", env.authState.LogoutHandler).Methods("GET")
+	a.HandleFunc("/signup", env.authState.UserSignupPostHandler).Methods("POST")
 
 	admin := d.PathPrefix("/admin").Subrouter()
 	//admin := d.NewGroup("/admin")
