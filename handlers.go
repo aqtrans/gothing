@@ -29,10 +29,10 @@ import (
 	"strings"
 	"time"
 
+	"git.jba.io/go/httputils"
+	"git.jba.io/go/thing/things"
 	"github.com/kennygrant/sanitize"
 	"github.com/spf13/viper"
-	"jba.io/go/httputils"
-	"jba.io/go/thing/things"
 	//"jba.io/go/auth"
 )
 

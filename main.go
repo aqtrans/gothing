@@ -46,9 +46,9 @@ import (
 	"github.com/ezzarghili/recaptcha-go"
 	"github.com/russross/blackfriday"
 
-	"jba.io/go/auth"
-	"jba.io/go/httputils"
-	"jba.io/go/thing/things"
+	"git.jba.io/go/auth"
+	"git.jba.io/go/httputils"
+	"git.jba.io/go/thing/things"
 )
 
 type configuration struct {

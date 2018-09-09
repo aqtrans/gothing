@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
+	"git.jba.io/go/auth"
 	recaptcha "github.com/ezzarghili/recaptcha-go"
-	"jba.io/go/auth"
 )
 
 var (
