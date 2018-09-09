@@ -29,7 +29,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/oxtoacart/bpool"
 
-	"github.com/gorilla/csrf"
 	"github.com/spf13/viper"
 
 	"log"
@@ -288,7 +287,7 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 	//timer.Step("loadpageFunc")
 	user := auth.GetUserState(r.Context())
 	msg := auth.GetFlash(r.Context())
-	token := csrf.TemplateField(r)
+	token := auth.CSRFTemplateField(r)
 
 	var message string
 	if msg != "" {
@@ -850,12 +849,12 @@ func main() {
 		viper.Set("GifTLD", "big.localhost")
 
 		log.Println("Listening on localhost domains due to -l flag...")
-		r.Use(csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)))
+		r.Use(env.authState.CSRFProtect(false))
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
 		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
-		r.Use(csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(true)))
+		r.Use(env.authState.CSRFProtect(true))
 	}
 
 	//r.Use(handlers.ProxyHeaders)
