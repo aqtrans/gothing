@@ -6,13 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/gorilla/mux"
-	"github.com/microcosm-cc/bluemonday"
-
-	"github.com/boltdb/bolt"
-	//"github.com/gorilla/mux"
-	//"github.com/dimfeld/httptreemux"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -31,7 +24,10 @@ import (
 
 	"git.jba.io/go/httputils"
 	"git.jba.io/go/thing/things"
+	"github.com/boltdb/bolt"
+	"github.com/gorilla/mux"
 	"github.com/kennygrant/sanitize"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/spf13/viper"
 	//"jba.io/go/auth"
 )
