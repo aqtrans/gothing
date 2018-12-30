@@ -13,24 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
-
-	raven "github.com/getsentry/raven-go"
-	"github.com/gorilla/handlers"
-
-	"github.com/spf13/pflag"
-	_ "github.com/tevjef/go-runtime-metrics/expvar"
-
 	"html/template"
-
-	"github.com/boltdb/bolt"
-	//"github.com/dimfeld/httptreemux"
-	"github.com/disintegration/imaging"
-	"github.com/gorilla/mux"
-	"github.com/oxtoacart/bpool"
-
-	"github.com/spf13/viper"
-
 	"log"
 	"mime"
 	"net/http"
@@ -40,14 +23,23 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
-
-	"github.com/ezzarghili/recaptcha-go"
-	"github.com/russross/blackfriday"
 
 	"git.jba.io/go/auth"
 	"git.jba.io/go/httputils"
 	"git.jba.io/go/thing/things"
+	"github.com/boltdb/bolt"
+	"github.com/disintegration/imaging"
+	"github.com/ezzarghili/recaptcha-go"
+	raven "github.com/getsentry/raven-go"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/oxtoacart/bpool"
+	"github.com/russross/blackfriday"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	_ "github.com/tevjef/go-runtime-metrics/expvar"
 )
 
 type configuration struct {
@@ -871,6 +863,7 @@ func main() {
 	log.Println("Port: " + viper.GetString("Port"))
 
 	d.HandleFunc("/", env.indexHandler).Methods("GET")
+	d.HandleFunc("/index", env.indexHandler).Methods("GET")
 	d.HandleFunc("/help", env.helpHandler).Methods("GET")
 	d.HandleFunc("/priv", env.authState.AuthMiddle(env.Readme)).Methods("GET")
 	d.HandleFunc("/readme", env.Readme).Methods("GET")
