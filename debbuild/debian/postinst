@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+USER=gothing
+
+if ! getent passwd "$USER" >/dev/null; then
+ adduser --quiet --system --home /var/lib/gothing "$USER"
+fi
+
+systemctl --system daemon-reload >/dev/null
+#systemctl start gowiki.service >/dev/null 

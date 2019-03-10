@@ -1,0 +1,3 @@
+gothing usr/bin/
+gothing.service lib/systemd/system/
+gothing.json etc/

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+systemctl disable gothing.service >/dev/null
+systemctl stop gothing.service >/dev/null

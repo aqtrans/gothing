@@ -1,0 +1,13 @@
+{
+    "Port": "8001",
+    "Email": "email@domain.com",
+    "MainTLD": "default.domain",
+    "ShortTLD": "short.tld",
+    "ImageTLD": "i.default.domain",
+    "GifTLD": "big.default.domain",
+    "AdminUser": "admin",
+    "RavenDSN": "",
+    "CaptchaSiteKey": "",
+    "CaptchaSecret": "",
+    "Debug": true
+}

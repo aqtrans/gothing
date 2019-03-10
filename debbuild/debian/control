@@ -1,0 +1,10 @@
+Source: gothing
+Section: unknown
+Priority: optional
+Maintainer: aqtrans <aqtrans@jba.io>
+Homepage: https://git.jba.io/go/thing
+
+Package: gothing
+Architecture: amd64
+Depends: libc6, adduser
+Description: A combined short URL, image gallery, file upload website. Written in Golang.
