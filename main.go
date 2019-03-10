@@ -29,6 +29,8 @@ import (
 	"git.jba.io/go/auth"
 	"git.jba.io/go/httputils"
 	"git.jba.io/go/thing/things"
+	"git.jba.io/go/thing/vfs/assets"
+	"git.jba.io/go/thing/vfs/templates"
 	"github.com/boltdb/bolt"
 	"github.com/disintegration/imaging"
 	"github.com/ezzarghili/recaptcha-go"
@@ -577,34 +579,6 @@ func (env *thingEnv) dbInit() {
 	})
 }
 
-func tmplInit(env *thingEnv) error {
-
-	templatesDir := "./templates/"
-	layouts, err := filepath.Glob(templatesDir + "layouts/*.tmpl")
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		panic(err)
-	}
-	includes, err := filepath.Glob(templatesDir + "includes/*.tmpl")
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		panic(err)
-	}
-
-	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": imgExt}
-
-	// Here we are prefacing every layout with what should be every includes/ .tmpl file
-	// Ex: includes/sidebar.tmpl includes/bottom.tmpl includes/base.tmpl layouts/list.tmpl
-	// **THIS IS VERY IMPORTANT TO ALLOW MY BASE TEMPLATE TO WORK**
-	for _, layout := range layouts {
-		files := append(includes, layout)
-		//DEBUG TEMPLATE LOADING
-		//httputils.Debugln(files)
-		env.templates[filepath.Base(layout)] = template.Must(template.New("templates").Funcs(funcMap).ParseFiles(files...))
-	}
-	return nil
-}
-
 func errRedir(err error, w http.ResponseWriter) {
 	log.Println(err)
 	raven.CaptureError(err, nil)
@@ -729,9 +703,10 @@ func main() {
 	viper.SetDefault("CaptchaSecret", "")
 	viper.SetDefault("RavenDSN", "")
 
-	viper.SetConfigName("conf")
+	viper.SetConfigName("gothing")
 	viper.SetConfigType("json")
 	viper.AddConfigPath("./data/")
+	viper.AddConfigPath("/etc/")
 	if dataDir != "./data/" {
 		viper.AddConfigPath(dataDir)
 		viper.Set("ImgDir", filepath.Join(dataDir, "/up-imgs/"))
@@ -797,11 +772,7 @@ func main() {
 		captcha:   &theCaptcha,
 	}
 
-	err = tmplInit(env)
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		log.Fatalln(err)
-	}
+	env.templates = templates.TmplInit()
 
 	//Check for essential directory existence
 	_, err = os.Stat(viper.GetString("ImgDir"))
@@ -955,7 +926,12 @@ func main() {
 	//r.PathPrefix("/assets/").HandlerFunc(staticHandler)
 	//d.GET("/*name", env.shortUrlHandler)
 
-	httputils.StaticInit()
+	r.HandleFunc("/robots.txt", assets.Robots).Methods("GET")
+	r.HandleFunc("/favicon.ico", assets.FaviconICO).Methods("GET")
+	r.HandleFunc("/favicon.png", assets.FaviconPNG).Methods("GET")
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(assets.Assets)))
+
+	//httputils.StaticInit()
 	//r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 	//Used for troubleshooting proxy headers
 
