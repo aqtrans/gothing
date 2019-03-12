@@ -89,7 +89,7 @@ build-package:
   stage: package
   script:
     - apt update && apt install -y build-essential devscripts debhelper
-    - cp wiki debbuild/gothing
+    - cp thing debbuild/gothing
     - cd debbuild/
     - dch -M -i "New version from Git" && dch -M -r -D stretch ""
     - debuild -us -uc -b  
