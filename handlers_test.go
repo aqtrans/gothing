@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"git.jba.io/go/auth"
+	"git.jba.io/go/thing/vfs/templates"
 	recaptcha "github.com/ezzarghili/recaptcha-go"
 )
 
@@ -53,10 +54,7 @@ func TestRiceInit(t *testing.T) {
 	env := &thingEnv{
 		templates: make(map[string]*template.Template),
 	}
-	err := tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 }
 
 func TestIndexHandler(t *testing.T) {
@@ -74,10 +72,7 @@ func TestIndexHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 
 	//db := getDB(tmpdb2)
@@ -144,10 +139,7 @@ func TestHelpHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -192,10 +184,7 @@ func TestLoginPageHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -240,10 +229,7 @@ func TestLookingGlassPageHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -288,10 +274,7 @@ func TestPastePageHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -336,10 +319,7 @@ func TestFileUpPageHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -384,10 +364,7 @@ func TestImageUpPageHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -432,10 +409,7 @@ func TestImageGalleryPageHandler(t *testing.T) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		t.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
@@ -480,10 +454,7 @@ func BenchmarkIndex(b *testing.B) {
 		authState: anAuthState,
 		captcha:   &theCaptcha,
 	}
-	err = tmplInit(env)
-	if err != nil {
-		b.Fatal(err)
-	}
+	env.templates = templates.TmplInit()
 	env.dbInit()
 
 	req, err := http.NewRequest("GET", "/", nil)
