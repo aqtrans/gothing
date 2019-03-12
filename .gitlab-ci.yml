@@ -21,6 +21,7 @@ stages:
   - build-css
   - build
   - test
+  - package
   - deploy  
 
 install-go:
