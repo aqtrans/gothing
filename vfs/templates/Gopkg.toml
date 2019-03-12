@@ -24,7 +24,7 @@
 #   go-tests = true
 #   unused-packages = true
 
-ignored = ["git.jba.io/go/wiki/vfs/assets", "git.jba.io/go/httputils"]
+ignored = ["git.jba.io/go/httputils"]
 
 [[constraint]]
   branch = "master"

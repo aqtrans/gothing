@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"git.jba.io/go/httputils"
-	"git.jba.io/go/wiki/vfs/assets"
 )
 
 var Templates http.FileSystem = http.Dir("templates")
@@ -28,7 +27,7 @@ func TmplInit() map[string]*template.Template {
 		log.Fatalln(err)
 	}
 
-	funcMap := template.FuncMap{"svg": assets.Svg, "typeIcon": typeIcon, "prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "isLoggedIn": isLoggedIn, "jsTags": jsTags}
+	funcMap := template.FuncMap{"prettyDate": httputils.PrettyDate, "safeHTML": httputils.SafeHTML, "imgClass": httputils.ImgClass, "imgExt": imgExt}
 
 	for _, layout := range layouts {
 		files := append(includes, layout)
