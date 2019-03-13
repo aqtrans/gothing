@@ -93,7 +93,7 @@ build-package:
     - cd debbuild/
     - dch -M -v 1.0-$CI_COMMIT_REF_NAME-$CI_JOB_ID "New version from Git" && dch -M -r -D stretch ""
     - debuild -us -uc -b  
-    - cp gothing_*_amd64.deb gothing.deb
+    - cd ../ && cp gothing_*_amd64.deb gothing.deb
   artifacts:
     expire_in: 1 day
     paths:
