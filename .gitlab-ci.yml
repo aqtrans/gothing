@@ -89,11 +89,10 @@ build-package:
   stage: package
   script:
     - apt update && apt install -y build-essential devscripts debhelper
-    - cp thing debbuild/gothing
-    - cd debbuild/
+    - cp thing gothing
     - dch -M -v 1.0-$CI_COMMIT_REF_NAME-$CI_JOB_ID "New version from Git" && dch -M -r -D stretch ""
     - debuild -us -uc -b  
-    - cd ../ && cp gothing_*_amd64.deb gothing.deb
+    - mv ../gothing_*_amd64.deb gothing.deb
   artifacts:
     expire_in: 1 day
     paths:
@@ -107,13 +106,24 @@ build-package:
 #    - scp ./*.deb $DEPLOY_HOST:/home/repo/
 #    - ssh $DEPLOY_HOST reprepro -b www/debian/ includedeb stretch *.deb
 
-deploy_to_repo:
+deploy_to_prod:
   stage: deploy
   variables:
     DEPLOY_HOST: 'deploy@bob.jba.io'
   script:
     - scp gothing.deb $DEPLOY_HOST:/home/deploy/
     - ssh $DEPLOY_HOST sudo dpkg -i gothing.deb
+  only:
+    - master
+
+deploy_to_staging:
+  stage: deploy
+  variables:
+    DEPLOY_HOST: 'deploy@rick.jba.io'
+  script:
+    - scp gothing.deb $DEPLOY_HOST:/home/deploy/
+    - ssh $DEPLOY_HOST sudo dpkg -i gothing.deb
+  when: manual  
 
 #deploy_staging:
 #  stage: deploy
