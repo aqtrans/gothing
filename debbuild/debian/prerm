@@ -1,4 +1,14 @@
 #!/bin/sh
 
-deb-systemd-helper disable gothing.service >/dev/null
-deb-systemd-invoke stop gothing.service >/dev/null
+case "$1" in 
+    upgrade)
+    ;;  
+    remove)
+        deb-systemd-helper disable gothing.service >/dev/null
+        deb-systemd-invoke stop gothing.service >/dev/null
+    ;;
+    *)
+    ;;
+esac
+
+exit 0
