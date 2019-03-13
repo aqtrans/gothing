@@ -93,10 +93,11 @@ build-package:
     - cd debbuild/
     - dch -M -v 1.0-$CI_COMMIT_REF_NAME-$CI_JOB_ID "New version from Git" && dch -M -r -D stretch ""
     - debuild -us -uc -b  
+    - cp gothing_*_amd64.deb gothing.deb
   artifacts:
     expire_in: 1 day
     paths:
-      - gothing_*_amd64.deb
+      - gothing.deb
 
 #deploy_to_repo:
 #  stage: deploy
@@ -111,8 +112,8 @@ deploy_to_repo:
   variables:
     DEPLOY_HOST: 'deploy@bob.jba.io'
   script:
-    - scp gothing_1.0-$CI_COMMIT_REF_NAME-$CI_JOB_ID_amd64.deb $DEPLOY_HOST:/home/deploy/
-    - ssh $DEPLOY_HOST dpkg -i gothing_1.0-$CI_COMMIT_REF_NAME-$CI_JOB_ID_amd64.deb
+    - scp gothing.deb $DEPLOY_HOST:/home/deploy/
+    - ssh $DEPLOY_HOST sudo dpkg -i gothing.deb
 
 #deploy_staging:
 #  stage: deploy
