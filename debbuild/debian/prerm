@@ -1,4 +1,4 @@
 #!/bin/sh
 
-systemctl disable gothing.service >/dev/null
-systemctl stop gothing.service >/dev/null
+deb-systemd-helper disable gothing.service >/dev/null
+deb-systemd-invoke stop gothing.service >/dev/null

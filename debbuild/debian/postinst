@@ -9,4 +9,4 @@ if ! getent passwd "$USER" >/dev/null; then
 fi
 
 systemctl --system daemon-reload >/dev/null
-#systemctl start gowiki.service >/dev/null 
+deb-systemd-invoke start gothing.service >/dev/null 

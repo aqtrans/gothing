@@ -16,7 +16,7 @@ set -e
 
 case "$1" in
     upgrade)
-        systemctl stop gothing
+        deb-systemd-invoke stop gothing
     ;;
 
     install|abort-upgrade)
