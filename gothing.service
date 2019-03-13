@@ -1,13 +1,12 @@
 [Unit]
 Description=Golang thing daemon
-After=network.target
-After=nginx.service
 
 [Service]
-WorkingDirectory=/home/aqtrans/production_apps/thing
-ExecStart=/home/aqtrans/production_apps/thing/thing
-User=aqtrans
-Restart=no
+ProtectSystem=strict
+ReadWritePaths=/etc/gothing.json /var/lib/gothing
+ExecStart=/usr/bin/gothing --DataDir=/var/lib/gothing
+Restart=on-failure
+User=gothing
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
