@@ -376,7 +376,6 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	err := getThing(shorturl, title)
 	if err != nil {
 		if err == errNoShortURL {
-			log.Println(err)
 			http.Error(w, "404", http.StatusNotFound)
 			return
 		}
@@ -406,7 +405,6 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errRedir(err, w)
 	}
-	log.Println(title, paste)
 
 	//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
 	//I need '<' and '>' in tact for scripts and such
@@ -455,12 +453,10 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
 
 	if name == "favicon.ico" {
-		//log.Println("omg1")
 		http.NotFound(w, r)
 		return
 	}
 	if name == "favicon.png" {
-		//log.Println("omg2")
 		http.NotFound(w, r)
 		return
 	}
@@ -469,7 +465,6 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	//If this is extensionless, search for the proper file with the extension
 	//  Note: Searching for mp4, webm first
 	if filepath.Ext(name) == "" {
-		//log.Println("NO EXTENSION FOUND OMG")
 		for _, ext := range extensions {
 			if _, err := os.Stat(fpath + ext); err == nil {
 				name = name + ext
@@ -523,24 +518,17 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
 func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("imageThumbHandler r.Host:", r.Host, r.RemoteAddr, r.Header)
 	defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
 	params := mux.Vars(r)
 	name := params["name"]
 	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(strings.TrimSuffix(name, ".png")))
 	thumbPath := filepath.Join(viper.GetString("ThumbDir"), path.Base(name))
 
-	//log.Println("name:"+ name)
-	//log.Println("fpath:"+ fpath)
-	//log.Println("thumbpath:"+thumbPath)
-
 	//Check to see if the large image already exists
 	//If so, serve it directly
 	if _, err := os.Stat(thumbPath); err == nil {
-		log.Println("Pre-existing thumbnail already found, serving it...")
 		http.ServeFile(w, r, filepath.Join(viper.GetString("ThumbDir"), path.Base(name)))
 	} else {
-		log.Println("Thumbnail not found. Running thumbnail function...")
 		makeThumb(fpath, thumbPath)
 
 		//gifsicle --conserve-memory --colors 256 --resize 2000x_ ./up-imgs/groove_fox.gif -o ./tmp/BIG-groove_fox.gif
@@ -580,7 +568,6 @@ func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
 	params := mux.Vars(r)
 	name := params["name"]
-	log.Println("imageDirectHandler request info:", r.Header, r.Host, r.RemoteAddr)
 	serveContent(w, r, viper.GetString("ImgDir"), name)
 
 }
@@ -691,7 +678,6 @@ func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request)
 		errRedir(err, w)
 		return
 	}
-	log.Println(name + " Page rendered!")
 }
 
 func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
@@ -700,7 +686,6 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	remoteURL := r.FormValue("remote")
 	finURL := remoteURL
 	if !strings.HasPrefix(remoteURL, "http") {
-		log.Println("remoteURL does not contain a URL prefix, so adding http")
 		finURL = "http://" + remoteURL
 	}
 	fileURL, err := url.Parse(finURL)
@@ -711,16 +696,10 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
 	fileName := segments[len(segments)-1]
-	/*
-		log.Println("Filename:")
-		log.Println(fileName)
-		log.Println("Path:")
-		log.Println(path)
-	*/
+
 	dlpath := viper.GetString("FileDir")
 	if r.FormValue("remote-file-name") != "" {
 		fileName = sanitize.Name(r.FormValue("remote-file-name"))
-		log.Println("custom remote file name: " + fileName)
 	}
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
@@ -793,14 +772,12 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		uptype = "form"
 	}
-	//log.Println(uptype)
 
 	//Remote File Uploads
 	if uptype == "remote" {
 		remoteURL := r.FormValue("remote")
 		finURL := remoteURL
 		if !strings.HasPrefix(remoteURL, "http") {
-			log.Println("remoteURL does not contain a URL prefix, so adding http")
 			finURL = "http://" + remoteURL
 		}
 		fileURL, err := url.Parse(finURL)
@@ -811,16 +788,10 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		//path := fileURL.Path
 		segments := strings.Split(fileURL.Path, "/")
 		filename = segments[len(segments)-1]
-		/*
-			log.Println("Filename:")
-			log.Println(fileName)
-			log.Println("Path:")
-			log.Println(path)
-		*/
+
 		//dlpath := cfg.FileDir
 		if r.FormValue("remote-file-name") != "" {
 			filename = sanitize.Name(r.FormValue("remote-file-name"))
-			log.Println("custom remote file name: " + filename)
 		}
 		file, err := os.Create(filepath.Join(path, filename))
 		if err != nil {
@@ -859,8 +830,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 		fmt.Printf("%s with %v bytes downloaded from %s", filename, size, finURL)
 	} else if uptype == "cli" {
-		log.Println("Content-type blank, so this should be a CLI upload...")
-		//Then this should be an upload from the command line...
+		//Content-type blank, so this should be a CLI upload...
 		reader = r.Body
 		if contentLength == -1 {
 			var err error
@@ -895,9 +865,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 			contentLength = n
 		}
 		filename = sanitize.Path(filepath.Base(name))
-		//log.Println(filename)
 		if filename == "." {
-			log.Println("Filename is blank " + filename)
 			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 			var bytes = make([]byte, 4)
 			rand.Read(bytes)
@@ -908,9 +876,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		if r.FormValue("local-file-name") != "" {
 			filename = sanitize.Name(r.FormValue("local-file-name"))
-			log.Println("custom local file name: " + filename)
 		}
-		log.Printf("Uploading %s %d %s", filename, contentLength, contentType)
 
 		if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
 			errRedir(err, w)
@@ -927,7 +893,6 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 			Filename: filename,
 		}
 	} else if uptype == "form" {
-		//log.Println("Content-type is "+contentType)
 		err := r.ParseMultipartForm(_24K)
 		if err != nil {
 			errRedir(err, w)
@@ -942,7 +907,6 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 		if r.FormValue("local-file-name") != "" {
 			filename = sanitize.Name(r.FormValue("local-file-name"))
-			log.Println("custom local file name: " + filename)
 		}
 
 		f, err := os.OpenFile(filepath.Join(path, filename), os.O_WRONLY|os.O_CREATE, 0666)
@@ -1004,8 +968,6 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		errRedir(err, w)
 		return
 	}
-	//log.Println("Short: " + s.Short)
-	//log.Println("Long: " + s.Long)
 
 	env.authState.SetFlash("Successfully shortened "+s.Long, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -1015,7 +977,6 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 //Pastebin handlers
 func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "APInewPaste")
-	log.Println("Paste request...")
 	paste := r.Body
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(paste)
@@ -1062,7 +1023,6 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 	}
 	if !success {
 		env.authState.SetFlash("Error verifying reCAPTCHA", w)
-		log.Println(r.FormValue("g-recaptcha-response"))
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1105,7 +1065,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	if ftype == "file" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(jmsg + " has been deleted")
+			//log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Files")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1122,7 +1082,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "image" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(jmsg + " has been deleted")
+			//log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Images")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1139,7 +1099,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "paste" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(jmsg + " has been deleted")
+			//log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Pastes")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1150,7 +1110,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/list", http.StatusSeeOther)
 	} else if ftype == "shorturl" {
 		err := db.Update(func(tx *bolt.Tx) error {
-			log.Println(jmsg + " has been deleted")
+			//log.Println(jmsg + " has been deleted")
 			return tx.Bucket([]byte("Shorturls")).Delete([]byte(fname))
 		})
 		if err != nil {
@@ -1272,8 +1232,6 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	finURL := remoteURL
 
 	if !strings.HasPrefix(remoteURL, "http") {
-		log.Println("remoteURL does not contain a URL prefix, so adding http")
-		log.Println(remoteURL)
 		finURL = "http://" + remoteURL
 	}
 	fileURL, err := url.Parse(finURL)
@@ -1284,16 +1242,10 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
 	fileName := segments[len(segments)-1]
-	/*
-	   log.Println("Filename:")
-	   log.Println(fileName)
-	   log.Println("Path:")
-	   log.Println(path)
-	*/
+
 	dlpath := viper.GetString("ImgDir")
 	if r.FormValue("remote-image-name") != "" {
 		fileName = sanitize.Name(r.FormValue("remote-image-name"))
-		log.Println("custom remote image name: " + fileName)
 	}
 	file, err := os.Create(filepath.Join(dlpath, fileName))
 	if err != nil {
@@ -1349,8 +1301,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	if contentType == "" {
-		log.Println("Content-type blank, so this should be a CLI upload...")
-		//Then this should be an upload from the command line...
+		//Content-type blank, so this should be a CLI upload...
 		reader = r.Body
 		if contentLength == -1 {
 			var err error
@@ -1382,7 +1333,6 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		}
 		filename = sanitize.Path(filepath.Base(formfilename))
 		if filename == "." {
-			log.Println("Filename is blank " + filename)
 			dictionary := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 			var bytes = make([]byte, 4)
 			rand.Read(bytes)
@@ -1393,9 +1343,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		}
 		if r.FormValue("local-image-name") != "" {
 			filename = sanitize.Name(r.FormValue("local-image-name"))
-			log.Println("custom local image name: " + filename)
 		}
-		log.Printf("Uploading image %s %d %s", filename, contentLength, contentType)
 
 		if f, err = os.OpenFile(filepath.Join(path, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
 			errRedir(err, w)
@@ -1408,7 +1356,6 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		}
 		contentType = mime.TypeByExtension(filepath.Ext(formfilename))
 	} else {
-		//log.Println("Content-type is " + contentType)
 		err := r.ParseMultipartForm(_24K)
 		if err != nil {
 			errRedir(err, w)
@@ -1418,7 +1365,6 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		filename = handler.Filename
 		if r.FormValue("local-image-name") != "" {
 			filename = sanitize.Name(r.FormValue("local-image-name"))
-			log.Println("custom local image name: " + filename)
 		}
 		if err != nil {
 			errRedir(err, w)
@@ -1481,7 +1427,6 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 
 	// If this is a GIF, toss the GIF away and replace it with an MP4
 	if filepath.Ext(filename) == ".gif" {
-		log.Println("New gif detected; converting to mp4!")
 		nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
 		path := viper.GetString("ImgDir")
 
@@ -1568,7 +1513,6 @@ func (env *thingEnv) Readme(w http.ResponseWriter, r *http.Request) {
 		errRedir(err, w)
 		return
 	}
-	log.Println(name + " Page rendered!")
 }
 
 func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
@@ -1602,5 +1546,4 @@ func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 		errRedir(err, w)
 		return
 	}
-	log.Println(name + " Page rendered!")
 }

@@ -1,9 +1,5 @@
 package things
 
-import (
-	"log"
-)
-
 type File struct {
 	Created   int64
 	Filename  string
@@ -24,7 +20,5 @@ func (f *File) Date() int64 {
 }
 
 func (f *File) UpdateHits() {
-	log.Println(f.Hits)
 	f.Hits = f.Hits + 1
-	log.Println(f.Hits)
 }

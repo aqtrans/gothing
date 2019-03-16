@@ -1,9 +1,5 @@
 package things
 
-import (
-	"log"
-)
-
 type Screenshot struct {
 	Created  int64
 	Filename string
@@ -23,7 +19,5 @@ func (s *Screenshot) Date() int64 {
 }
 
 func (s *Screenshot) UpdateHits() {
-	log.Println(s.Hits)
 	s.Hits = s.Hits + 1
-	log.Println(s.Hits)
 }

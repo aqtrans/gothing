@@ -1,9 +1,5 @@
 package things
 
-import (
-	"log"
-)
-
 type Shorturl struct {
 	Created int64
 	Short   string
@@ -24,7 +20,5 @@ func (s *Shorturl) Date() int64 {
 }
 
 func (s *Shorturl) UpdateHits() {
-	log.Println(s.Hits)
 	s.Hits = s.Hits + 1
-	log.Println(s.Hits)
 }

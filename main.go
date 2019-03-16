@@ -79,7 +79,6 @@ var (
 )
 
 func getDB() *bolt.DB {
-	//log.Println(state.BoltDB.path)
 	db, err := bolt.Open(boltPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatalln("BoltDB Error:", err)
@@ -91,7 +90,6 @@ func imgExt(s string) string {
 	ext := filepath.Ext(s)
 	if ext != "" {
 		ext = strings.TrimLeft(ext, ".")
-		log.Println(ext)
 	}
 	return ext
 }
@@ -534,7 +532,7 @@ func defaultHandler(next http.Handler) http.Handler {
 		if r.Host == viper.GetString("ImageTLD") || r.Host == viper.GetString("MainTLD") || r.Host == "www."+viper.GetString("MainTLD") || r.Host == viper.GetString("ShortTLD") || r.Host == viper.GetString("GifTLD") || r.Host == "go.dev" || r.Host == "go.jba.io" {
 			next.ServeHTTP(w, r)
 		} else {
-			log.Println("Not serving anything, because this request belongs to: " + r.Host)
+			//log.Println("Not serving anything, because this request belongs to: " + r.Host)
 			http.Error(w, http.StatusText(400), 400)
 			return
 		}
@@ -580,7 +578,7 @@ func (env *thingEnv) dbInit() {
 }
 
 func errRedir(err error, w http.ResponseWriter) {
-	log.Println(err)
+	//log.Println(err)
 	raven.CaptureError(err, nil)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
@@ -607,7 +605,6 @@ func csrfErrHandler(w http.ResponseWriter, r *http.Request) {
 
 func getThing(t things.Thing, name string) error {
 	thingType := t.GetType()
-	log.Println(name, thingType)
 
 	db := getDB()
 	defer db.Close()
@@ -617,7 +614,7 @@ func getThing(t things.Thing, name string) error {
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
-			return errors.New("Paste does not exist")
+			return errors.New("Thing does not exist")
 		}
 		err := json.Unmarshal(v, &t)
 		if err != nil {
@@ -627,7 +624,6 @@ func getThing(t things.Thing, name string) error {
 		return nil
 	})
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	return nil
@@ -636,12 +632,10 @@ func getThing(t things.Thing, name string) error {
 func saveThing(t things.Thing) error {
 	name := t.Name()
 	thingType := t.GetType()
-	log.Println(name, thingType)
 
 	encoded, err := json.Marshal(t)
 	if err != nil {
 		raven.CaptureError(err, nil)
-		log.Println(err)
 		return err
 	}
 
@@ -654,10 +648,9 @@ func saveThing(t things.Thing) error {
 	})
 	if err != nil {
 		raven.CaptureError(err, nil)
-		log.Println(err)
 		return err
 	}
-	log.Println(thingType + " successfully saved!")
+	//log.Println(thingType + " successfully saved!")
 	return nil
 }
 
@@ -665,22 +658,11 @@ func updateHits(t things.Thing) {
 	t.UpdateHits()
 	err := saveThing(t)
 	if err != nil {
-		log.Println("Error updateHits:", err)
+		raven.CaptureError(err, nil)
 	}
 }
 
 func main() {
-	/* for reference
-	p1 := &Page{Title: "TestPage", Body: []byte("This is a sample page.")}
-	p1.save()
-	p2, _ := loadPage("TestPage")
-	fmt.Println(string(p2.Body))
-	*/
-	//t := time.Now().Unix()
-	//tm := time.Unix(t, 0)
-	//log.Println(t)
-	//log.Println(tm)
-	//log.Println(tm.Format(timestamp))
 
 	// Viper config
 	viper.SetDefault("Port", "5000")
@@ -714,7 +696,6 @@ func main() {
 		viper.Set("ThumbDir", filepath.Join(dataDir, "/thumbs/"))
 		viper.Set("AuthDB", filepath.Join(dataDir, "/auth.db"))
 		viper.Set("dbPath", filepath.Join(dataDir, "/bolt.db"))
-		log.Println("omg", dataDir)
 	}
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
@@ -732,20 +713,6 @@ func main() {
 
 	raven.SetDSN(viper.GetString("RavenDSN"))
 
-	/*
-		// Set a static auth.HashKey and BlockKey to keep sessions after restarts:
-		auth.HashKey = []byte("yyCF3ZXOneAPxOspTrmU8x9JxEP2XrZQCkJDkehrhBp6p765fiL55teT7Dt4Fbkp")
-		auth.BlockKey = []byte("BqHzSVBFbpSZdvaDfy4jXf3OgA8Oe1mR")
-
-		// Open and initialize auth database
-		auth.Authdb = auth.Open("./data/auth.db")
-		autherr := auth.AuthDbInit()
-		if autherr != nil {
-			log.Fatalln(autherr)
-		}
-		defer auth.Authdb.Close()
-	*/
-
 	dataDir1, err := os.Stat(dataDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(dataDir, 0755)
@@ -759,7 +726,6 @@ func main() {
 			log.Fatalln("./data/ is not a directory. This is where misc data is stored.")
 		}
 	}
-	//var aThingDB *bolt.DB
 
 	theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSecret"))
 	if err != nil {
@@ -789,19 +755,6 @@ func main() {
 	}
 
 	env.dbInit()
-
-	//std := alice.New(handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-	/*
-		std := alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb")), httputils.Logger)
-
-		if viper.GetBool("Insecure") {
-			std = alice.New(handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
-			//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
-		} else {
-			log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
-		}
-	*/
-	//var std alice.Chain
 
 	r := mux.NewRouter().StrictSlash(false)
 
@@ -933,12 +886,6 @@ func main() {
 
 	//httputils.StaticInit()
 	//r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
-	//Used for troubleshooting proxy headers
-
-	r.HandleFunc("/omg", func(w http.ResponseWriter, req *http.Request) {
-		log.Println(req.Host)
-		log.Println(req.Header)
-	})
 
 	http.Handle("/", r)
 	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)

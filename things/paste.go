@@ -1,9 +1,5 @@
 package things
 
-import (
-	"log"
-)
-
 type Paste struct {
 	Created int64
 	Title   string
@@ -24,7 +20,5 @@ func (p *Paste) GetType() string {
 }
 
 func (p *Paste) UpdateHits() {
-	log.Println(p.Hits)
 	p.Hits = p.Hits + 1
-	log.Println(p.Hits)
 }
