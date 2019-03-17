@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -370,12 +369,10 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		    subdomain = string(host_parts[0])
 		}*/
 
-	errNoShortURL := errors.New(title + " - No Such Short URL")
-
 	shorturl := &things.Shorturl{}
 	err := getThing(shorturl, title)
 	if err != nil {
-		if err == errNoShortURL {
+		if err == errNOSUCHTHING {
 			http.Error(w, "404", http.StatusNotFound)
 			return
 		}
@@ -403,7 +400,12 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	paste := &things.Paste{}
 	err := getThing(paste, title)
 	if err != nil {
+		if err == errNOSUCHTHING {
+			http.Error(w, "404", http.StatusNotFound)
+			return
+		}
 		errRedir(err, w)
+		return
 	}
 
 	//No longer using BlueMonday or template.HTMLEscapeString because theyre too overzealous
@@ -436,6 +438,10 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	file := &things.File{}
 	err := getThing(file, name)
 	if err != nil {
+		if err == errNOSUCHTHING {
+			http.Error(w, "404", http.StatusNotFound)
+			return
+		}
 		errRedir(err, w)
 		return
 	}
@@ -479,6 +485,10 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	image := &things.Image{}
 	err := getThing(image, name)
 	if err != nil {
+		if err == errNOSUCHTHING {
+			http.Error(w, "404", http.StatusNotFound)
+			return
+		}
 		errRedir(err, w)
 		return
 	}

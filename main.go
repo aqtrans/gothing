@@ -70,10 +70,11 @@ type thingDB struct {
 }
 
 var (
-	bufpool  *bpool.BufferPool
-	_24K     int64 = (1 << 20) * 24
-	dataDir  string
-	boltPath string
+	bufpool        *bpool.BufferPool
+	_24K           int64 = (1 << 20) * 24
+	dataDir        string
+	boltPath       string
+	errNOSUCHTHING = errors.New("Thing does not exist")
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//cfg       = configuration{}
 )
@@ -614,7 +615,7 @@ func getThing(t things.Thing, name string) error {
 		//Because BoldDB's View() doesn't return an error if there's no key found, just throw a 404 on nil
 		//After JSON Unmarshal, Content should be in paste.Content field
 		if v == nil {
-			return errors.New("Thing does not exist")
+			return errNOSUCHTHING
 		}
 		err := json.Unmarshal(v, &t)
 		if err != nil {
