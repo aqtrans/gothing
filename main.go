@@ -776,7 +776,7 @@ func main() {
 
 	//r.Use(handlers.ProxyHeaders)
 	r.Use(handlers.RecoveryHandler())
-	r.Use(env.authState.UserEnvMiddle)
+	r.Use(env.authState.CtxMiddle)
 
 	r.Use(httputils.Logger)
 	d := r.Host(viper.GetString("MainTLD")).Subrouter()
