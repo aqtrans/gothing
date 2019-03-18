@@ -487,14 +487,14 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 
 	switch ext {
 	case ".mp4":
-		mp4BaseName := name[0 : len(name)-len(filepath.Ext(".mp4"))]
-		gifFullPath := filepath.Join(viper.GetString("ImgDir"), mp4BaseName+".gif")
+		//mp4BaseName := name[0 : len(name)-len(filepath.Ext(".mp4"))]
+		//gifFullPath := filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".gif")
 		// If mp4 does not exist, check if a gif does
 		if _, err := os.Stat(fpath); err != nil {
-			if _, err := os.Stat(gifFullPath); err != nil {
+			if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".gif")); err != nil {
 				break
 			} else {
-				err := gifToMP4(mp4BaseName)
+				err := gifToMP4(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert gifToMP4:", name, err)
 					break
@@ -511,17 +511,17 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 		// Check if the gif exists, if it doesn't, convert in a goroutine:
-		if _, err := os.Stat(mp4BaseName + ".gif"); err != nil {
+		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".gif")); err != nil {
 			go func() {
-				log.Println("mp4 with no matching gif requested, converting ", mp4BaseName)
-				err := mp4toGIF(mp4BaseName)
+				log.Println("mp4 with no matching gif requested, converting ", name)
+				err := mp4toGIF(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert mp4toGIF:", name, err)
 					return
 				}
 				err = saveThing(&things.Image{
 					Created:  time.Now().Unix(),
-					Filename: mp4BaseName + ".gif",
+					Filename: filenameWithoutExtension(name) + ".gif",
 				})
 				if err != nil {
 					log.Println("Error saving converted GIF:", err)
@@ -529,14 +529,14 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}()
 		}
 	case ".gif":
-		gifBaseName := name[0 : len(name)-len(filepath.Ext(".gif"))]
-		mp4FullPath := filepath.Join(viper.GetString("ImgDir"), gifBaseName+".gif")
+		//gifBaseName := name[0 : len(name)-len(filepath.Ext(".gif"))]
+		//mp4FullPath := filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".mp4")
 		// If gif does not exist, check if an mp4 does
 		if _, err := os.Stat(fpath); err != nil {
-			if _, err := os.Stat(mp4FullPath); err != nil {
+			if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".mp4")); err != nil {
 				break
 			} else {
-				err := mp4toGIF(gifBaseName)
+				err := mp4toGIF(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert mp4toGIF:", name, err)
 					break
@@ -553,17 +553,17 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 		// Check if the mp4 exists, if it doesn't, convert in a goroutine:
-		if _, err := os.Stat(gifBaseName + ".mp4"); err != nil {
+		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".mp4")); err != nil {
 			go func() {
-				log.Println("gif with no matching mp4 requested, converting ", gifBaseName)
-				err := gifToMP4(gifBaseName)
+				log.Println("gif with no matching mp4 requested, converting ", name)
+				err := gifToMP4(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert gifToMP4:", name, err)
 					return
 				}
 				err = saveThing(&things.Image{
 					Created:  time.Now().Unix(),
-					Filename: gifBaseName + ".mp4",
+					Filename: filenameWithoutExtension(name) + ".mp4",
 				})
 				if err != nil {
 					log.Println("Error saving converted MP4:", err)
@@ -1659,6 +1659,10 @@ func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 		errRedir(err, w)
 		return
 	}
+}
+
+func filenameWithoutExtension(fn string) string {
+	return strings.TrimSuffix(fn, path.Ext(fn))
 }
 
 func gifToMP4(baseFilename string) error {
