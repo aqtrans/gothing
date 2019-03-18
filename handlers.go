@@ -1665,7 +1665,7 @@ func gifToMP4(baseFilename string) error {
 	// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
 	// Per https://engineering.giphy.com/how-to-make-gifs-with-ffmpeg/: ffmpeg -i doit.gif -filter_complex "[0:v] fps=15" -vsync 0 -f mp4 -pix_fmt yuv420p 321.mp4
 	path := viper.GetString("ImgDir")
-	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, baseFilename+".gif"), "-filter_complex", "'[0:v] fps=15'", "-vsync", "0", "-f", "mp4", "yuv420p", "-pix_fmt", "yuv420p", filepath.Join(path, baseFilename+".mp4"))
+	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, baseFilename+".gif"), "-filter_complex", "'[0:v]'", "'fps=15'", "-vsync", "0", "-f", "mp4", "yuv420p", "-pix_fmt", "yuv420p", filepath.Join(path, baseFilename+".mp4"))
 	err := resize.Run()
 	if err != nil {
 		return fmt.Errorf("Error converting GIF to MP4. args: %v Err: %v", resize.Args, err)
@@ -1677,7 +1677,7 @@ func mp4toGIF(baseFilename string) error {
 	// Per https://engineering.giphy.com/how-to-make-gifs-with-ffmpeg/: ffmpeg -i doit.mp4 -filter_complex "[0:v] fps=12,scale=480:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse" doit.gif
 	path := viper.GetString("ImgDir")
 	mp4Filename := baseFilename + ".mp4"
-	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, mp4Filename), "-filter_complex", "'[0:v] fps=15,scale=480:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse'", filepath.Join(path, baseFilename+".gif"))
+	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, mp4Filename), "-filter_complex", "'[0:v]'", "'fps=15,scale=480:-1,split'", "'[a][b];[a]'", "'palettegen'", "'[p];[b][p]'", "'paletteuse'", filepath.Join(path, baseFilename+".gif"))
 	err := resize.Run()
 	if err != nil {
 		return fmt.Errorf("Error converting MP4 to GIF. args: %v Err: %v", resize.Args, err)
