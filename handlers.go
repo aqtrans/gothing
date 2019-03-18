@@ -481,6 +481,97 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	// Try and ensure we have GIFs and MP4s for all images
+	// If not, convert as necessary
+	ext := filepath.Ext(name)
+
+	switch ext {
+	case ".mp4":
+		mp4BaseName := name[0 : len(name)-len(filepath.Ext(".mp4"))]
+		gifFullPath := filepath.Join(viper.GetString("ImgDir"), mp4BaseName+".gif")
+		// If mp4 does not exist, check if a gif does
+		if _, err := os.Stat(fpath); err != nil {
+			if _, err := os.Stat(gifFullPath); err != nil {
+				break
+			} else {
+				err := gifToMP4(mp4BaseName)
+				if err != nil {
+					log.Println("Failed to convert gifToMP4:", name, err)
+					break
+				} else {
+					// Try and save newly-converted MP4, so it is served up below:
+					err = saveThing(&things.Image{
+						Created:  time.Now().Unix(),
+						Filename: name,
+					})
+					if err != nil {
+						log.Println("Error saving converted MP4:", err)
+					}
+				}
+			}
+		}
+		// Check if the gif exists, if it doesn't, convert in a goroutine:
+		if _, err := os.Stat(mp4BaseName + ".gif"); err != nil {
+			go func() {
+				log.Println("mp4 with no matching gif requested, converting ", mp4BaseName)
+				err := mp4toGIF(mp4BaseName)
+				if err != nil {
+					log.Println("Failed to convert mp4toGIF:", name, err)
+					return
+				}
+				err = saveThing(&things.Image{
+					Created:  time.Now().Unix(),
+					Filename: mp4BaseName + ".gif",
+				})
+				if err != nil {
+					log.Println("Error saving converted GIF:", err)
+				}
+			}()
+		}
+	case ".gif":
+		gifBaseName := name[0 : len(name)-len(filepath.Ext(".gif"))]
+		mp4FullPath := filepath.Join(viper.GetString("ImgDir"), gifBaseName+".gif")
+		// If gif does not exist, check if an mp4 does
+		if _, err := os.Stat(fpath); err != nil {
+			if _, err := os.Stat(mp4FullPath); err != nil {
+				break
+			} else {
+				err := mp4toGIF(gifBaseName)
+				if err != nil {
+					log.Println("Failed to convert mp4toGIF:", name, err)
+					break
+				} else {
+					// Try and save newly-converted GIF, so it is served up below:
+					err = saveThing(&things.Image{
+						Created:  time.Now().Unix(),
+						Filename: name,
+					})
+					if err != nil {
+						log.Println("Error saving converted GIF:", err)
+					}
+				}
+			}
+		}
+		// Check if the mp4 exists, if it doesn't, convert in a goroutine:
+		if _, err := os.Stat(gifBaseName + ".mp4"); err != nil {
+			go func() {
+				log.Println("gif with no matching mp4 requested, converting ", gifBaseName)
+				err := gifToMP4(gifBaseName)
+				if err != nil {
+					log.Println("Failed to convert gifToMP4:", name, err)
+					return
+				}
+				err = saveThing(&things.Image{
+					Created:  time.Now().Unix(),
+					Filename: gifBaseName + ".mp4",
+				})
+				if err != nil {
+					log.Println("Error saving converted MP4:", err)
+				}
+			}()
+		}
+	}
+
 	//Attempt to increment file hit counter...
 	image := &things.Image{}
 	err := getThing(image, name)
@@ -494,18 +585,20 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	}
 	updateHits(image)
 
-	// Try and intercept GIF requests if a fpath.webm
-	if filepath.Ext(name) == ".gif" {
-		nameWithoutExt := name[0 : len(name)-len(filepath.Ext(".gif"))]
-		// Check for existence of nameWithoutExt.mp4
-		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
-			name = nameWithoutExt + ".mp4"
+	/*
+		// Try and intercept GIF requests if a fpath.webm
+		if filepath.Ext(name) == ".gif" {
+			nameWithoutExt := name[0 : len(name)-len(filepath.Ext(".gif"))]
+			// Check for existence of nameWithoutExt.mp4
+			if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
+				name = nameWithoutExt + ".mp4"
+			}
+			// Check for existence of nameWithoutExt.webm
+			if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); err == nil {
+				name = nameWithoutExt + ".webm"
+			}
 		}
-		// Check for existence of nameWithoutExt.webm
-		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); err == nil {
-			name = nameWithoutExt + ".webm"
-		}
-	}
+	*/
 
 	//If this is an mp4 or webm file, serve it so it acts like a GIF
 	if filepath.Ext(name) == ".mp4" {
@@ -1435,27 +1528,37 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// If this is a GIF, toss the GIF away and replace it with an MP4
+	// If this is a GIF, convert and save an MP4 copy
 	if filepath.Ext(filename) == ".gif" {
-		nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
-		path := viper.GetString("ImgDir")
+		go func() {
+			nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
 
-		// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
-		resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, filename), "-vcodec", "h264", "-movflags", "faststart", "-y", "-pix_fmt", "yuv420p", "-vf", "scale='trunc(iw/2)*2:trunc(ih/2)*2'", filepath.Join(path, nameWithoutExt+".mp4"))
-		err := resize.Run()
-		if err != nil {
-			log.Println("Error converting GIF to MP4:", resize.Args, err)
-			errRedir(err, w)
-			return
-		}
-		// After successful conversion, remove the originally uploaded gif
-		err = os.Remove(filepath.Join(path, filename))
-		if err != nil {
-			log.Println("Error removing gif after converting to mp4", filename, err)
-			errRedir(err, w)
-			return
-		}
-		filename = nameWithoutExt + ".mp4"
+			err := gifToMP4(nameWithoutExt)
+			if err != nil {
+				log.Println("gifToMP4:", err)
+				return
+			}
+
+			mp4Image := &things.Image{
+				Created:  time.Now().Unix(),
+				Filename: nameWithoutExt + ".mp4",
+			}
+			err = saveThing(mp4Image)
+			if err != nil {
+				log.Println("Error saving converted MP4:", err)
+			}
+		}()
+
+		/*
+			// After successful conversion, remove the originally uploaded gif
+			err = os.Remove(filepath.Join(path, filename))
+			if err != nil {
+				log.Println("Error removing gif after converting to mp4", filename, err)
+				errRedir(err, w)
+				return
+			}
+			filename = nameWithoutExt + ".mp4"
+		*/
 	}
 
 	// w.Statuscode = 200
@@ -1556,4 +1659,28 @@ func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 		errRedir(err, w)
 		return
 	}
+}
+
+func gifToMP4(baseFilename string) error {
+	// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
+	// Per https://engineering.giphy.com/how-to-make-gifs-with-ffmpeg/: ffmpeg -i doit.gif -filter_complex "[0:v] fps=15" -vsync 0 -f mp4 -pix_fmt yuv420p 321.mp4
+	path := viper.GetString("ImgDir")
+	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, baseFilename+".gif"), "-filter_complex", "'[0:v] fps=15'", "-vsync", "0", "-f", "mp4", "yuv420p", "-pix_fmt", "yuv420p", filepath.Join(path, baseFilename+".mp4"))
+	err := resize.Run()
+	if err != nil {
+		return fmt.Errorf("Error converting GIF to MP4. args: %v Err: %v", resize.Args, err)
+	}
+	return nil
+}
+
+func mp4toGIF(baseFilename string) error {
+	// Per https://engineering.giphy.com/how-to-make-gifs-with-ffmpeg/: ffmpeg -i doit.mp4 -filter_complex "[0:v] fps=12,scale=480:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse" doit.gif
+	path := viper.GetString("ImgDir")
+	mp4Filename := baseFilename + ".mp4"
+	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, mp4Filename), "-filter_complex", "'[0:v] fps=15,scale=480:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse'", filepath.Join(path, baseFilename+".gif"))
+	err := resize.Run()
+	if err != nil {
+		return fmt.Errorf("Error converting MP4 to GIF. args: %v Err: %v", resize.Args, err)
+	}
+	return nil
 }
