@@ -683,7 +683,7 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Try and intercept GIF requests since they should all be MP4s now
 	if filepath.Ext(name) == ".gif" {
-		nameWithoutExt := name[0 : len(name)-len(filepath.Ext(".gif"))]
+		nameWithoutExt := filenameWithoutExtension(name)
 		// Check for existence of nameWithoutExt.mp4
 		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
 			name = nameWithoutExt + ".mp4"
@@ -1531,7 +1531,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	// If this is a GIF, convert and save an MP4 copy
 	if filepath.Ext(filename) == ".gif" {
 		go func() {
-			nameWithoutExt := filename[0 : len(filename)-len(filepath.Ext(".gif"))]
+			nameWithoutExt := filenameWithoutExtension(filename)
 
 			err := gifToMP4(nameWithoutExt)
 			if err != nil {
