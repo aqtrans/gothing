@@ -1018,7 +1018,11 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer f.Close()
-		io.Copy(f, file)
+		_, err = io.Copy(f, file)
+		if err != nil {
+			errRedir(err, w)
+			return
+		}
 
 		//BoltDB stuff
 		fi = &things.File{
