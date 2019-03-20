@@ -1,14 +1,15 @@
 image: golang:latest
 
 cache:
-  key: "$CI_COMMIT_REF_NAME"
+  key: golang-cache
   paths:
-    - vendor/
+    - /go/src/jba.io/go/thing/vendor/
 
 before_script:
   - echo deb http://deb.debian.org/debian/ stretch main > /etc/apt/sources.list
   - ln -s /builds /go/src/jba.io
   - cd /go/src/jba.io/go/thing
+  - export GOCACHE="/cache/go"
   #- 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
   #- eval $(ssh-agent -s)
   #- ssh-add <(echo "$SSH_PRIVATE_KEY")
