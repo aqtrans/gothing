@@ -3,7 +3,7 @@ image: golang:latest
 cache:
   key: golang-cache
   paths:
-    - /go/src/jba.io/go/thing/vendor/
+    - vendor/
 
 before_script:
   - echo deb http://deb.debian.org/debian/ stretch main > /etc/apt/sources.list
