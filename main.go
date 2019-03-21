@@ -687,6 +687,12 @@ func main() {
 	if cfg.ThumbDir == "" {
 		cfg.ThumbDir = filepath.Join(cfg.DataDir, "thumbnails")
 	}
+	if cfg.AuthDB == "" {
+		cfg.AuthDB = filepath.Join(cfg.DataDir, "auth.db")
+	}
+	if cfg.BoltDB == "" {
+		cfg.BoltDB = filepath.Join(cfg.DataDir, "bolt.db")
+	}
 
 	/*
 		// Viper config
