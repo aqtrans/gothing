@@ -58,7 +58,7 @@ func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*G
 		return nil, perr
 	}
 
-	db := getDB(env.cfg.BoltDB)
+	db := getDB(env.cfg.BoltDBPath)
 	defer db.Close()
 
 	var images []*things.Image
@@ -205,7 +205,7 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	file := &things.File{}
 	paste := &things.Paste{}
 
-	db := getDB(env.cfg.BoltDB)
+	db := getDB(env.cfg.BoltDBPath)
 	defer db.Close()
 
 	//Lets try this with boltDB now!
@@ -1167,7 +1167,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	fname := params["name"]
 	jmsg := ftype + " " + fname
 
-	db := getDB(env.cfg.BoltDB)
+	db := getDB(env.cfg.BoltDBPath)
 	defer db.Close()
 
 	if ftype == "file" {

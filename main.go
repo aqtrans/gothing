@@ -54,8 +54,8 @@ type configuration struct {
 	ShortTLD       string
 	ImageTLD       string
 	GifTLD         string
-	AuthDB         string
-	BoltDB         string
+	AuthDBPath     string
+	BoltDBPath     string
 	CaptchaSiteKey string
 	CaptchaSecret  string
 	Dev            bool
@@ -65,7 +65,7 @@ type configuration struct {
 }
 
 type thingEnv struct {
-	cfg       *configuration
+	cfg       configuration
 	authState *auth.State
 	templates map[string]*template.Template
 	captcha   *recaptcha.ReCAPTCHA
@@ -331,7 +331,7 @@ func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*List
 		return nil, perr
 	}
 
-	db := getDB(env.cfg.BoltDB)
+	db := getDB(env.cfg.BoltDBPath)
 	defer db.Close()
 
 	var files []*things.File
@@ -540,8 +540,8 @@ func (cfg *configuration) defaultHandler(next http.Handler) http.Handler {
 	})
 }
 
-func (env *thingEnv) dbInit() {
-	db := getDB(env.cfg.BoltDB)
+func dbInit(boltPath string) {
+	db := getDB(boltPath)
 	defer db.Close()
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
@@ -607,7 +607,7 @@ func csrfErrHandler(w http.ResponseWriter, r *http.Request) {
 func (cfg *configuration) getThing(t things.Thing, name string) error {
 	thingType := t.GetType()
 
-	db := getDB(cfg.BoltDB)
+	db := getDB(cfg.BoltDBPath)
 	defer db.Close()
 
 	err := db.View(func(tx *bolt.Tx) error {
@@ -640,7 +640,7 @@ func (cfg *configuration) saveThing(t things.Thing) error {
 		return err
 	}
 
-	db := getDB(cfg.BoltDB)
+	db := getDB(cfg.BoltDBPath)
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -673,16 +673,17 @@ func main() {
 		log.Fatalln("Error reading", *confFile, err)
 	}
 	var cfg configuration
-	cfg.ImgDir = filepath.Join(cfg.DataDir, "images")
-	cfg.FileDir = filepath.Join(cfg.DataDir, "files")
-	cfg.ThumbDir = filepath.Join(cfg.DataDir, "thumbnails")
-	cfg.AuthDB = filepath.Join(cfg.DataDir, "auth.db")
-	cfg.BoltDB = filepath.Join(cfg.DataDir, "bolt.db")
 
 	err = cfgTree.Unmarshal(&cfg)
 	if err != nil {
 		log.Fatalln("Error unmarshaling config:", err)
 	}
+
+	cfg.ImgDir = filepath.Join(cfg.DataDir, "images")
+	cfg.FileDir = filepath.Join(cfg.DataDir, "files")
+	cfg.ThumbDir = filepath.Join(cfg.DataDir, "thumbnails")
+	cfg.AuthDBPath = filepath.Join(cfg.DataDir, "auth.db")
+	cfg.BoltDBPath = filepath.Join(cfg.DataDir, "bolt.db")
 
 	/*
 		// Viper config
@@ -755,7 +756,7 @@ func main() {
 	}
 
 	env := &thingEnv{
-		authState: auth.NewAuthState(cfg.AuthDB),
+		authState: auth.NewAuthState(cfg.AuthDBPath),
 		templates: make(map[string]*template.Template),
 		captcha:   &theCaptcha,
 	}
@@ -776,7 +777,7 @@ func main() {
 		os.Mkdir(cfg.ThumbDir, 0755)
 	}
 
-	env.dbInit()
+	dbInit(cfg.BoltDBPath)
 
 	r := mux.NewRouter().StrictSlash(false)
 
