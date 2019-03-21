@@ -466,7 +466,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	extensions := []string{".mp4", ".webm", ".gif", ".jpg", ".jpeg", ".png"}
+	extensions := []string{".gif", ".mp4", ".webm", ".jpg", ".jpeg", ".png"}
 	//If this is extensionless, search for the proper file with the extension
 	//  Note: Searching for mp4, webm first
 	if filepath.Ext(name) == "" {
