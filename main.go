@@ -65,7 +65,7 @@ type configuration struct {
 }
 
 type thingEnv struct {
-	cfg *configuration
+	cfg       *configuration
 	authState *auth.State
 	templates map[string]*template.Template
 	captcha   *recaptcha.ReCAPTCHA
@@ -673,25 +673,15 @@ func main() {
 		log.Fatalln("Error reading", *confFile, err)
 	}
 	var cfg configuration
+	cfg.ImgDir = filepath.Join(cfg.DataDir, "images")
+	cfg.FileDir = filepath.Join(cfg.DataDir, "files")
+	cfg.ThumbDir = filepath.Join(cfg.DataDir, "thumbnails")
+	cfg.AuthDB = filepath.Join(cfg.DataDir, "auth.db")
+	cfg.BoltDB = filepath.Join(cfg.DataDir, "bolt.db")
+
 	err = cfgTree.Unmarshal(&cfg)
 	if err != nil {
 		log.Fatalln("Error unmarshaling config:", err)
-	}
-
-	if cfg.ImgDir == "" {
-		cfg.ImgDir = filepath.Join(cfg.DataDir, "images")
-	}
-	if cfg.FileDir == "" {
-		cfg.FileDir = filepath.Join(cfg.DataDir, "files")
-	}
-	if cfg.ThumbDir == "" {
-		cfg.ThumbDir = filepath.Join(cfg.DataDir, "thumbnails")
-	}
-	if cfg.AuthDB == "" {
-		cfg.AuthDB = filepath.Join(cfg.DataDir, "auth.db")
-	}
-	if cfg.BoltDB == "" {
-		cfg.BoltDB = filepath.Join(cfg.DataDir, "bolt.db")
 	}
 
 	/*
