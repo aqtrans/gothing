@@ -71,12 +71,12 @@ func TestIndexHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
+		cfg: configuration{
+			BoltDBPath: boltPath,
 		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 
 	//db := getDB(tmpdb2)
 	//defer db.Close()
@@ -141,12 +141,12 @@ func TestHelpHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/help", nil)
@@ -189,12 +189,12 @@ func TestLoginPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/login", nil)
@@ -237,12 +237,12 @@ func TestLookingGlassPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/lg", nil)
@@ -285,12 +285,12 @@ func TestPastePageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/p", nil)
@@ -333,12 +333,12 @@ func TestFileUpPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/up", nil)
@@ -381,12 +381,12 @@ func TestImageUpPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/iup", nil)
@@ -429,12 +429,12 @@ func TestImageGalleryPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 	// Create a request to pass to our handler. We don't have any query parameters for now, so we'll
 	// pass 'nil' as the third parameter.
 	req, err := http.NewRequest("GET", "/i", nil)
@@ -477,12 +477,12 @@ func BenchmarkIndex(b *testing.B) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
-		cfg: &configuration{
-			BoltDB: boltPath,
-		},		
+		cfg: configuration{
+			BoltDBPath: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
-	env.dbInit()
+	dbInit(boltPath)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
