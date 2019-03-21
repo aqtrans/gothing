@@ -1,4 +1,4 @@
 gothing usr/bin/
 gothing.service lib/systemd/system/
-gothing.dist.json etc/
+gothing.dist.toml etc/
 

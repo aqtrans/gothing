@@ -1,0 +1,17 @@
+Port            = "8000"
+DataDir         = "/var/lib/gothing"
+ImgDir          = ""
+FileDir         = ""
+ThumbDir        = ""
+MainTLD         = "go.thing"
+ShortTLD        = "short.thing"
+ImageTLD        = "i.go.thing"
+GifTLD          = "big.go.thing"
+AuthDB          = ""
+BoltDB          = ""
+CaptchaSiteKey  = "reCaptchaKey"
+CaptchaSecret   = "reCaptchaSecretKey"
+Dev             = false
+Insecure        = false
+Debug           = false
+RavenDSN        = "http://sentry.io/blah"

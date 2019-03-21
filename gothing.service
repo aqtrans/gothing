@@ -3,8 +3,8 @@ Description=Golang thing daemon
 
 [Service]
 ProtectSystem=strict
-ReadWritePaths=/etc/gothing.json /var/lib/gothing
-ExecStart=/usr/bin/gothing --DataDir=/var/lib/gothing
+ReadWritePaths=/etc/gothing.toml /var/lib/gothing
+ExecStart=/usr/bin/gothing -conf /etc/gothing.toml
 Restart=on-failure
 User=gothing
 
