@@ -756,6 +756,7 @@ func main() {
 	}
 
 	env := &thingEnv{
+		cfg:       cfg,
 		authState: auth.NewAuthState(cfg.AuthDBPath),
 		templates: make(map[string]*template.Template),
 		captcha:   &theCaptcha,
