@@ -27,14 +27,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/kennygrant/sanitize"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/spf13/viper"
-	//"jba.io/go/auth"
 )
 
 func (env *thingEnv) indexHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "indexHandler")
 	title := "index"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "index.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -45,7 +43,7 @@ func (env *thingEnv) indexHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) helpHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "helpHandler")
 	title := "Help"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "help.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -55,12 +53,12 @@ func (env *thingEnv) helpHandler(w http.ResponseWriter, r *http.Request) {
 
 func (env *thingEnv) loadGalleryPage(w http.ResponseWriter, r *http.Request) (*GalleryPage, error) {
 	defer httputils.TimeTrack(time.Now(), "loadGalleryPage")
-	page, perr := loadPage("Gallery", w, r)
+	page, perr := env.cfg.loadPage("Gallery", w, r)
 	if perr != nil {
 		return nil, perr
 	}
 
-	db := getDB()
+	db := getDB(env.cfg.BoltDB)
 	defer db.Close()
 
 	var images []*things.Image
@@ -137,7 +135,7 @@ func (env *thingEnv) adminListHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) adminHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminHandler")
 	title := "Admin Panel"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "admin.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -148,7 +146,7 @@ func (env *thingEnv) adminHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) adminSignupHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Admin Signup"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "admin_user.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -159,7 +157,7 @@ func (env *thingEnv) adminSignupHandler(w http.ResponseWriter, r *http.Request) 
 func (env *thingEnv) adminUserPassHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminUserPassHandler")
 	title := "Admin Password Change"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "admin_password.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -170,7 +168,7 @@ func (env *thingEnv) adminUserPassHandler(w http.ResponseWriter, r *http.Request
 func (env *thingEnv) signupPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "adminSignupHandler")
 	title := "Signup"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "signup.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -181,7 +179,7 @@ func (env *thingEnv) signupPageHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) lgHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "lgHandler")
 	title := "lg"
-	p, err := loadPage(title, w, r)
+	p, err := env.cfg.loadPage(title, w, r)
 	data := struct {
 		Page    *Page
 		Title   string
@@ -207,7 +205,7 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 	file := &things.File{}
 	paste := &things.Paste{}
 
-	db := getDB()
+	db := getDB(env.cfg.BoltDB)
 	defer db.Close()
 
 	//Lets try this with boltDB now!
@@ -254,7 +252,7 @@ func (env *thingEnv) searchHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "uploadPageHandler")
 	title := "up"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "up.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -265,7 +263,7 @@ func (env *thingEnv) uploadPageHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) uploadImagePageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "uploadImagePageHandler")
 	title := "upimg"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := renderTemplate(env, w, "upimg.tmpl", p)
 	if err != nil {
 		errRedir(err, w)
@@ -276,7 +274,7 @@ func (env *thingEnv) uploadImagePageHandler(w http.ResponseWriter, r *http.Reque
 func (env *thingEnv) pastePageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "pastePageHandler")
 	title := "paste"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := r.ParseForm()
 	if err != nil {
 		errRedir(err, w)
@@ -293,7 +291,7 @@ func (env *thingEnv) pastePageHandler(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) shortenPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "shortenPageHandler")
 	title := "shorten"
-	p, _ := loadMainPage(title, w, r)
+	p, _ := env.loadMainPage(title, w, r)
 	err := r.ParseForm()
 	if err != nil {
 		errRedir(err, w)
@@ -310,7 +308,7 @@ func (env *thingEnv) shortenPageHandler(w http.ResponseWriter, r *http.Request) 
 func (env *thingEnv) loginPageHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "loginPageHandler")
 	title := "login"
-	p, err := loadPage(title, w, r)
+	p, err := env.cfg.loadPage(title, w, r)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -352,7 +350,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	if title == "www" {
 		//indexHandler(w, r)
-		http.Redirect(w, r, "//"+viper.GetString("MainTLD"), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "//"+env.cfg.MainTLD, http.StatusTemporaryRedirect)
 		return
 	}
 	/*
@@ -370,7 +368,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		}*/
 
 	shorturl := &things.Shorturl{}
-	err := getThing(shorturl, title)
+	err := env.cfg.getThing(shorturl, title)
 	if err != nil {
 		if err == errNOSUCHTHING {
 			http.Error(w, "404", http.StatusNotFound)
@@ -382,7 +380,7 @@ func (env *thingEnv) shortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		// If shorturl.Long begins with /, assume it is a file/image/screenshot to be served locally
 		//    This is to replace the rest of the if/else now-commented out:
 		if strings.HasPrefix(shorturl.Long, "/") {
-			destURL = "//" + viper.GetString("MainTLD") + shorturl.Long
+			destURL = "//" + env.cfg.MainTLD + shorturl.Long
 			//http.Redirect(w, r, "//"+viper.GetString("MainTLD")+shorturl.Long, 302)
 		}
 		if !strings.HasPrefix(destURL, "http") {
@@ -398,7 +396,7 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 	title := params["name"]
 
 	paste := &things.Paste{}
-	err := getThing(paste, title)
+	err := env.cfg.getThing(paste, title)
 	if err != nil {
 		if err == errNOSUCHTHING {
 			http.Error(w, "404", http.StatusNotFound)
@@ -418,7 +416,7 @@ func (env *thingEnv) pasteHandler(w http.ResponseWriter, r *http.Request) {
 
 	//safe := paste.Content
 
-	updateHits(paste)
+	env.cfg.updateHits(paste)
 
 	// Bluemonday
 	p := bluemonday.UGCPolicy()
@@ -432,11 +430,11 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "downloadHandler")
 	params := mux.Vars(r)
 	name := params["name"]
-	fpath := filepath.Join(viper.GetString("FileDir"), path.Base(name))
+	fpath := filepath.Join(env.cfg.FileDir, path.Base(name))
 	//fpath := cfg.FileDir + path.Base(name)
 
 	file := &things.File{}
-	err := getThing(file, name)
+	err := env.cfg.getThing(file, name)
 	if err != nil {
 		if err == errNOSUCHTHING {
 			http.Error(w, "404", http.StatusNotFound)
@@ -445,7 +443,8 @@ func (env *thingEnv) downloadHandler(w http.ResponseWriter, r *http.Request) {
 		errRedir(err, w)
 		return
 	}
-	updateHits(file)
+
+	env.cfg.updateHits(file)
 
 	http.ServeFile(w, r, fpath)
 
@@ -456,7 +455,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 	params := mux.Vars(r)
 	name := params["name"]
 	//fpath := cfg.ImgDir + path.Base(name)
-	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(name))
+	fpath := filepath.Join(env.cfg.ImgDir, path.Base(name))
 
 	if name == "favicon.ico" {
 		http.NotFound(w, r)
@@ -475,7 +474,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			if _, err := os.Stat(fpath + ext); err == nil {
 				name = name + ext
 				//fpath = cfg.ImgDir + path.Base(name)
-				fpath = filepath.Join(viper.GetString("ImgDir"), path.Base(name))
+				fpath = filepath.Join(env.cfg.ImgDir, path.Base(name))
 				break
 			}
 		}
@@ -491,16 +490,16 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		//gifFullPath := filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".gif")
 		// If mp4 does not exist, check if a gif does
 		if _, err := os.Stat(fpath); err != nil {
-			if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".gif")); err != nil {
+			if _, err := os.Stat(filepath.Join(env.cfg.ImgDir, filenameWithoutExtension(name)+".gif")); err != nil {
 				break
 			} else {
-				err := gifToMP4(filenameWithoutExtension(name))
+				err := env.cfg.gifToMP4(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert gifToMP4:", name, err)
 					break
 				} else {
 					// Try and save newly-converted MP4, so it is served up below:
-					err = saveThing(&things.Image{
+					err = env.cfg.saveThing(&things.Image{
 						Created:  time.Now().Unix(),
 						Filename: name,
 					})
@@ -511,15 +510,15 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 		// Check if the gif exists, if it doesn't, convert in a goroutine:
-		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".gif")); err != nil {
+		if _, err := os.Stat(filepath.Join(env.cfg.ImgDir, filenameWithoutExtension(name)+".gif")); err != nil {
 			go func() {
 				log.Println("mp4 with no matching gif requested, converting ", name)
-				err := mp4toGIF(filenameWithoutExtension(name))
+				err := env.cfg.mp4toGIF(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert mp4toGIF:", name, err)
 					return
 				}
-				err = saveThing(&things.Image{
+				err = env.cfg.saveThing(&things.Image{
 					Created:  time.Now().Unix(),
 					Filename: filenameWithoutExtension(name) + ".gif",
 				})
@@ -533,16 +532,16 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		//mp4FullPath := filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".mp4")
 		// If gif does not exist, check if an mp4 does
 		if _, err := os.Stat(fpath); err != nil {
-			if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".mp4")); err != nil {
+			if _, err := os.Stat(filepath.Join(env.cfg.ImgDir, filenameWithoutExtension(name)+".mp4")); err != nil {
 				break
 			} else {
-				err := mp4toGIF(filenameWithoutExtension(name))
+				err := env.cfg.mp4toGIF(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert mp4toGIF:", name, err)
 					break
 				} else {
 					// Try and save newly-converted GIF, so it is served up below:
-					err = saveThing(&things.Image{
+					err = env.cfg.saveThing(&things.Image{
 						Created:  time.Now().Unix(),
 						Filename: name,
 					})
@@ -553,15 +552,15 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 		// Check if the mp4 exists, if it doesn't, convert in a goroutine:
-		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), filenameWithoutExtension(name)+".mp4")); err != nil {
+		if _, err := os.Stat(filepath.Join(env.cfg.ImgDir, filenameWithoutExtension(name)+".mp4")); err != nil {
 			go func() {
 				log.Println("gif with no matching mp4 requested, converting ", name)
-				err := gifToMP4(filenameWithoutExtension(name))
+				err := env.cfg.gifToMP4(filenameWithoutExtension(name))
 				if err != nil {
 					log.Println("Failed to convert gifToMP4:", name, err)
 					return
 				}
-				err = saveThing(&things.Image{
+				err = env.cfg.saveThing(&things.Image{
 					Created:  time.Now().Unix(),
 					Filename: filenameWithoutExtension(name) + ".mp4",
 				})
@@ -574,7 +573,7 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 
 	//Attempt to increment file hit counter...
 	image := &things.Image{}
-	err := getThing(image, name)
+	err := env.cfg.getThing(image, name)
 	if err != nil {
 		if err == errNOSUCHTHING {
 			http.Error(w, "404", http.StatusNotFound)
@@ -583,7 +582,8 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 		errRedir(err, w)
 		return
 	}
-	updateHits(image)
+
+	env.cfg.updateHits(image)
 
 	/*
 		// Try and intercept GIF requests if a fpath.webm
@@ -620,17 +620,17 @@ func (env *thingEnv) downloadImageHandler(w http.ResponseWriter, r *http.Request
 
 //Separate function so thumbnail displays on the Gallery page do not increase hit counter
 //TODO: Probably come up with a better way to do this, IP based exclusion perhaps?
-func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageThumbHandler")
 	params := mux.Vars(r)
 	name := params["name"]
-	fpath := filepath.Join(viper.GetString("ImgDir"), path.Base(strings.TrimSuffix(name, ".png")))
-	thumbPath := filepath.Join(viper.GetString("ThumbDir"), path.Base(name))
+	fpath := filepath.Join(env.cfg.ImgDir, path.Base(strings.TrimSuffix(name, ".png")))
+	thumbPath := filepath.Join(env.cfg.ThumbDir, path.Base(name))
 
 	//Check to see if the large image already exists
 	//If so, serve it directly
 	if _, err := os.Stat(thumbPath); err == nil {
-		http.ServeFile(w, r, filepath.Join(viper.GetString("ThumbDir"), path.Base(name)))
+		http.ServeFile(w, r, filepath.Join(env.cfg.ThumbDir, path.Base(name)))
 	} else {
 		makeThumb(fpath, thumbPath)
 
@@ -652,7 +652,7 @@ func imageThumbHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 		//Trying with imaging library now
 
-		http.ServeFile(w, r, filepath.Join(viper.GetString("ThumbDir"), path.Base(name)))
+		http.ServeFile(w, r, filepath.Join(env.cfg.ThumbDir, path.Base(name)))
 	}
 }
 
@@ -667,16 +667,16 @@ func serveContent(w http.ResponseWriter, r *http.Request, dir, file string) {
 	return
 }
 
-func imageDirectHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) imageDirectHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageDirectHandler")
 	params := mux.Vars(r)
 	name := params["name"]
-	serveContent(w, r, viper.GetString("ImgDir"), name)
+	serveContent(w, r, env.cfg.ImgDir, name)
 
 }
 
 // imageBigHandler uses a weird CSS trick to make the images really big
-func imageBigHandler(w http.ResponseWriter, r *http.Request) {
+func (env *thingEnv) imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "imageBigHandler")
 	params := mux.Vars(r)
 	name := params["name"]
@@ -685,17 +685,17 @@ func imageBigHandler(w http.ResponseWriter, r *http.Request) {
 	if filepath.Ext(name) == ".gif" {
 		nameWithoutExt := filenameWithoutExtension(name)
 		// Check for existence of nameWithoutExt.mp4
-		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".mp4")); err == nil {
+		if _, err := os.Stat(filepath.Join(env.cfg.ImgDir, nameWithoutExt+".mp4")); err == nil {
 			name = nameWithoutExt + ".mp4"
 		}
 		// Check for existence of nameWithoutExt.webm
-		if _, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), nameWithoutExt+".webm")); err == nil {
+		if _, err := os.Stat(filepath.Join(env.cfg.ImgDir, nameWithoutExt+".webm")); err == nil {
 			name = nameWithoutExt + ".webm"
 		}
 	}
 
 	//Check if small image exists:
-	_, err := os.Stat(filepath.Join(viper.GetString("ImgDir"), path.Base(name)))
+	_, err := os.Stat(filepath.Join(env.cfg.ImgDir, path.Base(name)))
 	if err != nil && !os.IsNotExist(err) {
 		errRedir(err, w)
 		return
@@ -751,7 +751,7 @@ func (env *thingEnv) viewMarkdownHandler(w http.ResponseWriter, r *http.Request)
 	defer httputils.TimeTrack(time.Now(), "viewMarkdownHandler")
 	params := mux.Vars(r)
 	name := params["name"]
-	p, err := loadPage(name, w, r)
+	p, err := env.cfg.loadPage(name, w, r)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -800,7 +800,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	segments := strings.Split(path, "/")
 	fileName := segments[len(segments)-1]
 
-	dlpath := viper.GetString("FileDir")
+	dlpath := env.cfg.FileDir
 	if r.FormValue("remote-file-name") != "" {
 		fileName = sanitize.Name(r.FormValue("remote-file-name"))
 	}
@@ -836,7 +836,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = saveThing(fi)
+	err = env.cfg.saveThing(fi)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -846,7 +846,7 @@ func (env *thingEnv) APInewRemoteFile(w http.ResponseWriter, r *http.Request) {
 	//fmt.Fprintf(w, "%s with %v bytes downloaded from %s", fileName, size, finURL)
 	fmt.Printf("%s with %v bytes downloaded from %s", fileName, size, finURL)
 
-	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/d/"+fileName, w)
+	env.authState.SetFlash("Successfully saved "+fileName+": https://"+env.cfg.MainTLD+"/d/"+fileName, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -864,7 +864,7 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 	var uptype string
 	var fi *things.File
 	//fi := &File{}
-	path := viper.GetString("FileDir")
+	path := env.cfg.FileDir
 	contentType := r.Header.Get("Content-Type")
 
 	//Determine how the file is being uploaded
@@ -1031,16 +1031,16 @@ func (env *thingEnv) APInewFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = saveThing(fi)
+	err = env.cfg.saveThing(fi)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
 
 	if uptype == "cli" {
-		fmt.Fprintf(w, "https://"+viper.GetString("MainTLD")+"/d/"+filename)
+		fmt.Fprintf(w, "https://"+env.cfg.MainTLD+"/d/"+filename)
 	} else {
-		env.authState.SetFlash("Successfully saved "+filename+": https://"+viper.GetString("MainTLD")+"/d/"+filename, w)
+		env.authState.SetFlash("Successfully saved "+filename+": https://"+env.cfg.MainTLD+"/d/"+filename, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -1070,7 +1070,7 @@ func (env *thingEnv) APInewShortUrlForm(w http.ResponseWriter, r *http.Request) 
 		Long:    long,
 	}
 
-	err = saveThing(s)
+	err = env.cfg.saveThing(s)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1107,7 +1107,7 @@ func (env *thingEnv) APInewPaste(w http.ResponseWriter, r *http.Request) {
 		Title:   name,
 		Content: bpaste,
 	}
-	err := saveThing(p)
+	err := env.cfg.saveThing(p)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1150,7 +1150,7 @@ func (env *thingEnv) APInewPasteForm(w http.ResponseWriter, r *http.Request) {
 		Title:   title,
 		Content: paste,
 	}
-	err = saveThing(p)
+	err = env.cfg.saveThing(p)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1167,7 +1167,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 	fname := params["name"]
 	jmsg := ftype + " " + fname
 
-	db := getDB()
+	db := getDB(env.cfg.BoltDB)
 	defer db.Close()
 
 	if ftype == "file" {
@@ -1179,7 +1179,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			errRedir(err, w)
 			return
 		}
-		fpath := viper.GetString("FileDir") + fname
+		fpath := env.cfg.FileDir + fname
 		err = os.Remove(fpath)
 		if err != nil {
 			errRedir(err, w)
@@ -1196,7 +1196,7 @@ func (env *thingEnv) APIdeleteHandler(w http.ResponseWriter, r *http.Request) {
 			errRedir(err, w)
 			return
 		}
-		fpath := viper.GetString("ImgDir") + fname
+		fpath := env.cfg.ImgDir + fname
 		err = os.Remove(fpath)
 		if err != nil {
 			errRedir(err, w)
@@ -1263,7 +1263,7 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "Pinging " + url
-		p, err := loadPage(title, w, r)
+		p, err := env.cfg.loadPage(title, w, r)
 		data := struct {
 			Page    *Page
 			Title   string
@@ -1287,7 +1287,7 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "MTR to " + url
-		p, err := loadPage(title, w, r)
+		p, err := env.cfg.loadPage(title, w, r)
 		data := struct {
 			Page    *Page
 			Title   string
@@ -1311,7 +1311,7 @@ func (env *thingEnv) APIlgAction(w http.ResponseWriter, r *http.Request) {
 		}
 		outs := string(out)
 		title := "Traceroute to " + url
-		p, err := loadPage(title, w, r)
+		p, err := env.cfg.loadPage(title, w, r)
 		data := struct {
 			Page    *Page
 			Title   string
@@ -1350,7 +1350,7 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 	segments := strings.Split(path, "/")
 	fileName := segments[len(segments)-1]
 
-	dlpath := viper.GetString("ImgDir")
+	dlpath := env.cfg.ImgDir
 	if r.FormValue("remote-image-name") != "" {
 		fileName = sanitize.Name(r.FormValue("remote-image-name"))
 	}
@@ -1385,13 +1385,13 @@ func (env *thingEnv) APInewRemoteImage(w http.ResponseWriter, r *http.Request) {
 		Filename:  fileName,
 		RemoteURL: finURL,
 	}
-	err = saveThing(imi)
+	err = env.cfg.saveThing(imi)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
 
-	env.authState.SetFlash("Successfully saved "+fileName+": https://"+viper.GetString("MainTLD")+"/i/"+fileName, w)
+	env.authState.SetFlash("Successfully saved "+fileName+": https://"+env.cfg.MainTLD+"/i/"+fileName, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -1402,7 +1402,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 	var f io.WriteCloser
 	var err error
 	var filename string
-	path := viper.GetString("ImgDir")
+	path := env.cfg.ImgDir
 	params := mux.Vars(r)
 	formfilename := params["filename"]
 	contentType := r.Header.Get("Content-Type")
@@ -1537,7 +1537,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		go func() {
 			nameWithoutExt := filenameWithoutExtension(filename)
 
-			err := gifToMP4(nameWithoutExt)
+			err := env.cfg.gifToMP4(nameWithoutExt)
 			if err != nil {
 				log.Println("gifToMP4:", err)
 				return
@@ -1547,7 +1547,7 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 				Created:  time.Now().Unix(),
 				Filename: nameWithoutExt + ".mp4",
 			}
-			err = saveThing(mp4Image)
+			err = env.cfg.saveThing(mp4Image)
 			if err != nil {
 				log.Println("Error saving converted MP4:", err)
 			}
@@ -1575,12 +1575,12 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 			Created:  time.Now().Unix(),
 			Filename: filename,
 		}
-		err = saveThing(sc)
+		err = env.cfg.saveThing(sc)
 		if err != nil {
 			errRedir(err, w)
 			return
 		}
-		env.authState.SetFlash("Successfully saved screenshot "+filename+": https://"+viper.GetString("MainTLD")+"/i/"+filename, w)
+		env.authState.SetFlash("Successfully saved screenshot "+filename+": https://"+env.cfg.MainTLD+"/i/"+filename, w)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -1590,19 +1590,19 @@ func (env *thingEnv) APInewImage(w http.ResponseWriter, r *http.Request) {
 		Created:  time.Now().Unix(),
 		Filename: filename,
 	}
-	err = saveThing(imi)
+	err = env.cfg.saveThing(imi)
 	if err != nil {
 		errRedir(err, w)
 		return
 	}
-	env.authState.SetFlash("Successfully saved image "+filename+": <a href=https://"+viper.GetString("MainTLD")+"/i/"+filename+"></a>", w)
+	env.authState.SetFlash("Successfully saved image "+filename+": <a href=https://"+env.cfg.MainTLD+"/i/"+filename+"></a>", w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (env *thingEnv) Readme(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "Readme")
 	name := "README"
-	p, err := loadPage(name, w, r)
+	p, err := env.cfg.loadPage(name, w, r)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1635,7 +1635,7 @@ func (env *thingEnv) Readme(w http.ResponseWriter, r *http.Request) {
 func (env *thingEnv) Changelog(w http.ResponseWriter, r *http.Request) {
 	defer httputils.TimeTrack(time.Now(), "Changelog")
 	name := "CHANGELOG"
-	p, err := loadPage(name, w, r)
+	p, err := env.cfg.loadPage(name, w, r)
 	if err != nil {
 		errRedir(err, w)
 		return
@@ -1669,10 +1669,10 @@ func filenameWithoutExtension(fn string) string {
 	return strings.TrimSuffix(fn, path.Ext(fn))
 }
 
-func gifToMP4(baseFilename string) error {
+func (cfg *configuration) gifToMP4(baseFilename string) error {
 	// ffmpeg -i doit.gif -vcodec h264 -y -pix_fmt yuv420p doit.mp4
 	// Per https://engineering.giphy.com/how-to-make-gifs-with-ffmpeg/: ffmpeg -i doit.gif -filter_complex "[0:v]fps=15" -vsync 0 -f mp4 -pix_fmt yuv420p 321.mp4
-	path := viper.GetString("ImgDir")
+	path := cfg.ImgDir
 	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, baseFilename+".gif"), "-filter_complex", "[0:v]fps=15", "-vsync", "0", "-f", "mp4", "-pix_fmt", "yuv420p", filepath.Join(path, baseFilename+".mp4"))
 	err := resize.Run()
 	if err != nil {
@@ -1681,9 +1681,9 @@ func gifToMP4(baseFilename string) error {
 	return nil
 }
 
-func mp4toGIF(baseFilename string) error {
+func (cfg *configuration) mp4toGIF(baseFilename string) error {
 	// Per https://engineering.giphy.com/how-to-make-gifs-with-ffmpeg/: ffmpeg -i doit.mp4 -filter_complex "[0:v] fps=12,scale=480:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse" doit.gif
-	path := viper.GetString("ImgDir")
+	path := cfg.ImgDir
 	mp4Filename := baseFilename + ".mp4"
 	resize := exec.Command("/usr/bin/ffmpeg", "-i", filepath.Join(path, mp4Filename), "-filter_complex", "[0:v]fps=15,scale=480:-1,split[a][b];[a]palettegen[p];[b][p]paletteuse", filepath.Join(path, baseFilename+".gif"))
 	err := resize.Run()

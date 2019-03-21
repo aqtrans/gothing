@@ -12,6 +12,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -38,15 +39,14 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/oxtoacart/bpool"
+	toml "github.com/pelletier/go-toml"
 	"github.com/russross/blackfriday"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	_ "github.com/tevjef/go-runtime-metrics/expvar"
 )
 
 type configuration struct {
 	Port           string
-	Email          string
+	DataDir        string
 	ImgDir         string
 	FileDir        string
 	ThumbDir       string
@@ -54,11 +54,18 @@ type configuration struct {
 	ShortTLD       string
 	ImageTLD       string
 	GifTLD         string
+	AuthDB         string
+	BoltDB         string
 	CaptchaSiteKey string
 	CaptchaSecret  string
+	Dev            bool
+	Insecure       bool
+	Debug          bool
+	RavenDSN       string
 }
 
 type thingEnv struct {
+	cfg *configuration
 	authState *auth.State
 	templates map[string]*template.Template
 	captcha   *recaptcha.ReCAPTCHA
@@ -71,15 +78,15 @@ type thingDB struct {
 
 var (
 	//bufpool        *bpool.BufferPool
-	_24K           int64 = (1 << 20) * 24
-	dataDir        string
-	boltPath       string
+	_24K int64 = (1 << 20) * 24
+	//dataDir        string
+	//boltPath       string
 	errNOSUCHTHING = errors.New("Thing does not exist")
 	//db, _     = bolt.Open("./data/bolt.db", 0600, nil)
 	//cfg       = configuration{}
 )
 
-func getDB() *bolt.DB {
+func getDB(boltPath string) *bolt.DB {
 	db, err := bolt.Open(boltPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Fatalln("BoltDB Error:", err)
@@ -188,13 +195,6 @@ type GalleryPage struct {
 	Images []*things.Image
 }
 
-func init() {
-
-	pflag.StringVar(&dataDir, "DataDir", "./data/", "Path to store permanent data in.")
-	pflag.Parse()
-
-}
-
 func markdownRender(content []byte) []byte {
 	htmlFlags := 0
 	htmlFlags |= blackfriday.HTML_FOOTNOTE_RETURN_LINKS
@@ -275,7 +275,7 @@ func ParseBool(value string) bool {
 	return boolValue
 }
 
-func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
+func (cfg *configuration) loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, error) {
 	defer httputils.TimeTrack(time.Now(), "loadPage")
 	//timer.Step("loadpageFunc")
 	user := auth.GetUserState(r.Context())
@@ -304,14 +304,14 @@ func loadPage(title string, w http.ResponseWriter, r *http.Request) (*Page, erro
 		IsAdmin:        user.IsAdmin(),
 		Token:          token,
 		FlashMsg:       message,
-		MainTLD:        viper.GetString("MainTLD"),
-		CaptchaSiteKey: viper.GetString("CaptchaSiteKey"),
+		MainTLD:        cfg.MainTLD,
+		CaptchaSiteKey: cfg.CaptchaSiteKey,
 	}, nil
 }
 
-func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (env *thingEnv) loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	defer httputils.TimeTrack(time.Now(), "loadMainPage")
-	p, err := loadPage(title, w, r)
+	p, err := env.cfg.loadPage(title, w, r)
 	if err != nil {
 		raven.CaptureError(err, nil)
 		return nil, err
@@ -326,12 +326,12 @@ func loadMainPage(title string, w http.ResponseWriter, r *http.Request) (interfa
 
 func (env *thingEnv) loadListPage(w http.ResponseWriter, r *http.Request) (*ListPage, error) {
 	defer httputils.TimeTrack(time.Now(), "loadListPage")
-	page, perr := loadPage("List", w, r)
+	page, perr := env.cfg.loadPage("List", w, r)
 	if perr != nil {
 		return nil, perr
 	}
 
-	db := getDB()
+	db := getDB(env.cfg.BoltDB)
 	defer db.Close()
 
 	var files []*things.File
@@ -527,10 +527,10 @@ func makeThumb(fpath, thumbpath string) {
 	return
 }
 
-func defaultHandler(next http.Handler) http.Handler {
+func (cfg *configuration) defaultHandler(next http.Handler) http.Handler {
 	defer httputils.TimeTrack(time.Now(), "defaultHandler")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Host == viper.GetString("ImageTLD") || r.Host == viper.GetString("MainTLD") || r.Host == "www."+viper.GetString("MainTLD") || r.Host == viper.GetString("ShortTLD") || r.Host == viper.GetString("GifTLD") || r.Host == "go.dev" || r.Host == "go.jba.io" {
+		if r.Host == cfg.ImageTLD || r.Host == cfg.MainTLD || r.Host == "www."+cfg.MainTLD || r.Host == cfg.ShortTLD || r.Host == cfg.GifTLD || r.Host == "go.dev" {
 			next.ServeHTTP(w, r)
 		} else {
 			//log.Println("Not serving anything, because this request belongs to: " + r.Host)
@@ -541,7 +541,7 @@ func defaultHandler(next http.Handler) http.Handler {
 }
 
 func (env *thingEnv) dbInit() {
-	db := getDB()
+	db := getDB(env.cfg.BoltDB)
 	defer db.Close()
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Pastes"))
@@ -604,10 +604,10 @@ func csrfErrHandler(w http.ResponseWriter, r *http.Request) {
 }
 */
 
-func getThing(t things.Thing, name string) error {
+func (cfg *configuration) getThing(t things.Thing, name string) error {
 	thingType := t.GetType()
 
-	db := getDB()
+	db := getDB(cfg.BoltDB)
 	defer db.Close()
 
 	err := db.View(func(tx *bolt.Tx) error {
@@ -630,7 +630,7 @@ func getThing(t things.Thing, name string) error {
 	return nil
 }
 
-func saveThing(t things.Thing) error {
+func (cfg *configuration) saveThing(t things.Thing) error {
 	name := t.Name()
 	thingType := t.GetType()
 
@@ -640,7 +640,7 @@ func saveThing(t things.Thing) error {
 		return err
 	}
 
-	db := getDB()
+	db := getDB(cfg.BoltDB)
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -655,9 +655,9 @@ func saveThing(t things.Thing) error {
 	return nil
 }
 
-func updateHits(t things.Thing) {
+func (cfg *configuration) updateHits(t things.Thing) {
 	t.UpdateHits()
-	err := saveThing(t)
+	err := cfg.saveThing(t)
 	if err != nil {
 		raven.CaptureError(err, nil)
 	}
@@ -665,58 +665,83 @@ func updateHits(t things.Thing) {
 
 func main() {
 
-	// Viper config
-	viper.SetDefault("Port", "5000")
-	viper.SetDefault("Email", "unused@the.moment")
-	viper.SetDefault("ImgDir", "./data/up-imgs/")
-	viper.SetDefault("FileDir", "./data/up-files/")
-	viper.SetDefault("ThumbDir", "./data/thumbs/")
-	viper.SetDefault("MainTLD", "squanch.space")
-	viper.SetDefault("ShortTLD", "squanch.space")
-	viper.SetDefault("ImageTLD", "i.squanch.space")
-	viper.SetDefault("GifTLD", "big.squanch.space")
-	viper.SetDefault("AuthDB", "./data/auth.db")
-	viper.SetDefault("AdminUser", "admin")
-	viper.SetDefault("AdminPass", "admin")
-	viper.SetDefault("dbPath", "./data/bolt.db")
-	viper.SetDefault("Dev", false)
-	viper.SetDefault("Insecure", false)
-	viper.SetDefault("Debug", false)
-	viper.SetDefault("CaptchaSiteKey", "")
-	viper.SetDefault("CaptchaSecret", "")
-	viper.SetDefault("RavenDSN", "")
+	confFile := flag.String("conf", "config.toml", "Path to the TOML config file.")
+	flag.Parse()
 
-	viper.SetConfigName("gothing")
-	viper.SetConfigType("json")
-	viper.AddConfigPath("./data/")
-	viper.AddConfigPath("/etc/")
-	if dataDir != "./data/" {
-		viper.AddConfigPath(dataDir)
-		viper.Set("ImgDir", filepath.Join(dataDir, "/up-imgs/"))
-		viper.Set("FileDir", filepath.Join(dataDir, "/up-files/"))
-		viper.Set("ThumbDir", filepath.Join(dataDir, "/thumbs/"))
-		viper.Set("AuthDB", filepath.Join(dataDir, "/auth.db"))
-		viper.Set("dbPath", filepath.Join(dataDir, "/bolt.db"))
+	cfgTree, err := toml.LoadFile(*confFile)
+	if err != nil {
+		log.Fatalln("Error reading", *confFile, err)
 	}
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		log.Println("Error loading configuration:", err)
+	var cfg configuration
+	err = cfgTree.Unmarshal(&cfg)
+	if err != nil {
+		log.Fatalln("Error unmarshaling config:", err)
 	}
-	viper.SetEnvPrefix("gothing")
-	viper.AutomaticEnv()
 
-	if viper.GetBool("Debug") {
-		httputils.Debug = true
+	if cfg.ImgDir == "" {
+		cfg.ImgDir = filepath.Join(cfg.DataDir, "images")
 	}
+	if cfg.FileDir == "" {
+		cfg.FileDir = filepath.Join(cfg.DataDir, "files")
+	}
+	if cfg.ThumbDir == "" {
+		cfg.ThumbDir = filepath.Join(cfg.DataDir, "thumbnails")
+	}
+
+	/*
+		// Viper config
+		viper.SetDefault("Port", "5000")
+		viper.SetDefault("Email", "unused@the.moment")
+		viper.SetDefault("ImgDir", "./data/up-imgs/")
+		viper.SetDefault("FileDir", "./data/up-files/")
+		viper.SetDefault("ThumbDir", "./data/thumbs/")
+		viper.SetDefault("MainTLD", "squanch.space")
+		viper.SetDefault("ShortTLD", "squanch.space")
+		viper.SetDefault("ImageTLD", "i.squanch.space")
+		viper.SetDefault("GifTLD", "big.squanch.space")
+		viper.SetDefault("AuthDB", "./data/auth.db")
+		viper.SetDefault("AdminUser", "admin")
+		viper.SetDefault("AdminPass", "admin")
+		viper.SetDefault("dbPath", "./data/bolt.db")
+		viper.SetDefault("Dev", false)
+		viper.SetDefault("Insecure", false)
+		viper.SetDefault("Debug", false)
+		viper.SetDefault("CaptchaSiteKey", "")
+		viper.SetDefault("CaptchaSecret", "")
+		viper.SetDefault("RavenDSN", "")
+
+		viper.SetConfigName("gothing")
+		viper.SetConfigType("json")
+		viper.AddConfigPath("./data/")
+		viper.AddConfigPath("/etc/")
+		if dataDir != "./data/" {
+			viper.AddConfigPath(dataDir)
+			viper.Set("ImgDir", filepath.Join(dataDir, "/up-imgs/"))
+			viper.Set("FileDir", filepath.Join(dataDir, "/up-files/"))
+			viper.Set("ThumbDir", filepath.Join(dataDir, "/thumbs/"))
+			viper.Set("AuthDB", filepath.Join(dataDir, "/auth.db"))
+			viper.Set("dbPath", filepath.Join(dataDir, "/bolt.db"))
+		}
+		err := viper.ReadInConfig() // Find and read the config file
+		if err != nil {             // Handle errors reading the config file
+			log.Println("Error loading configuration:", err)
+		}
+		viper.SetEnvPrefix("gothing")
+		viper.AutomaticEnv()
+
+		if viper.GetBool("Debug") {
+			httputils.Debug = true
+		}
+	*/
 
 	// Set boltDB path as a global var for easy access
-	boltPath = viper.GetString("dbPath")
+	//boltPath = viper.GetString("dbPath")
 
-	raven.SetDSN(viper.GetString("RavenDSN"))
+	raven.SetDSN(cfg.RavenDSN)
 
-	dataDir1, err := os.Stat(dataDir)
+	dataDir1, err := os.Stat(cfg.DataDir)
 	if os.IsNotExist(err) {
-		err = os.Mkdir(dataDir, 0755)
+		err = os.Mkdir(cfg.DataDir, 0755)
 		if err != nil {
 			raven.CaptureErrorAndWait(err, nil)
 			log.Fatalln(err)
@@ -724,17 +749,17 @@ func main() {
 	}
 	if os.IsExist(err) {
 		if !dataDir1.IsDir() {
-			log.Fatalln("./data/ is not a directory. This is where misc data is stored.")
+			log.Fatalln(cfg.DataDir, " is not a directory. This is where uploaded data is stored.")
 		}
 	}
 
-	theCaptcha, err := recaptcha.NewReCAPTCHA(viper.GetString("CaptchaSecret"))
+	theCaptcha, err := recaptcha.NewReCAPTCHA(cfg.CaptchaSecret)
 	if err != nil {
 		log.Fatalln("Error initializing recaptcha instance:", err)
 	}
 
 	env := &thingEnv{
-		authState: auth.NewAuthState(viper.GetString("AuthDB")),
+		authState: auth.NewAuthState(cfg.AuthDB),
 		templates: make(map[string]*template.Template),
 		captcha:   &theCaptcha,
 	}
@@ -742,35 +767,35 @@ func main() {
 	env.templates = templates.TmplInit()
 
 	//Check for essential directory existence
-	_, err = os.Stat(viper.GetString("ImgDir"))
+	_, err = os.Stat(cfg.ImgDir)
 	if err != nil {
-		os.Mkdir(viper.GetString("ImgDir"), 0755)
+		os.Mkdir(cfg.ImgDir, 0755)
 	}
-	_, err = os.Stat(viper.GetString("FileDir"))
+	_, err = os.Stat(cfg.FileDir)
 	if err != nil {
-		os.Mkdir(viper.GetString("FileDir"), 0755)
+		os.Mkdir(cfg.FileDir, 0755)
 	}
-	_, err = os.Stat(viper.GetString("ThumbDir"))
+	_, err = os.Stat(cfg.ThumbDir)
 	if err != nil {
-		os.Mkdir(viper.GetString("ThumbDir"), 0755)
+		os.Mkdir(cfg.ThumbDir, 0755)
 	}
 
 	env.dbInit()
 
 	r := mux.NewRouter().StrictSlash(false)
 
-	if viper.GetBool("Dev") {
-		viper.Set("MainTLD", "localhost")
-		viper.Set("ShortTLD", "s.localhost")
-		viper.Set("ImageTLD", "i.localhost")
-		viper.Set("GifTLD", "big.localhost")
+	if cfg.Dev {
+		cfg.MainTLD = "localhost"
+		cfg.ShortTLD = "s.localhost"
+		cfg.ImageTLD = "i.localhost"
+		cfg.GifTLD = "big.localhost"
 
 		log.Println("Listening on localhost domains due to -l flag...")
 		r.Use(env.authState.CSRFProtect(false))
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), env.authState.UserEnvMiddle, csrf.Protect([]byte("c379bf3ac76ee306cf72270cf6c5a612e8351dcb"), csrf.Secure(false)), httputils.Logger)
 		//std = alice.New(handlers.ProxyHeaders, handlers.RecoveryHandler(), auth.UserEnvMiddle, auth.XsrfMiddle, httputils.Logger)
 	} else {
-		log.Println("Listening on " + viper.GetString("MainTLD") + " domain")
+		log.Println("Listening on " + cfg.MainTLD + " domain")
 		r.Use(env.authState.CSRFProtect(true))
 	}
 
@@ -779,13 +804,13 @@ func main() {
 	r.Use(env.authState.CtxMiddle)
 
 	r.Use(httputils.Logger)
-	d := r.Host(viper.GetString("MainTLD")).Subrouter()
+	d := r.Host(cfg.MainTLD).Subrouter()
 
 	// Declare various routers used
 	//i := r.Host(viper.GetString("ImageTLD")).Subrouter()
 	//big := r.Host(viper.GetString("GifTLD")).Subrouter()
 
-	log.Println("Port: " + viper.GetString("Port"))
+	log.Println("Port: " + cfg.Port)
 
 	d.HandleFunc("/", env.indexHandler).Methods("GET")
 	d.HandleFunc("/index", env.indexHandler).Methods("GET")
@@ -822,11 +847,11 @@ func main() {
 	d.HandleFunc("/iup", env.uploadImagePageHandler).Methods("GET")
 	d.HandleFunc("/search/{name}", env.authState.AuthMiddle(env.searchHandler)).Methods("GET")
 	d.HandleFunc("/d/{name}", env.downloadHandler).Methods("GET")
-	d.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
+	d.HandleFunc("/big/{name}", env.imageBigHandler).Methods("GET")
 	d.HandleFunc("/i/{name}", env.downloadImageHandler).Methods("GET")
 	d.HandleFunc("/md/{name}", env.viewMarkdownHandler).Methods("GET")
-	d.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
-	d.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
+	d.HandleFunc("/thumbs/{name}", env.imageThumbHandler).Methods("GET")
+	d.HandleFunc("/imagedirect/{name}", env.imageDirectHandler).Methods("GET")
 	d.HandleFunc("/i", env.galleryHandler).Methods("GET")
 
 	//CLI API Functions
@@ -852,26 +877,26 @@ func main() {
 	//api.GET("/vars",httputils.HandleExpvars)
 
 	//Dedicated image subdomain routes
-	i := r.Host(viper.GetString("ImageTLD")).Subrouter()
+	i := r.Host(cfg.ImageTLD).Subrouter()
 	i.HandleFunc("/", env.galleryEsgyHandler).Methods("GET")
-	i.HandleFunc("/thumbs/{name}", imageThumbHandler).Methods("GET")
-	i.HandleFunc("/imagedirect/{name}", imageDirectHandler).Methods("GET")
-	i.HandleFunc("/big/{name}", imageBigHandler).Methods("GET")
+	i.HandleFunc("/thumbs/{name}", env.imageThumbHandler).Methods("GET")
+	i.HandleFunc("/imagedirect/{name}", env.imageDirectHandler).Methods("GET")
+	i.HandleFunc("/big/{name}", env.imageBigHandler).Methods("GET")
 	i.HandleFunc("/{name}", env.downloadImageHandler).Methods("GET")
 
 	//Big GIFs
-	big := r.Host(viper.GetString("GifTLD")).Subrouter()
-	big.HandleFunc("/i/{name}", imageDirectHandler).Methods("GET")
-	big.HandleFunc("/{name}", imageBigHandler).Methods("GET")
+	big := r.Host(cfg.GifTLD).Subrouter()
+	big.HandleFunc("/i/{name}", env.imageDirectHandler).Methods("GET")
+	big.HandleFunc("/{name}", env.imageBigHandler).Methods("GET")
 
 	//Dynamic subdomains | try to avoid taking www.es.gy
 	//wild := r.Host("{name:([^www][A-Za-z0-9]+)}.es.gy").Subrouter()
 	//wildString := "{name}."+viper.GetString("ShortTLD")
-	wild := r.Host("{name}." + viper.GetString("ShortTLD")).Subrouter()
+	wild := r.Host("{name}." + cfg.ShortTLD).Subrouter()
 	wild.HandleFunc("/", env.shortUrlHandler).Methods("GET")
 	//Main Short URL page
 	// Collapsing this into main TLD
-	short := r.Host(viper.GetString("ShortTLD")).Subrouter()
+	short := r.Host(cfg.ShortTLD).Subrouter()
 	short.HandleFunc("/{name}", env.shortUrlHandler).Methods("GET")
 
 	//static := http.Handler(http.FileServer(http.Dir("./public/")))
@@ -889,6 +914,6 @@ func main() {
 	//r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 
 	http.Handle("/", r)
-	http.ListenAndServe("127.0.0.1:"+viper.GetString("Port"), nil)
+	http.ListenAndServe("127.0.0.1:"+cfg.Port, nil)
 
 }

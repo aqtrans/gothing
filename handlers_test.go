@@ -58,7 +58,7 @@ func TestRiceInit(t *testing.T) {
 }
 
 func TestIndexHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -71,6 +71,9 @@ func TestIndexHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -125,7 +128,7 @@ func TestIndexHandler(t *testing.T) {
 }
 
 func TestHelpHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -138,6 +141,9 @@ func TestHelpHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -169,7 +175,7 @@ func TestHelpHandler(t *testing.T) {
 }
 
 func TestLoginPageHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -183,6 +189,9 @@ func TestLoginPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -214,7 +223,7 @@ func TestLoginPageHandler(t *testing.T) {
 }
 
 func TestLookingGlassPageHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -228,6 +237,9 @@ func TestLookingGlassPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -259,7 +271,7 @@ func TestLookingGlassPageHandler(t *testing.T) {
 }
 
 func TestPastePageHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -273,6 +285,9 @@ func TestPastePageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -304,7 +319,7 @@ func TestPastePageHandler(t *testing.T) {
 }
 
 func TestFileUpPageHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -318,6 +333,9 @@ func TestFileUpPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -349,7 +367,7 @@ func TestFileUpPageHandler(t *testing.T) {
 }
 
 func TestImageUpPageHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -363,6 +381,9 @@ func TestImageUpPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -394,7 +415,7 @@ func TestImageUpPageHandler(t *testing.T) {
 }
 
 func TestImageGalleryPageHandler(t *testing.T) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -408,6 +429,9 @@ func TestImageGalleryPageHandler(t *testing.T) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
@@ -439,7 +463,7 @@ func TestImageGalleryPageHandler(t *testing.T) {
 }
 
 func BenchmarkIndex(b *testing.B) {
-	boltPath = tempfile()
+	boltPath := tempfile()
 	defer os.Remove(boltPath)
 	tmpdb := tempfile()
 	defer os.Remove(tmpdb)
@@ -453,6 +477,9 @@ func BenchmarkIndex(b *testing.B) {
 		templates: make(map[string]*template.Template),
 		authState: anAuthState,
 		captcha:   &theCaptcha,
+		cfg: &configuration{
+			BoltDB: boltPath,
+		},		
 	}
 	env.templates = templates.TmplInit()
 	env.dbInit()
