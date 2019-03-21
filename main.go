@@ -70,7 +70,7 @@ type thingDB struct {
 }
 
 var (
-	bufpool        *bpool.BufferPool
+	//bufpool        *bpool.BufferPool
 	_24K           int64 = (1 << 20) * 24
 	dataDir        string
 	boltPath       string
@@ -193,7 +193,6 @@ func init() {
 	pflag.StringVar(&dataDir, "DataDir", "./data/", "Path to store permanent data in.")
 	pflag.Parse()
 
-	bufpool = bpool.NewBufferPool(64)
 }
 
 func markdownRender(content []byte) []byte {
@@ -250,6 +249,7 @@ func renderTemplate(env *thingEnv, w http.ResponseWriter, name string, data inte
 	}
 
 	// Create buffer to write to and check for errors
+	bufpool := bpool.NewBufferPool(64)
 	buf := bufpool.Get()
 	err := tmpl.ExecuteTemplate(buf, "base", data)
 	if err != nil {
