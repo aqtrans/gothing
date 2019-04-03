@@ -13,6 +13,7 @@
     <th>Link</th>
     <th>Date</th>
     <th>Hits</th>
+    {{if $user}}<th>Delete</th>{{ end }}
     </tr>
 </thead>
 
@@ -34,6 +35,7 @@
 <th>Link</th>
 <th>Date</th>
 <th>Hits</th>
+{{if $user}}<th>Delete</th>{{ end }}
 </tr>
 </thead>
 <tbody>
@@ -55,6 +57,7 @@
 <th>Long URL</th>
 <th>Date</th>
 <th>Hits</th>
+{{if $user}}<th>Delete</th>{{ end }}
 </tr>
 </thead>
 <tbody>
@@ -76,6 +79,7 @@
 <th>Filename</th>
 <th>Date</th>
 <th>Hits</th>
+{{if $user}}<th>Delete</th>{{ end }}
 </tr>
 </thead>
 <tbody>
@@ -96,6 +100,7 @@
 <th>Filename</th>
 <th>Date</th>
 <th>Hits</th>
+{{if $user}}<th>Delete</th>{{ end }}
 </tr>
 </thead>
 <tbody>
@@ -109,6 +114,6 @@
 {{ end }}
 </tbody>
 </table>
-  </article>
-  </main>
+</article>
+</main>
 {{ end }}
