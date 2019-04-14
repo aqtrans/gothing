@@ -11,7 +11,7 @@
         {{$imgext := .Filename|imgExt}}
           <div class="images">
               {{if eq $imgext "gif"}}
-              <img class="gifplayer" data-gif="/imagedirect/{{.Filename}}" src="/thumbs/{{.Filename}}.png">
+              <gif-player src="/imagedirect/{{.Filename}}" thumb="/thumbs/{{.Filename}}.png"></gif-player>
               {{else if eq $imgext "webm"}}
               <video onclick="this.paused?this.play():this.pause();" loop muted poster="/thumbs/{{.Filename}}.png">
               <source src="/imagedirect/{{.Filename}}" type="video/webm">
@@ -21,7 +21,7 @@
               <source src="/imagedirect/{{.Filename}}" type="video/mp4">
               </video>
               {{else}}
-              <img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png">
+              <lazy-img class="{{.Filename|imgClass}}" src="/thumbs/{{.Filename}}.png"></lazy-img>
               {{end}}
               <div class="expanded button-group">
               <a href="/{{.Filename}}" class="small button"><i class='fa fa-external-link'></i>Link</a>
@@ -34,8 +34,6 @@
 </main>  
 {{ end }}
 {{ define "extra_scripts" }}
-<script src="/assets/js/jquery.gifplayer.js" type="text/javascript"></script>
-<script type="text/javascript" charset="utf-8">
-    $('.gifplayer').gifplayer();
-</script>
+<script src="/assets/js/lazy-img.js" type="text/javascript"></script>
+<script src="/assets/js/gif-player.js" type="text/javascript"></script>
 {{ end }}
