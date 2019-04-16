@@ -17,7 +17,6 @@ func imgExt(s string) string {
 	ext := filepath.Ext(s)
 	if ext != "" {
 		ext = strings.TrimLeft(ext, ".")
-		log.Println(ext)
 	}
 	return ext
 }
